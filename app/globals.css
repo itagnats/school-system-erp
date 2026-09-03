@@ -1,0 +1,468 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================================================
+   PRIME design tokens — Sakura (桜) / comfortable
+   ----------------------------------------------------------------------------
+   Soft Japanese spring: a barely-pink paper ground, white cards held by pale
+   pink borders and low pink-tinted shadows, generous rounding, and sakura pink
+   as the action colour. Petal motifs and a gradient wash sit behind the page.
+
+   Five ideas hold the system together:
+
+     1. A card is a soft object. It floats on a pale pink shadow and is bounded
+        by a pink hairline, not a grey one. Both signals are deliberate: the
+        border alone is only a 1.26 luminance delta, which is why the shadow
+        carries the boundary with it.
+     2. Sakura pink is the action colour. A primary button is pink; ink is
+        reserved for text. --primary is #de2871 rather than the lighter pink the
+        eye expects, because white text on a lighter pink fails contrast.
+     3. Pink is allowed to be everywhere. Unlike the previous palettes there is
+        no once-per-screen rule: the ground, the borders, the table headers and
+        the shadows are all faintly pink, and the accent is a deeper step of the
+        same ramp rather than a separate hue.
+     4. Corners are generous. --radius is 10px, and badges and pills go fully
+        round. Nothing in this system is square.
+     5. Density is comfortable, not compact — 44px rows, 36px controls. The
+        soft cards need the air to read as designed.
+
+   Decoration is part of the system, not an extra: --blossom is the petal
+   colour and --wash-* are the page gradient stops. See components/decor.
+
+   Status colours are pastel soft pairs, deepened until every text pair clears
+   4.5:1 — including against the tinted stat card grounds, which cost about
+   0.8 of a ratio point compared with white.
+
+   Feature code consumes the semantic tokens (--primary, --muted-foreground,
+   --hairline, --success) and never the raw --sakura-* / --hai-* ramps or a hex.
+   ============================================================================ */
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --font-sans: var(--font-sans);
+    /* The wordmark only. A serif in small caps is the one typographic flourish
+       in the system; body and data stay on the sans. */
+    --font-display: var(--font-display);
+
+    /* --- Type scale --------------------------------------------------------
+       Comfortable: one step up from the compact scale, so 14px is body. */
+    --text-xs: 0.75rem; /* 12px */
+    --text-xs--line-height: 1.125rem;
+    --text-sm: 0.8125rem; /* 13px */
+    --text-sm--line-height: 1.25rem;
+    --text-base: 0.875rem; /* 14px — body */
+    --text-base--line-height: 1.375rem;
+    --text-lg: 1rem; /* 16px */
+    --text-lg--line-height: 1.5rem;
+    --text-xl: 1.1875rem; /* 19px */
+    --text-xl--line-height: 1.75rem;
+    --text-2xl: 1.5rem; /* 24px */
+    --text-2xl--line-height: 2rem;
+    --text-3xl: 1.875rem; /* 30px */
+    --text-3xl--line-height: 2.25rem;
+
+    /* --- Semantic surfaces (shadcn contract) ------------------------------- */
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+
+    /* --- PRIME structure --------------------------------------------------- */
+    --color-hairline: var(--hairline);
+    --color-hairline-strong: var(--hairline-strong);
+    --color-surface-sunken: var(--surface-sunken);
+    --color-surface-raised: var(--surface-raised);
+
+    /* --- The mark and its decoration --------------------------------------
+       --seal is the blossom mark; --blossom is the paler petal used in the
+       decorative motifs, which must never compete with content. */
+    --color-seal: var(--seal);
+    --color-seal-foreground: var(--seal-foreground);
+    --color-blossom: var(--blossom);
+    --color-wash-from: var(--wash-from);
+    --color-wash-to: var(--wash-to);
+
+    /* --- Card tones --------------------------------------------------------
+       The four pastel grounds a stat card can take. A tone carries no meaning
+       on its own — it groups a dashboard visually, and the label says what the
+       number is. */
+    --color-tone-pink: var(--tone-pink);
+    --color-tone-lavender: var(--tone-lavender);
+    --color-tone-blue: var(--tone-blue);
+    --color-tone-green: var(--tone-green);
+    --color-tone-pink-accent: var(--tone-pink-accent);
+    --color-tone-lavender-accent: var(--tone-lavender-accent);
+    --color-tone-blue-accent: var(--tone-blue-accent);
+    --color-tone-green-accent: var(--tone-green-accent);
+
+    /* --- PRIME status -----------------------------------------------------
+       Pastel soft pairs for badges, plus a solid for a filled indicator. */
+    --color-success: var(--success);
+    --color-success-foreground: var(--success-foreground);
+    --color-success-soft: var(--success-soft);
+    --color-success-soft-foreground: var(--success-soft-foreground);
+    --color-warning: var(--warning);
+    --color-warning-foreground: var(--warning-foreground);
+    --color-warning-soft: var(--warning-soft);
+    --color-warning-soft-foreground: var(--warning-soft-foreground);
+    --color-error: var(--error);
+    --color-error-foreground: var(--error-foreground);
+    --color-error-soft: var(--error-soft);
+    --color-error-soft-foreground: var(--error-soft-foreground);
+    --color-info: var(--info);
+    --color-info-foreground: var(--info-foreground);
+    --color-info-soft: var(--info-soft);
+    --color-info-soft-foreground: var(--info-soft-foreground);
+    --color-neutral-soft: var(--neutral-soft);
+    --color-neutral-soft-foreground: var(--neutral-soft-foreground);
+
+    /* --- Ramps (reference only; prefer the semantics above) ---------------- */
+    --color-sakura-50: var(--sakura-50);
+    --color-sakura-100: var(--sakura-100);
+    --color-sakura-200: var(--sakura-200);
+    --color-sakura-300: var(--sakura-300);
+    --color-sakura-400: var(--sakura-400);
+    --color-sakura-500: var(--sakura-500);
+    --color-sakura-600: var(--sakura-600);
+    --color-sakura-700: var(--sakura-700);
+    --color-sakura-800: var(--sakura-800);
+    --color-sakura-900: var(--sakura-900);
+    --color-hai-50: var(--hai-50);
+    --color-hai-100: var(--hai-100);
+    --color-hai-200: var(--hai-200);
+    --color-hai-300: var(--hai-300);
+    --color-hai-400: var(--hai-400);
+    --color-hai-500: var(--hai-500);
+    --color-hai-600: var(--hai-600);
+    --color-hai-700: var(--hai-700);
+    --color-hai-800: var(--hai-800);
+    --color-hai-900: var(--hai-900);
+
+    /* --- Charts -----------------------------------------------------------
+       Pink first, then the pastel tones. */
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+
+    /* --- Sidebar ----------------------------------------------------------- */
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-muted-foreground: var(--sidebar-muted-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+
+    /* --- Shape: generous --------------------------------------------------- */
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: var(--radius);
+    --radius-lg: calc(var(--radius) + 4px);
+    --radius-xl: calc(var(--radius) + 8px);
+    --radius-2xl: calc(var(--radius) + 14px);
+    --radius-3xl: calc(var(--radius) + 22px);
+
+    /* --- Elevation ---------------------------------------------------------
+       Pink-tinted and soft. Unlike the previous palettes, a resting card does
+       carry a shadow: it is half of how a card is bounded. */
+    --shadow-xs: 0 1px 2px oklch(0.55 0.16 350 / 6%);
+    --shadow-sm: 0 2px 6px oklch(0.55 0.16 350 / 8%), 0 1px 2px oklch(0.55 0.16 350 / 4%);
+    --shadow-md: 0 8px 24px oklch(0.55 0.16 350 / 10%), 0 2px 6px oklch(0.55 0.16 350 / 6%);
+    --shadow-lg: 0 24px 56px oklch(0.55 0.16 350 / 16%), 0 4px 12px oklch(0.55 0.16 350 / 8%);
+}
+
+:root {
+    /* ---- Accent ramp: sakura 桜 -------------------------------------------
+       200 is the card border, 300 the decorative petal, 600 the action colour
+       and 700 the pink that is safe as text on white. */
+    --sakura-50: #fef6f9;
+    --sakura-100: #fdeaf1;
+    --sakura-200: #fadee4;
+    --sakura-300: #f7c2d3;
+    --sakura-400: #f28fae;
+    --sakura-500: #ea5c8f;
+    --sakura-600: #de2871;
+    --sakura-700: #c01f5f;
+    --sakura-800: #99184b;
+    --sakura-900: #6b1035;
+
+    /* ---- Neutral ramp: hai 灰 ---------------------------------------------
+       Warmed toward violet rather than a true grey, so nothing on the page
+       reads as cold against the pink. */
+    --hai-50: #faf8fa;
+    --hai-100: #f4f1f5;
+    --hai-200: #e8e4ec;
+    --hai-300: #d5d0db;
+    --hai-400: #a9a3b3;
+    --hai-500: #615f6e;
+    --hai-600: #4f4d5b;
+    --hai-700: #3d3b47;
+    --hai-800: #2a2833;
+    --hai-900: #17151d;
+
+    /* ---- Semantic surfaces ----------------------------------------------- */
+    --background: var(--hai-50);
+    --foreground: var(--hai-900);
+    --card: #ffffff;
+    --card-foreground: var(--hai-900);
+    --popover: #ffffff;
+    --popover-foreground: var(--hai-900);
+    /* Table headers and inset panels take a pink tint, not a grey one. */
+    --surface-sunken: #f6eef2;
+    --surface-raised: #ffffff;
+
+    /* Sakura is the action colour. 600 rather than 500 so white text on a
+       primary button clears 4.5:1. */
+    --primary: var(--sakura-600);
+    --primary-foreground: #ffffff;
+    --secondary: var(--sakura-100);
+    --secondary-foreground: var(--sakura-800);
+    --muted: var(--hai-100);
+    --muted-foreground: var(--hai-500);
+    --accent: var(--sakura-100);
+    --accent-foreground: var(--sakura-800);
+    --destructive: #c2325c;
+
+    /* ---- Structure -------------------------------------------------------- */
+    --border: var(--sakura-200);
+    --hairline: var(--sakura-200);
+    --hairline-strong: var(--sakura-300);
+    --input: var(--sakura-300);
+    --ring: var(--sakura-500);
+
+    /* ---- The mark and its decoration -------------------------------------- */
+    --seal: var(--sakura-600);
+    --seal-foreground: #ffffff;
+    --blossom: var(--sakura-300);
+    --wash-from: #fde4ee;
+    --wash-to: #fdf2f7;
+
+    /* ---- Card tones ------------------------------------------------------- */
+    --tone-pink: #f9e9ee;
+    --tone-lavender: #f4eff9;
+    --tone-blue: #ebf1fa;
+    --tone-green: #eaf3ec;
+    --tone-pink-accent: var(--sakura-700);
+    --tone-lavender-accent: #7a5aa8;
+    --tone-blue-accent: #2d5f96;
+    --tone-green-accent: #2f7a4c;
+
+    /* ---- Status ----------------------------------------------------------
+       Soft pairs are the default; the solids exist for a filled indicator.
+       --warning takes a near-black foreground, since white on amber cannot
+       reach 4.5:1 without turning the amber brown. */
+    --success: #2f7a4c;
+    --success-foreground: #ffffff;
+    --success-soft: #deeee1;
+    --success-soft-foreground: #1f6b42;
+    --warning: #f0a93a;
+    --warning-foreground: var(--hai-900);
+    --warning-soft: #fdf0dd;
+    --warning-soft-foreground: #7a4c08;
+    --error: #c2325c;
+    --error-foreground: #ffffff;
+    --error-soft: #f9dee6;
+    --error-soft-foreground: #a8214a;
+    --info: #3b73ad;
+    --info-foreground: #ffffff;
+    --info-soft: #e7edf7;
+    --info-soft-foreground: #2d5f96;
+    --neutral-soft: var(--hai-100);
+    --neutral-soft-foreground: var(--hai-600);
+
+    /* ---- Charts ----------------------------------------------------------- */
+    --chart-1: var(--sakura-600);
+    --chart-2: var(--sakura-400);
+    --chart-3: #7a5aa8;
+    --chart-4: #3b73ad;
+    --chart-5: #2f7a4c;
+
+    /* ---- Sidebar ---------------------------------------------------------
+       A pale panel, not a bar. The active item is a soft pink pill with deep
+       pink lettering, which is the one filled shape in the navigation. */
+    --sidebar: #fdfbfd;
+    --sidebar-foreground: var(--hai-600);
+    --sidebar-muted-foreground: var(--hai-500);
+    --sidebar-primary: var(--sakura-600);
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: var(--sakura-100);
+    --sidebar-accent-foreground: var(--sakura-800);
+    --sidebar-border: var(--sakura-200);
+    --sidebar-ring: var(--sakura-500);
+
+    /* ---- Shape ------------------------------------------------------------ */
+    --radius: 0.625rem; /* 10px */
+
+    /* ---- Density: comfortable ---------------------------------------------
+       Shared components read these rather than hardcoding heights, so the whole
+       application can be re-tuned from one place. */
+    --control-h-sm: 2rem; /* 32px */
+    --control-h: 2.25rem; /* 36px */
+    --control-h-lg: 2.625rem; /* 42px */
+    --field-h: 2.375rem; /* 38px */
+    --row-h: 2.75rem; /* 44px */
+    --cell-px: 1rem; /* 16px */
+    --cell-py: 0.75rem; /* 12px */
+    --section-gap: 1.25rem; /* 20px */
+    --page-px: 1.75rem; /* 28px */
+    --page-py: 1.5rem; /* 24px */
+    --header-h: 3.75rem; /* 60px */
+    --sidebar-w: 15rem; /* 240px */
+    --sidebar-w-icon: 3.5rem; /* 56px */
+}
+
+.dark {
+    /* Dusk rather than night: the ground keeps the violet cast of the neutral
+       ramp so the pink still belongs to it. --primary lightens and takes dark
+       lettering, because a deep pink button on a dark ground loses the contrast
+       that made 600 the right choice in the light. */
+    --background: #17131a;
+    --foreground: #f2edf2;
+    --card: #211c26;
+    --card-foreground: #f2edf2;
+    --popover: #282230;
+    --popover-foreground: #f2edf2;
+    --surface-sunken: #100d13;
+    --surface-raised: #2d2635;
+
+    --primary: #f0759f;
+    --primary-foreground: #23101a;
+    --secondary: #2e2735;
+    --secondary-foreground: #f2edf2;
+    --muted: #2e2735;
+    --muted-foreground: #a49eae;
+    --accent: #3a3143;
+    --accent-foreground: #fbdce8;
+    --destructive: #ef6d8d;
+
+    --border: oklch(1 0 0 / 12%);
+    --hairline: #342c3c;
+    --hairline-strong: #4a4055;
+    --input: #4a4055;
+    --ring: #f0759f;
+
+    --seal: #f0759f;
+    --seal-foreground: #23101a;
+    --blossom: #6d3b52;
+    --wash-from: #2c1a26;
+    --wash-to: #1c1622;
+
+    --tone-pink: #2f1f28;
+    --tone-lavender: #272233;
+    --tone-blue: #1d2733;
+    --tone-green: #1c2a22;
+    --tone-pink-accent: #f0759f;
+    --tone-lavender-accent: #b795e0;
+    --tone-blue-accent: #78b0e4;
+    --tone-green-accent: #6fc48f;
+
+    --success: #6fc48f;
+    --success-foreground: #08170e;
+    --success-soft: #1a2c20;
+    --success-soft-foreground: #9adcb2;
+    --warning: #f0b45c;
+    --warning-foreground: #1c1305;
+    --warning-soft: #2e2410;
+    --warning-soft-foreground: #f3cf95;
+    --error: #ef6d8d;
+    --error-foreground: #1f0710;
+    --error-soft: #331520;
+    --error-soft-foreground: #f7a5b9;
+    --info: #78b0e4;
+    --info-foreground: #04121e;
+    --info-soft: #14212e;
+    --info-soft-foreground: #a9cef0;
+    --neutral-soft: #2e2735;
+    --neutral-soft-foreground: #a49eae;
+
+    --chart-1: #f0759f;
+    --chart-2: #f7c2d3;
+    --chart-3: #b795e0;
+    --chart-4: #78b0e4;
+    --chart-5: #6fc48f;
+
+    --sidebar: #1c1722;
+    --sidebar-foreground: #c8c2d0;
+    --sidebar-muted-foreground: #a49eae;
+    --sidebar-primary: #f0759f;
+    --sidebar-primary-foreground: #23101a;
+    --sidebar-accent: #3a2530;
+    --sidebar-accent-foreground: #fbdce8;
+    --sidebar-border: #2e2735;
+    --sidebar-ring: #f0759f;
+}
+
+@layer base {
+    * {
+        @apply border-border outline-ring/50;
+    }
+    html {
+        @apply font-sans;
+        -webkit-text-size-adjust: 100%;
+    }
+    body {
+        @apply bg-background text-foreground text-base;
+        -webkit-font-smoothing: antialiased;
+    }
+    /* Tabular figures wherever numbers are compared: IDs, scores, money. */
+    table,
+    [data-numeric] {
+        font-variant-numeric: tabular-nums;
+    }
+    /* One focus treatment for the entire application. */
+    :focus-visible {
+        @apply outline-ring outline-2 outline-offset-2;
+    }
+}
+
+@utility hairline-b {
+    border-bottom: 1px solid var(--hairline);
+}
+
+@utility hairline-t {
+    border-top: 1px solid var(--hairline);
+}
+
+@utility hairline-r {
+    border-right: 1px solid var(--hairline);
+}
+
+/* The wordmark: serif, small caps, widely tracked. */
+@utility wordmark {
+    font-family: var(--font-display), ui-serif, Georgia, serif;
+    font-variant: small-caps;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+}
+
+/* Print: the individual student report (direction.md §23) must print cleanly.
+   The decorative layer is removed as well — petals do not belong on paper. */
+@media print {
+    [data-print="hide"],
+    [data-decor] {
+        display: none !important;
+    }
+    body {
+        background: #ffffff;
+    }
+}
