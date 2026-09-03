@@ -1,5 +1,6 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
+import { Loader2Icon } from "lucide-react"
 import { Slot } from "radix-ui"
 
 import { cn } from "@/lib/utils"
@@ -51,12 +52,28 @@ function Button({
   variant = "default",
   size = "default",
   asChild = false,
+  loading = false,
+  children,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
+    /**
+     * Pending state for an action in flight.
+     *
+     * Prepends a spinner and disables the button, so a mutation cannot be
+     * submitted twice by an impatient double-click. The label stays visible on
+     * purpose: swapping it for a spinner makes the button change width and
+     * loses the only description of what is actually happening.
+     *
+     * Ignored when `asChild` is set — a slot takes exactly one child, so there
+     * is nowhere to put the spinner and no native `disabled` to rely on. Wrap
+     * the child in its own pending treatment in that case.
+     */
+    loading?: boolean
   }) {
   const Comp = asChild ? Slot.Root : "button"
+  const pending = loading && !asChild
 
   return (
     <Comp
@@ -65,7 +82,34 @@ function Button({
       data-size={size}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
-    />
+      // After the spread so that `loading` wins over a stale `disabled={false}`
+      // from the caller. A pending action must not stay clickable.
+      data-loading={pending || undefined}
+      aria-busy={pending || undefined}
+      disabled={asChild ? props.disabled : props.disabled || loading}
+    >
+      {/* A slot takes exactly ONE child, and it counts a `null` sibling as a
+          second one, so the asChild branch must hand `children` straight
+          through rather than wrapping it. Getting this wrong fails at
+          prerender, not at typecheck. */}
+      {asChild ? (
+        children
+      ) : (
+        <>
+          {pending ? (
+            // data-motion marks this as essential: the reduced-motion rule in
+            // globals.css stops every other animation, but a frozen spinner
+            // reads as a hung request rather than a respected preference.
+            <Loader2Icon
+              className="animate-spin"
+              data-motion="essential"
+              aria-hidden="true"
+            />
+          ) : null}
+          {children}
+        </>
+      )}
+    </Comp>
   )
 }
 

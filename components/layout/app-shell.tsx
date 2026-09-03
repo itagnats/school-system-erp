@@ -12,12 +12,25 @@ import { AppSidebar } from "./app-sidebar";
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-svh bg-background">
+      {/* First tab stop on every page, and invisible until it is focused.
+          Without it, reaching the content means tabbing through the whole
+          sidebar again after every navigation. */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground focus:shadow-md"
+      >
+        Skip to content
+      </a>
       <PetalField />
       <AppSidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <AppHeader />
         <main
-          className="flex-1"
+          id="main-content"
+          // Focusable only as a skip-link target, so focus actually lands in
+          // the content rather than being left on a link to it.
+          tabIndex={-1}
+          className="flex-1 outline-none"
           style={{ padding: "var(--page-py) var(--page-px)" }}
         >
           <div className="mx-auto w-full max-w-[1400px]">{children}</div>

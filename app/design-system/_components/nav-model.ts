@@ -36,6 +36,15 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "structure", label: "Structure" },
       { id: "card-tones", label: "Card tones" },
       { id: "decoration", label: "Decoration" },
+      { id: "motion", label: "Motion" },
+      { id: "motion-usage", label: "Motion usage" },
+      { id: "reduced-motion", label: "Reduced motion" },
+      { id: "accessibility", label: "Accessibility" },
+      { id: "a11y-keyboard", label: "Keyboard" },
+      { id: "a11y-forms", label: "Labels & errors" },
+      { id: "a11y-dialog", label: "Dialog a11y" },
+      { id: "a11y-contrast", label: "Contrast" },
+      { id: "a11y-nonvisual", label: "Beyond colour" },
     ],
   },
   {
@@ -96,6 +105,32 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "panel", label: "Panel" },
       { id: "scaffold-placeholder", label: "Scaffold placeholder" },
       { id: "confirmation", label: "Confirmation" },
+    ],
+  },
+  {
+    id: "group-states",
+    label: "States",
+    blurb:
+      "What a control looks like in every condition it can be in. Hover and press cannot be shown in a static cell, so those are marked as replicas rather than passed off as live.",
+    items: [
+      { id: "state-principles", label: "How a state reads" },
+      { id: "state-button", label: "Button" },
+      { id: "state-field", label: "Text fields" },
+      { id: "state-choice", label: "Choice controls" },
+      { id: "state-row", label: "Table rows" },
+      { id: "state-screen", label: "Screen states" },
+    ],
+  },
+  {
+    id: "group-compositions",
+    label: "Compositions",
+    blurb:
+      "How the parts assemble into screens. The Patterns group documents the components; this one documents the order they go in, which is the part a component list cannot express.",
+    items: [
+      { id: "architecture", label: "Architecture" },
+      { id: "screen-anatomy", label: "Screen anatomy" },
+      { id: "charts", label: "Charts" },
+      { id: "composition-dashboard", label: "Dashboard" },
     ],
   },
 ];

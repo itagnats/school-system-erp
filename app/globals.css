@@ -189,6 +189,42 @@
     --shadow-sm: 0 2px 6px oklch(0.55 0.16 350 / 8%), 0 1px 2px oklch(0.55 0.16 350 / 4%);
     --shadow-md: 0 8px 24px oklch(0.55 0.16 350 / 10%), 0 2px 6px oklch(0.55 0.16 350 / 6%);
     --shadow-lg: 0 24px 56px oklch(0.55 0.16 350 / 16%), 0 4px 12px oklch(0.55 0.16 350 / 8%);
+
+    /* --- Motion ------------------------------------------------------------
+       Both halves go through the namespaces the core utilities already read,
+       verified against tailwindcss 4.3.3: `duration-*` resolves
+       --transition-duration-* and `ease-*` resolves --ease-*. So these become
+       duration-fast / duration-normal / duration-slow and ease-standard /
+       ease-enter / ease-exit / ease-emphasized.
+
+       Going through the core namespace rather than a custom @utility matters:
+       `duration-fast` sets --tw-duration, which is the variable `transition`
+       and `transition-all` read. A hand-rolled utility would instead set
+       transition-duration directly and then race the core utility on source
+       order.
+
+       The curves are asymmetric on purpose. Something arriving decelerates
+       into place so the eye can follow it; something leaving accelerates away
+       because nobody needs to watch it go. */
+    /* Tailwind falls back to these when a transition-* utility names no
+       duration, which is the case for nearly every transition already in the
+       codebase. Re-pointing them is what makes those token-driven rather than
+       stuck on the 150ms default.
+
+       Overlays are the exception and need an explicit duration-* utility:
+       --animate-in resolves var(--tw-animation-duration, var(--tw-duration,
+       .15s)) and never looks at this key. */
+    --default-transition-duration: var(--motion-fast);
+    --default-transition-timing-function: var(--motion-ease-standard);
+
+    --transition-duration-fast: var(--motion-fast);
+    --transition-duration-normal: var(--motion-normal);
+    --transition-duration-slow: var(--motion-slow);
+
+    --ease-standard: var(--motion-ease-standard);
+    --ease-enter: var(--motion-ease-enter);
+    --ease-exit: var(--motion-ease-exit);
+    --ease-emphasized: var(--motion-ease-emphasized);
 }
 
 :root {
@@ -329,6 +365,41 @@
     --header-h: 3.75rem; /* 60px */
     --sidebar-w: 15rem; /* 240px */
     --sidebar-w-icon: 3.5rem; /* 56px */
+
+    /* ---- Motion -----------------------------------------------------------
+       Three durations, and that is the whole vocabulary. Anything that needs a
+       fourth is usually two things happening that should be one.
+
+         fast    a state change on something already under the cursor:
+                 hover, active, focus ring, checkbox tick
+         normal  something appearing or disappearing in place:
+                 dropdown, tooltip, popover, toast, accordion
+         slow    something that moves a distance or covers the page:
+                 dialog, sheet, page transition
+
+       Unlike every other token here these are NOT redefined in .dark. The
+       rule that a token must exist in all three places is about colour: a
+       colour defined only in :root breaks dark mode silently. A duration has
+       no dark value to break, and duplicating it would only create two places
+       to forget.
+
+       These raw values are what the theme namespace above points at, and are
+       the ones to read in a hand-written CSS transition. In markup, prefer the
+       generated utilities: duration-fast, duration-normal, duration-slow.
+
+       Reduced motion is handled once, globally, below the base layer. Do not
+       write a prefers-reduced-motion query in a component. */
+    --motion-fast: 120ms;
+    --motion-normal: 200ms;
+    --motion-slow: 320ms;
+
+    /* Asymmetric by design: entering decelerates so the eye can follow it,
+       leaving accelerates because nobody needs to watch it go. Emphasized
+       overshoots slightly and is reserved for a deliberate flourish. */
+    --motion-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+    --motion-ease-enter: cubic-bezier(0.05, 0.7, 0.1, 1);
+    --motion-ease-exit: cubic-bezier(0.3, 0, 0.8, 0.15);
+    --motion-ease-emphasized: cubic-bezier(0.34, 1.26, 0.64, 1);
 }
 
 .dark {
@@ -432,6 +503,37 @@
     /* One focus treatment for the entire application. */
     :focus-visible {
         @apply outline-ring outline-2 outline-offset-2;
+    }
+}
+
+/* Reduced motion, handled once for the whole application.
+   -------------------------------------------------------------------------
+   Durations collapse to 0.01ms rather than to none, because an animation that
+   never runs never fires animationend, and Radix waits on that event before
+   unmounting an exiting overlay. Zero-but-not-none keeps the callback.
+
+   Essential motion survives. A spinner is not decoration: it is the only
+   signal that something is pending, and stopping it would leave a frozen
+   circle that reads as broken. Mark those with data-motion="essential" and
+   nothing else. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        animation-delay: 0ms !important;
+        transition-delay: 0ms !important;
+    }
+
+    [data-motion="essential"] {
+        animation-duration: 1.6s !important;
+        animation-iteration-count: infinite !important;
+    }
+
+    html {
+        scroll-behavior: auto !important;
     }
 }
 

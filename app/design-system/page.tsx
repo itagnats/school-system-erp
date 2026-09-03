@@ -4,17 +4,22 @@ import { PageHeader, Section, StatusBadge } from "@/components/shared";
 import { APP } from "@/config/app";
 import { NAV_GROUPS } from "./_components/nav-model";
 import { SectionNav } from "./_components/section-nav";
+import { AccessibilitySection } from "./_sections/accessibility";
+import { CompositionsSection } from "./_sections/compositions";
 import { FoundationsSection } from "./_sections/foundations";
+import { MotionSection } from "./_sections/motion";
 import { OverlaysSection } from "./_sections/overlays";
 import { PatternsSection } from "./_sections/patterns";
 import { PrimitivesSection } from "./_sections/primitives";
+import { StatesSection } from "./_sections/states";
 
 export const metadata: Metadata = {
   title: "Design System",
   description: "Tokens, primitives and application patterns for PRIME.",
 };
 
-const [foundations, primitives, overlays, patterns] = NAV_GROUPS;
+const [foundations, primitives, overlays, patterns, states, compositions] =
+  NAV_GROUPS;
 
 /**
  * A heading for one group of sections. It is the anchor the nav links to and
@@ -64,34 +69,48 @@ export default function DesignSystemPage() {
 
       <Section
         className="mb-6"
-        title="How the layers fit together"
-        description="A component may depend downward, never upward. This is the rule that keeps business vocabulary out of generic UI."
+        title="How to read this page"
+        description="One document rather than tabs, so every component is on screen and in the server-rendered HTML. Each heading is linkable."
       >
-        <div className="flex flex-wrap items-center gap-1.5 text-xs">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            "Design tokens",
-            "components/ui",
-            "components/shared",
-            "features/*",
-            "app/*",
-          ].map((layer, index, all) => (
-            <span key={layer} className="flex items-center gap-1.5">
-              <code className="rounded-sm border border-hairline bg-surface-sunken px-1.5 py-0.5">
-                {layer}
-              </code>
-              {index < all.length - 1 ? (
-                <span aria-hidden className="text-muted-foreground">
-                  →
-                </span>
-              ) : null}
-            </span>
+            {
+              group: "Foundations",
+              detail:
+                "Tokens, and the two things made out of them that are easy to treat as afterthoughts: motion and accessibility.",
+            },
+            {
+              group: "Primitives & Overlays",
+              detail:
+                "components/ui. Generic, no domain vocabulary. Overlays are the only surfaces allowed a shadow.",
+            },
+            {
+              group: "Patterns",
+              detail:
+                "components/shared. Reusable application patterns, still free of business rules.",
+            },
+            {
+              group: "States",
+              detail:
+                "Every condition a control can be in, in one place, so two components never disagree about what disabled looks like.",
+            },
+            {
+              group: "Compositions",
+              detail:
+                "How the parts assemble into screens, plus the layer diagram and the chart rules.",
+            },
+            {
+              group: "Not here",
+              detail:
+                "Feature screens. Those live in features/* and read real data; a permanent fake one in the design system is a component that exists only for the showcase.",
+            },
+          ].map((item) => (
+            <div key={item.group}>
+              <p className="text-xs font-medium text-foreground">{item.group}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{item.detail}</p>
+            </div>
           ))}
         </div>
-        <p className="mt-3 max-w-prose text-xs text-muted-foreground">
-          A generic component that needs to know about enrollment status, cost groups
-          or evaluator roles is in the wrong layer. It takes a tone, a label or a
-          render prop instead, and the feature supplies the meaning.
-        </p>
       </Section>
 
       {/* One document, not tabs: every component is on screen and in the
@@ -104,6 +123,8 @@ export default function DesignSystemPage() {
         <div className="flex min-w-0 flex-col gap-10">
           <Group group={foundations}>
             <FoundationsSection />
+            <MotionSection />
+            <AccessibilitySection />
           </Group>
           <Group group={primitives}>
             <PrimitivesSection />
@@ -113,6 +134,12 @@ export default function DesignSystemPage() {
           </Group>
           <Group group={patterns}>
             <PatternsSection />
+          </Group>
+          <Group group={states}>
+            <StatesSection />
+          </Group>
+          <Group group={compositions}>
+            <CompositionsSection />
           </Group>
         </div>
       </div>
