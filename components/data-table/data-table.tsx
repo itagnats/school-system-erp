@@ -189,12 +189,10 @@ export function DataTable<TData extends RowData>({
                               ? "none"
                               : undefined
                       }
-                      style={{
-                        height: "var(--row-h)",
-                        paddingLeft: "var(--cell-px)",
-                        paddingRight: "var(--cell-px)",
-                        width: meta?.width,
-                      }}
+                      // Height and cell padding come from TableHead itself now
+                      // that it reads the density tokens; only the per-column
+                      // width is genuinely dynamic.
+                      style={{ width: meta?.width }}
                       className={cn(
                         "text-xs font-medium tracking-wide text-muted-foreground uppercase",
                         ALIGN_CLASS[meta?.align ?? "left"],
@@ -244,10 +242,6 @@ export function DataTable<TData extends RowData>({
                   return (
                     <TableCell
                       key={cell.id}
-                      style={{
-                        height: "var(--row-h)",
-                        padding: "var(--cell-py) var(--cell-px)",
-                      }}
                       className={cn(
                         "text-sm",
                         ALIGN_CLASS[meta?.align ?? "left"],

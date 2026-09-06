@@ -42,7 +42,6 @@ export function FilterSelect<TValue extends string = string>({
       <SelectTrigger
         aria-label={label}
         className={cn("min-w-[8.5rem] gap-1.5", className)}
-        style={{ height: "var(--field-h)" }}
       >
         <span className="shrink-0 text-xs text-muted-foreground">{label}</span>
         <SelectValue placeholder={placeholder ?? allLabel} />

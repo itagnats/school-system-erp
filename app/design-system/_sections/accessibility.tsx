@@ -30,6 +30,7 @@ const CONTRAST = [
   { pair: "Secondary text on a card", light: 6.23, dark: 6.42 },
   { pair: "Secondary text on a table header", light: 5.47, dark: 7.42 },
   { pair: "Label on a primary button", light: 4.52, dark: 6.68 },
+  { pair: "Link on the page ground", light: 5.52, dark: 6.77 },
   { pair: "Accent on the pink card tone", light: 4.97, dark: 5.75 },
   { pair: "Accent on the blue card tone", light: 5.8, dark: 6.57 },
   { pair: "Enrolled badge", light: 5.38, dark: 9.3 },
@@ -145,7 +146,7 @@ export function AccessibilitySection() {
               />
               <a
                 href="#accessibility"
-                className="rounded-sm text-sm text-primary underline-offset-4 hover:underline"
+                className="rounded-sm text-sm text-primary-strong underline-offset-4 hover:underline"
               >
                 Link
               </a>
@@ -244,7 +245,7 @@ export function AccessibilitySection() {
           state, so a Zod message reaches assistive technology by default rather than
           when someone remembers. See
           <a
-            className="mx-1 text-primary underline-offset-4 hover:underline"
+            className="mx-1 text-primary-strong underline-offset-4 hover:underline"
             href="#form-bindings"
           >
             Primitives → Form bindings
@@ -332,6 +333,19 @@ export function AccessibilitySection() {
             <code className="mx-1">#e84884</code>
             of the reference mockup, which reaches only 3.5 and fails. It looks like a
             transcription error and is not one.
+          </p>
+
+          <p className="max-w-prose text-xs text-muted-foreground">
+            There are two pinks for the same reason. A button measures its pink
+            against the white lettering on top of it;
+            <em className="mx-1">text</em>
+            in that same pink measures against the page behind it, and
+            <code className="mx-1">--primary</code>
+            reaches only 4.28 there. Anything pink that is type — a link, an outline
+            badge — takes
+            <code className="mx-1">--primary-strong</code>
+            instead. In dark the two converge, because the lightened pink already
+            reads on the dusk ground.
           </p>
         </div>
       </Section>

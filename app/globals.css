@@ -73,6 +73,7 @@
     --color-popover-foreground: var(--popover-foreground);
     --color-primary: var(--primary);
     --color-primary-foreground: var(--primary-foreground);
+    --color-primary-strong: var(--primary-strong);
     --color-secondary: var(--secondary);
     --color-secondary-foreground: var(--secondary-foreground);
     --color-muted: var(--muted);
@@ -271,6 +272,11 @@
        primary button clears 4.5:1. */
     --primary: var(--sakura-600);
     --primary-foreground: #ffffff;
+    /* The pink that is safe as TEXT. --primary is measured against the white
+       lettering of a button (4.52:1) and was never meant to carry type itself:
+       on the page ground it reaches only 4.28:1. A link, or an outline badge
+       sitting on --background, uses this deeper step instead — 5.52:1. */
+    --primary-strong: var(--sakura-700);
     --secondary: var(--sakura-100);
     --secondary-foreground: var(--sakura-800);
     --muted: var(--hai-100);
@@ -352,6 +358,7 @@
     /* ---- Density: comfortable ---------------------------------------------
        Shared components read these rather than hardcoding heights, so the whole
        application can be re-tuned from one place. */
+    --control-h-xs: 1.5rem; /* 24px */
     --control-h-sm: 2rem; /* 32px */
     --control-h: 2.25rem; /* 36px */
     --control-h-lg: 2.625rem; /* 42px */
@@ -402,85 +409,95 @@
     --motion-ease-emphasized: cubic-bezier(0.34, 1.26, 0.64, 1);
 }
 
-.dark {
-    /* Dusk rather than night: the ground keeps the violet cast of the neutral
-       ramp so the pink still belongs to it. --primary lightens and takes dark
-       lettering, because a deep pink button on a dark ground loses the contrast
-       that made 600 the right choice in the light. */
-    --background: #17131a;
-    --foreground: #f2edf2;
-    --card: #211c26;
-    --card-foreground: #f2edf2;
-    --popover: #282230;
-    --popover-foreground: #f2edf2;
-    --surface-sunken: #100d13;
-    --surface-raised: #2d2635;
+/* Dark mode is a SCREEN concern. Scoping the overrides here means paper
+   falls back to the :root values automatically, instead of the print rule
+   below having to restate the entire light palette to undo them. Without
+   it, printing with dark mode on gives #f2edf2 text on a forced white
+   page — a blank sheet where the student report should be. */
+@media screen {
+    .dark {
+        /* Dusk rather than night: the ground keeps the violet cast of the neutral
+           ramp so the pink still belongs to it. --primary lightens and takes dark
+           lettering, because a deep pink button on a dark ground loses the contrast
+           that made 600 the right choice in the light. */
+        --background: #17131a;
+        --foreground: #f2edf2;
+        --card: #211c26;
+        --card-foreground: #f2edf2;
+        --popover: #282230;
+        --popover-foreground: #f2edf2;
+        --surface-sunken: #100d13;
+        --surface-raised: #2d2635;
 
-    --primary: #f0759f;
-    --primary-foreground: #23101a;
-    --secondary: #2e2735;
-    --secondary-foreground: #f2edf2;
-    --muted: #2e2735;
-    --muted-foreground: #a49eae;
-    --accent: #3a3143;
-    --accent-foreground: #fbdce8;
-    --destructive: #ef6d8d;
+        --primary: #f0759f;
+        --primary-foreground: #23101a;
+        /* Already light enough to read as type on the dusk ground, so the text
+           step and the action colour converge here rather than diverging. */
+        --primary-strong: var(--primary);
+        --secondary: #2e2735;
+        --secondary-foreground: #f2edf2;
+        --muted: #2e2735;
+        --muted-foreground: #a49eae;
+        --accent: #3a3143;
+        --accent-foreground: #fbdce8;
+        --destructive: #ef6d8d;
 
-    --border: oklch(1 0 0 / 12%);
-    --hairline: #342c3c;
-    --hairline-strong: #4a4055;
-    --input: #4a4055;
-    --ring: #f0759f;
+        --border: oklch(1 0 0 / 12%);
+        --hairline: #342c3c;
+        --hairline-strong: #4a4055;
+        --input: #4a4055;
+        --ring: #f0759f;
 
-    --seal: #f0759f;
-    --seal-foreground: #23101a;
-    --blossom: #6d3b52;
-    --wash-from: #2c1a26;
-    --wash-to: #1c1622;
+        --seal: #f0759f;
+        --seal-foreground: #23101a;
+        --blossom: #6d3b52;
+        --wash-from: #2c1a26;
+        --wash-to: #1c1622;
 
-    --tone-pink: #2f1f28;
-    --tone-lavender: #272233;
-    --tone-blue: #1d2733;
-    --tone-green: #1c2a22;
-    --tone-pink-accent: #f0759f;
-    --tone-lavender-accent: #b795e0;
-    --tone-blue-accent: #78b0e4;
-    --tone-green-accent: #6fc48f;
+        --tone-pink: #2f1f28;
+        --tone-lavender: #272233;
+        --tone-blue: #1d2733;
+        --tone-green: #1c2a22;
+        --tone-pink-accent: #f0759f;
+        --tone-lavender-accent: #b795e0;
+        --tone-blue-accent: #78b0e4;
+        --tone-green-accent: #6fc48f;
 
-    --success: #6fc48f;
-    --success-foreground: #08170e;
-    --success-soft: #1a2c20;
-    --success-soft-foreground: #9adcb2;
-    --warning: #f0b45c;
-    --warning-foreground: #1c1305;
-    --warning-soft: #2e2410;
-    --warning-soft-foreground: #f3cf95;
-    --error: #ef6d8d;
-    --error-foreground: #1f0710;
-    --error-soft: #331520;
-    --error-soft-foreground: #f7a5b9;
-    --info: #78b0e4;
-    --info-foreground: #04121e;
-    --info-soft: #14212e;
-    --info-soft-foreground: #a9cef0;
-    --neutral-soft: #2e2735;
-    --neutral-soft-foreground: #a49eae;
+        --success: #6fc48f;
+        --success-foreground: #08170e;
+        --success-soft: #1a2c20;
+        --success-soft-foreground: #9adcb2;
+        --warning: #f0b45c;
+        --warning-foreground: #1c1305;
+        --warning-soft: #2e2410;
+        --warning-soft-foreground: #f3cf95;
+        --error: #ef6d8d;
+        --error-foreground: #1f0710;
+        --error-soft: #331520;
+        --error-soft-foreground: #f7a5b9;
+        --info: #78b0e4;
+        --info-foreground: #04121e;
+        --info-soft: #14212e;
+        --info-soft-foreground: #a9cef0;
+        --neutral-soft: #2e2735;
+        --neutral-soft-foreground: #a49eae;
 
-    --chart-1: #f0759f;
-    --chart-2: #f7c2d3;
-    --chart-3: #b795e0;
-    --chart-4: #78b0e4;
-    --chart-5: #6fc48f;
+        --chart-1: #f0759f;
+        --chart-2: #f7c2d3;
+        --chart-3: #b795e0;
+        --chart-4: #78b0e4;
+        --chart-5: #6fc48f;
 
-    --sidebar: #1c1722;
-    --sidebar-foreground: #c8c2d0;
-    --sidebar-muted-foreground: #a49eae;
-    --sidebar-primary: #f0759f;
-    --sidebar-primary-foreground: #23101a;
-    --sidebar-accent: #3a2530;
-    --sidebar-accent-foreground: #fbdce8;
-    --sidebar-border: #2e2735;
-    --sidebar-ring: #f0759f;
+        --sidebar: #1c1722;
+        --sidebar-foreground: #c8c2d0;
+        --sidebar-muted-foreground: #a49eae;
+        --sidebar-primary: #f0759f;
+        --sidebar-primary-foreground: #23101a;
+        --sidebar-accent: #3a2530;
+        --sidebar-accent-foreground: #fbdce8;
+        --sidebar-border: #2e2735;
+        --sidebar-ring: #f0759f;
+    }
 }
 
 @layer base {
@@ -558,8 +575,18 @@
 }
 
 /* Print: the individual student report (direction.md §23) must print cleanly.
-   The decorative layer is removed as well — petals do not belong on paper. */
+   The decorative layer is removed as well — petals do not belong on paper.
+
+   The theme needs no undoing here: the .dark overrides are scoped to
+   `@media screen` above, so paper always resolves the :root light values even
+   when the reader has dark mode on. */
 @media print {
+    /* Paper is white, not the faint pink of --background, and the UA should
+       not re-darken form controls it thinks belong to a dark theme. */
+    :root {
+        color-scheme: light;
+    }
+
     [data-print="hide"],
     [data-decor] {
         display: none !important;

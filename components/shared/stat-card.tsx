@@ -25,13 +25,20 @@ const TONE_SURFACE: Record<StatTone, string> = {
   green: "bg-tone-green",
 };
 
-/** The icon chip sits on a stronger step of the same tone. */
+/**
+ * The icon chip sits on a lifted step of the same tone.
+ *
+ * `bg-card/70` rather than `bg-white/70`: white has no dark value, so on the
+ * dusk tone grounds the chip composited to a near-white pill carrying pale
+ * pink lettering at about 1.5:1. Following --card keeps the chip a lift of
+ * whatever surface it is on in both themes.
+ */
 const TONE_CHIP: Record<StatTone, string> = {
   plain: "bg-muted text-muted-foreground",
-  pink: "bg-white/70 text-tone-pink-accent",
-  lavender: "bg-white/70 text-tone-lavender-accent",
-  blue: "bg-white/70 text-tone-blue-accent",
-  green: "bg-white/70 text-tone-green-accent",
+  pink: "bg-card/70 text-tone-pink-accent",
+  lavender: "bg-card/70 text-tone-lavender-accent",
+  blue: "bg-card/70 text-tone-blue-accent",
+  green: "bg-card/70 text-tone-green-accent",
 };
 
 /**

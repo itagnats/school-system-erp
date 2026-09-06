@@ -29,10 +29,13 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    // suppressHydrationWarning is required by next-themes: it writes the theme
-    // class onto <html> before React hydrates.
+    // suppressHydrationWarning on <html> is required by next-themes: it writes the theme
+    // class onto <html> before React hydrates. On <body> it absorbs the attributes
+    // browser extensions (Grammarly, password managers) inject before hydration.
+    // It only covers the element it sits on, so it hides no real mismatch below.
     <html lang="en" suppressHydrationWarning>
       <body
+        suppressHydrationWarning
         className={cn(
           "font-sans antialiased",
           geistSans.variable,

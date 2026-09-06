@@ -10,6 +10,7 @@ const SEMANTIC_TOKENS = [
   { token: "card", label: "Panel surface" },
   { token: "surface-sunken", label: "Table header, pink tint" },
   { token: "primary", label: "Sakura. The one real action" },
+  { token: "primary-strong", label: "Sakura as TEXT, e.g. a link" },
   { token: "secondary", label: "Quiet action" },
   { token: "muted", label: "Inert fill" },
   { token: "muted-foreground", label: "Secondary text" },

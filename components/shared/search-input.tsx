@@ -62,7 +62,6 @@ export function SearchInput({
         placeholder={placeholder}
         aria-label={ariaLabel}
         className="pr-7 pl-8 [&::-webkit-search-cancel-button]:hidden"
-        style={{ height: "var(--field-h)" }}
       />
       {draft ? (
         <Button

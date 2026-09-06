@@ -391,7 +391,7 @@ export function StatesSection() {
           <code className="mx-1">ErrorState</code>, wired together by
           <code className="mx-1">QueryBoundary</code>, and they are documented under
           <a
-            className="mx-1 text-primary underline-offset-4 hover:underline"
+            className="mx-1 text-primary-strong underline-offset-4 hover:underline"
             href="#data-states"
           >
             Patterns → Data states

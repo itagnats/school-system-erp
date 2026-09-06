@@ -36,7 +36,7 @@ const statusBadgeVariants = cva(
       { variant: "outline", tone: "success", className: "border-success/40 text-success" },
       { variant: "outline", tone: "warning", className: "border-warning/40 text-warning" },
       { variant: "outline", tone: "error", className: "border-error/40 text-error" },
-      { variant: "outline", tone: "accent", className: "border-primary/40 text-primary" },
+      { variant: "outline", tone: "accent", className: "border-primary/40 text-primary-strong" },
     ],
     defaultVariants: { tone: "neutral", variant: "soft" },
   },
