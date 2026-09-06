@@ -321,13 +321,25 @@ export function FoundationsSection() {
         <div className="grid gap-4 lg:grid-cols-3">
           <Demo
             title="SakuraMark"
-            note="The mark itself. currentColor throughout, so the caller decides whether it is the brand (text-seal) or a background petal (text-blossom)."
+            note="The mark itself. currentColor throughout, so the caller decides whether it is the brand (text-seal) or a background petal (text-blossom). Two variants: seal is flat and survives 16px; bloom is a fuller flower that wants size to earn its detail. Compare them at the sizes the app actually uses — 20px in a page header, 28px in the sidebar."
           >
-            <div className="flex items-end gap-4 text-seal">
-              <SakuraMark className="size-4" />
-              <SakuraMark className="size-7" />
-              <SakuraMark className="size-12" />
-              <SakuraMark className="size-12 text-blossom" />
+            <div className="space-y-3">
+              <div className="flex items-end gap-4 text-seal">
+                <span className="w-12 shrink-0 text-[10px] text-muted-foreground">seal</span>
+                <SakuraMark className="size-4" />
+                <SakuraMark className="size-5" />
+                <SakuraMark className="size-7" />
+                <SakuraMark className="size-12" />
+                <SakuraMark className="size-12 text-blossom" />
+              </div>
+              <div className="flex items-end gap-4 text-seal">
+                <span className="w-12 shrink-0 text-[10px] text-muted-foreground">bloom</span>
+                <SakuraMark variant="bloom" className="size-4" />
+                <SakuraMark variant="bloom" className="size-5" />
+                <SakuraMark variant="bloom" className="size-7" />
+                <SakuraMark variant="bloom" className="size-12" />
+                <SakuraMark variant="bloom" className="size-12 text-blossom" />
+              </div>
             </div>
           </Demo>
 
