@@ -14,6 +14,20 @@ that will own it.
 
 ---
 
+## Documentation
+
+The reasoning behind the code, not just the shape of it:
+
+| Document | What it covers |
+| -------- | -------------- |
+| [docs/architecture.md](docs/architecture.md) | The layering rule, folder map, routing, where state lives, the domain model, and an honest inventory of what is built |
+| [docs/design-system.md](docs/design-system.md) | Sakura — the six rules, the token contract, motion, contrast, accessibility |
+| [docs/data-flow.md](docs/data-flow.md) | Seed → repository → service → BFF → hook → component; the list and error contracts |
+| [docs/evaluation-model.md](docs/evaluation-model.md) | The 360° chain: four roles, the weighted score, ranking scope, derived grades |
+| [docs/decisions/](docs/decisions/) | Why feature-first architecture · why shadcn · why a BFF with no backend |
+
+---
+
 ## Tech stack
 
 | Concern         | Choice                                     |
@@ -231,11 +245,12 @@ Authentication, authorisation and CSRF are out of scope for this project
 
 ## Specification
 
-`direction.md` defines **what** PRIME is: product scope, workflows, business
-rules, MVP and what is explicitly out of scope.
+Two documents are the source of truth for this project, in this order:
+`direction.md` defines **what** PRIME is — product scope, workflows, business
+rules, MVP and what is explicitly out of scope — and `scaffold.md` defines **how**
+it is structured.
 
-`scaffold.md` defines **how** it is structured: stack, folder architecture and
-conventions.
-
-Both are the source of truth, in that order. Work in progress is recorded in
-`.claude/worklog/`.
+`direction.md` is in this repository. `scaffold.md` and the running work log in
+`.claude/worklog/` are not — they stay outside version control as working
+documents. The decisions that came out of all three are distilled into
+[docs/](docs/), which is the version written to be read rather than worked from.
