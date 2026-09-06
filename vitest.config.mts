@@ -11,8 +11,13 @@ export default defineConfig({
     include: ["tests/**/*.test.ts"],
     coverage: {
       provider: "v8",
-      include: ["lib/calculations/**", "features/**/calculations/**"],
-      reporter: ["text", "html"],
+      // Extension-qualified: a bare `**` also matches .gitkeep placeholders,
+      // which then appear in lcov.info as uncovered files and drag the number
+      // down for something that is not code.
+      include: ["lib/calculations/**/*.ts", "features/**/calculations/**/*.ts"],
+      // lcov is what SonarQube/SonarCloud ingests; text and html are for a
+      // human reading the same run locally.
+      reporter: ["text", "html", "lcov"],
     },
   },
 });

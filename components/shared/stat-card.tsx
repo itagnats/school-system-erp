@@ -42,6 +42,18 @@ const TONE_CHIP: Record<StatTone, string> = {
 };
 
 /**
+ * Colour for the trend line.
+ *
+ * Direction is not the same as good news, which is why `trendIsGood` is a
+ * separate input: enrollment up is positive, drop-outs up is not. Flat is
+ * neither, so it stays neutral regardless.
+ */
+function trendToneClass(trend: Trend | undefined, trendIsGood: boolean): string {
+  if (trend === "flat") return "text-muted-foreground";
+  return trendIsGood ? "text-success" : "text-error";
+}
+
+/**
  * Single metric tile for the dashboard and detail summaries.
  *
  * Direction of a trend is not the same as whether it is good news: enrollment
@@ -72,12 +84,7 @@ export function StatCard({
   className?: string;
 }) {
   const TrendIcon = trend ? TREND_ICON[trend] : null;
-  const trendClass =
-    trend === "flat"
-      ? "text-muted-foreground"
-      : trendIsGood
-        ? "text-success"
-        : "text-error";
+  const trendClass = trendToneClass(trend, trendIsGood);
 
   return (
     <div

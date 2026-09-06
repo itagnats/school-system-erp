@@ -82,6 +82,22 @@ export interface DataTableProps<TData extends RowData> {
   maxBodyHeight?: string;
 }
 
+/**
+ * The aria-sort value for a header cell.
+ *
+ * A sortable column that is not currently sorted must announce "none"; a column
+ * that cannot sort at all announces nothing, because aria-sort on a static
+ * header tells a screen reader the column is sortable when it is not.
+ */
+function ariaSortFor(
+  sorted: false | "asc" | "desc",
+  canSort: boolean,
+): "ascending" | "descending" | "none" | undefined {
+  if (sorted === "asc") return "ascending";
+  if (sorted === "desc") return "descending";
+  return canSort ? "none" : undefined;
+}
+
 const ALIGN_CLASS = {
   left: "text-left",
   center: "text-center",
@@ -180,15 +196,7 @@ export function DataTable<TData extends RowData>({
                   return (
                     <TableHead
                       key={header.id}
-                      aria-sort={
-                        sorted === "asc"
-                          ? "ascending"
-                          : sorted === "desc"
-                            ? "descending"
-                            : header.column.getCanSort()
-                              ? "none"
-                              : undefined
-                      }
+                      aria-sort={ariaSortFor(sorted, header.column.getCanSort())}
                       // Height and cell padding come from TableHead itself now
                       // that it reads the density tokens; only the per-column
                       // width is genuinely dynamic.

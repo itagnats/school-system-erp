@@ -5,6 +5,16 @@ import type { RowData } from "@tanstack/react-table";
 import { cn } from "@/lib/utils";
 import type { PrimeColumn } from "./table-features";
 
+/** Horizontal placement of the header's flex row. */
+const ALIGN_JUSTIFY = {
+  left: "",
+  center: "justify-center",
+  right: "justify-end",
+} as const;
+
+/** Icon per sort state. `false` (unsorted) falls through to the neutral one. */
+const SORT_ICON = { asc: ArrowUp, desc: ArrowDown } as const;
+
 /**
  * Sortable column header.
  *
@@ -23,8 +33,7 @@ export function DataTableColumnHeader<TData extends RowData, TValue>({
   align?: "left" | "right" | "center";
   className?: string;
 }) {
-  const alignClass =
-    align === "right" ? "justify-end" : align === "center" ? "justify-center" : "";
+  const alignClass = ALIGN_JUSTIFY[align];
 
   if (!column.getCanSort()) {
     return (
@@ -33,7 +42,7 @@ export function DataTableColumnHeader<TData extends RowData, TValue>({
   }
 
   const sorted = column.getIsSorted();
-  const Icon = sorted === "asc" ? ArrowUp : sorted === "desc" ? ArrowDown : ChevronsUpDown;
+  const Icon = sorted ? SORT_ICON[sorted] : ChevronsUpDown;
 
   return (
     <button

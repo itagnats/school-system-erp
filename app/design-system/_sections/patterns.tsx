@@ -50,6 +50,8 @@ interface DemoRow {
   status: "enrolled" | "active" | "pending" | "completed" | "dropped";
 }
 
+type BoundaryState = "loading" | "success" | "empty" | "error";
+
 const DEMO_ROWS: DemoRow[] = [
   { id: "1", studentId: "ST-2026-001", name: "Student 001", group: "Group A", score: 92.5, status: "active" },
   { id: "2", studentId: "ST-2026-002", name: "Student 002", group: "Group A", score: 89.7, status: "enrolled" },
@@ -57,6 +59,18 @@ const DEMO_ROWS: DemoRow[] = [
   { id: "4", studentId: "ST-2026-004", name: "Student 004", group: "Group B", score: 83.9, status: "completed" },
   { id: "5", studentId: "ST-2026-005", name: "Student 005", group: "Group C", score: 61.4, status: "dropped" },
 ];
+
+/**
+ * What QueryBoundary receives in each demo state. `undefined` is "not loaded
+ * yet" and `[]` is "loaded, and genuinely empty" — the distinction the boundary
+ * exists to make.
+ */
+const BOUNDARY_DATA: Record<BoundaryState, DemoRow[] | undefined> = {
+  loading: undefined,
+  empty: [],
+  error: DEMO_ROWS,
+  success: DEMO_ROWS,
+};
 
 /**
  * Status to tone mapping.
@@ -80,9 +94,7 @@ export function PatternsSection() {
   const [confirmPending, setConfirmPending] = useState(false);
   const [demoPage, setDemoPage] = useState(1);
   const [demoPageSize, setDemoPageSize] = useState(20);
-  const [boundaryState, setBoundaryState] = useState<
-    "loading" | "success" | "empty" | "error"
-  >("success");
+  const [boundaryState, setBoundaryState] = useState<BoundaryState>("success");
 
   const columns: PrimeColumnDef<DemoRow>[] = [
     {
@@ -435,13 +447,7 @@ export function PatternsSection() {
 
           <div className="rounded-md border border-hairline bg-card">
             <QueryBoundary
-              data={
-                boundaryState === "loading"
-                  ? undefined
-                  : boundaryState === "empty"
-                    ? []
-                    : DEMO_ROWS
-              }
+              data={BOUNDARY_DATA[boundaryState]}
               isLoading={boundaryState === "loading"}
               error={boundaryState === "error" ? new HttpError("", 503) : undefined}
               onRetry={() => setBoundaryState("success")}

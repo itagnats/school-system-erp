@@ -139,6 +139,18 @@ function subscribeToReducedMotion(onChange: () => void) {
  * that renders the neutral line first and swaps to the real answer on
  * hydration, with no mismatch and no cascading render.
  */
+/**
+ * `null` means the preference has not been read yet: this renders on the server
+ * where no media query exists, so the unknown state is real and distinct from
+ * "off" rather than a loading flag bolted onto a boolean.
+ */
+function reducedMotionCopy(reduced: boolean | null): string {
+  if (reduced === null) return "Reading your system preference…";
+  if (reduced)
+    return "Reduced motion is on. Every transition on this page is collapsed to 0.01ms, and the spinner below is the only thing still moving.";
+  return "Reduced motion is off, so this page animates normally. Turn it on in your OS accessibility settings and this line updates without a reload.";
+}
+
 export function ReducedMotionStatus() {
   const reduced = useSyncExternalStore<boolean | null>(
     subscribeToReducedMotion,
@@ -146,12 +158,7 @@ export function ReducedMotionStatus() {
     () => null,
   );
 
-  const copy =
-    reduced === null
-      ? "Reading your system preference…"
-      : reduced
-        ? "Reduced motion is on. Every transition on this page is collapsed to 0.01ms, and the spinner below is the only thing still moving."
-        : "Reduced motion is off, so this page animates normally. Turn it on in your OS accessibility settings and this line updates without a reload.";
+  const copy = reducedMotionCopy(reduced);
 
   return (
     <div className="flex items-start gap-2.5 rounded-md border border-hairline bg-card p-3">

@@ -219,6 +219,34 @@ employee information, no real internal identifiers, no third-party branding.
 
 ---
 
+## Code quality
+
+`npm run verify` runs ESLint, `tsc --noEmit` and the test suite. ESLint includes
+**`eslint-plugin-sonarjs`** — Sonar's own plugin, carrying the same JS/TS rules
+the SonarQube IDE extension applies — so a smell is caught on every lint run
+rather than only when the editor happens to analyse the file. The project lints
+clean: zero issues.
+
+Three sonarjs rules are switched off in `eslint.config.mjs`, each with the
+reason written beside it:
+
+- `redundant-type-aliases` — `type SemesterCode = string` is an alias that
+  carries meaning at every call site; the alternative is a branded type every
+  literal has to be cast into;
+- `no-floating-point-equality`, in tests only — the rounding tests exist to pin
+  an exact result, and `toBeCloseTo` would assert the opposite of what is being
+  tested;
+- `no-duplicate-string`, in tests only — naming every expected value as a
+  constant makes an assertion harder to read, not easier.
+
+**On coverage.** `npm run test:coverage` measures the business math —
+`lib/calculations` and each feature's `calculations/` folder — where it sits at
+**97.56%** of statements. That is the scope on purpose: those are pure functions
+and the part that can be wrong without looking wrong. The rest of the tree is
+presentation, whose tests would mostly assert on markup.
+
+---
+
 ## Security posture
 
 For a public demo with no authentication, the relevant controls are:
