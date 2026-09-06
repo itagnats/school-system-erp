@@ -1,50 +1,59 @@
 import { describe, expect, it } from "vitest";
 import {
   normaliseWeights,
-  rankingSharePercent,
-  setCriteriaShare,
+  rolesWithoutQuestions,
+  setRankingShare,
+  setRoleCriteria,
   setRoleEnabled,
   setRoleWeight,
   summariseWeights,
+  threeSixtySharePercent,
 } from "@/lib/calculations";
-import type { RoleWeight } from "@/types";
+import { EVALUATION_CRITERIA } from "@/types";
+import type { EvaluationCriterion, RoleConfig } from "@/types";
 
 /**
- * The weight blend (direction.md §20).
+ * The weight blend and the question sets (direction.md §18, §20).
  *
- * These tests pin the decision taken on 2026-09-06: an ordering is not a fifth
- * evaluator, it is a share of each role's own weight. The tests that matter are
- * the ones about what happens when the configuration is wrong - an unbalanced
- * blend and a disabled role - because those are the states a real
- * administrator will produce and a demo dataset never will.
+ * These tests pin two decisions from 2026-09-06: an ordering is a share of each
+ * role's own weight rather than a fifth evaluator, and each role is asked a
+ * subset of one canonical criteria list rather than a set of its own.
+ *
+ * The tests that matter are the ones about being misconfigured - an unbalanced
+ * blend, a disabled role, a role paid for a form it is asked nothing about -
+ * because those are the states a real administrator produces and a demo dataset
+ * never will.
  */
 
-/** The demo default from direction.md §20, all criteria to begin with. */
-function demoWeights(): RoleWeight[] {
+const ALL: EvaluationCriterion[] = [...EVALUATION_CRITERIA];
+
+/** The demo default from direction.md §20, with its per-role question sets. */
+function demoRoles(): RoleConfig[] {
   return [
-    { role: "student", enabled: true, weightPercent: 30, criteriaSharePercent: 100 },
-    { role: "inspector", enabled: true, weightPercent: 20, criteriaSharePercent: 100 },
-    { role: "teacher", enabled: true, weightPercent: 35, criteriaSharePercent: 100 },
-    { role: "ta", enabled: true, weightPercent: 15, criteriaSharePercent: 100 },
+    { role: "student", enabled: true, weightPercent: 30, rankingSharePercent: 0, criteria: [...ALL] },
+    { role: "inspector", enabled: true, weightPercent: 20, rankingSharePercent: 0, criteria: [...ALL] },
+    { role: "teacher", enabled: true, weightPercent: 35, rankingSharePercent: 0, criteria: [...ALL] },
+    { role: "ta", enabled: true, weightPercent: 15, rankingSharePercent: 0, criteria: [...ALL] },
   ];
 }
 
-describe("rankingSharePercent", () => {
-  it("is the remainder of the criteria share, never stored separately", () => {
+describe("threeSixtySharePercent", () => {
+  it("is the complement of the stored ranking share, never stored itself", () => {
     expect(
-      rankingSharePercent({
+      threeSixtySharePercent({
         role: "teacher",
         enabled: true,
         weightPercent: 35,
-        criteriaSharePercent: 70,
+        rankingSharePercent: 30,
+        criteria: [...ALL],
       }),
-    ).toBe(30);
+    ).toBe(70);
   });
 });
 
 describe("summariseWeights", () => {
   it("reports the demo default as balanced", () => {
-    const summary = summariseWeights(demoWeights());
+    const summary = summariseWeights(demoRoles());
 
     expect(summary.totalPercent).toBe(100);
     expect(summary.remainingPercent).toBe(0);
@@ -53,31 +62,28 @@ describe("summariseWeights", () => {
   });
 
   it("derives the effective form split from the per-role shares", () => {
-    // Peer 30 at 60/40 and teacher 35 at 70/30; inspector and TA all criteria.
-    const weights = setCriteriaShare(
-      setCriteriaShare(demoWeights(), "student", 60),
-      "teacher",
-      70,
-    );
+    // Peer 30 ranks 40% of its weight, teacher 35 ranks 30%; the rest is all 360.
+    const roles = setRankingShare(setRankingShare(demoRoles(), "student", 40), "teacher", 30);
 
-    const summary = summariseWeights(weights);
+    const summary = summariseWeights(roles);
 
-    // criteria = 30*.6 + 20*1 + 35*.7 + 15*1 = 18 + 20 + 24.5 + 15 = 77.5
-    expect(summary.effectiveCriteriaPercent).toBe(77.5);
+    // 360 = 30*.6 + 20*1 + 35*.7 + 15*1 = 18 + 20 + 24.5 + 15 = 77.5
+    expect(summary.effective360Percent).toBe(77.5);
     // ranking = 30*.4 + 35*.3 = 12 + 10.5 = 22.5
     expect(summary.effectiveRankingPercent).toBe(22.5);
     // The two halves account for the whole blend and nothing more.
-    expect(
-      summary.effectiveCriteriaPercent + summary.effectiveRankingPercent,
-    ).toBeCloseTo(summary.totalPercent, 10);
+    expect(summary.effective360Percent + summary.effectiveRankingPercent).toBeCloseTo(
+      summary.totalPercent,
+      10,
+    );
   });
 
   it("reports a shortfall rather than silently rescaling", () => {
     // An administrator part-way through editing. The screen has to be able to
     // say "20% remaining"; quietly normalising here would hide the mistake.
-    const weights = setRoleWeight(demoWeights(), "teacher", 15);
+    const roles = setRoleWeight(demoRoles(), "teacher", 15);
 
-    const summary = summariseWeights(weights);
+    const summary = summariseWeights(roles);
 
     expect(summary.totalPercent).toBe(80);
     expect(summary.remainingPercent).toBe(20);
@@ -85,9 +91,7 @@ describe("summariseWeights", () => {
   });
 
   it("reports an over-allocated blend as a negative remainder", () => {
-    const weights = setRoleWeight(demoWeights(), "teacher", 60);
-
-    const summary = summariseWeights(weights);
+    const summary = summariseWeights(setRoleWeight(demoRoles(), "teacher", 60));
 
     expect(summary.totalPercent).toBe(125);
     expect(summary.remainingPercent).toBe(-25);
@@ -95,11 +99,11 @@ describe("summariseWeights", () => {
   });
 
   it("ignores a disabled role entirely", () => {
-    const weights = demoWeights().map((weight) =>
-      weight.role === "ta" ? { ...weight, enabled: false } : weight,
+    const roles = demoRoles().map((role) =>
+      role.role === "ta" ? { ...role, enabled: false } : role,
     );
 
-    const summary = summariseWeights(weights);
+    const summary = summariseWeights(roles);
 
     expect(summary.totalPercent).toBe(85);
     expect(summary.enabledRoleCount).toBe(3);
@@ -108,13 +112,12 @@ describe("summariseWeights", () => {
 
 describe("setRoleEnabled", () => {
   it("renormalises the survivors so the blend still totals 100", () => {
-    const weights = setRoleEnabled(demoWeights(), "ta", false);
+    const roles = setRoleEnabled(demoRoles(), "ta", false);
 
-    // 30/20/35 of 85, rescaled: the proportions between them are preserved.
-    expect(summariseWeights(weights).totalPercent).toBe(100);
-    expect(summariseWeights(weights).balanced).toBe(true);
+    expect(summariseWeights(roles).totalPercent).toBe(100);
+    expect(summariseWeights(roles).balanced).toBe(true);
 
-    const byRole = new Map(weights.map((weight) => [weight.role, weight]));
+    const byRole = new Map(roles.map((role) => [role.role, role]));
     expect(byRole.get("student")?.weightPercent).toBeCloseTo(35.29, 2);
     expect(byRole.get("inspector")?.weightPercent).toBeCloseTo(23.53, 2);
     // The teacher absorbs the rounding residue, so it is the one that moves off
@@ -122,68 +125,146 @@ describe("setRoleEnabled", () => {
     expect(byRole.get("teacher")?.weightPercent).toBeCloseTo(41.18, 2);
   });
 
-  it("leaves a disabled role its old weight so re-enabling restores the blend", () => {
-    const off = setRoleEnabled(demoWeights(), "ta", false);
-    const ta = off.find((weight) => weight.role === "ta");
+  it("leaves a disabled role its weight and question set, so re-enabling restores it", () => {
+    const off = setRoleEnabled(demoRoles(), "ta", false);
+    const ta = off.find((role) => role.role === "ta");
 
     expect(ta?.enabled).toBe(false);
     expect(ta?.weightPercent).toBe(15);
+    expect(ta?.criteria).toEqual(ALL);
   });
 
   it("keeps the total at 100 across a toggle off and back on", () => {
-    const off = setRoleEnabled(demoWeights(), "ta", false);
-    const backOn = setRoleEnabled(off, "ta", true);
+    const off = setRoleEnabled(demoRoles(), "ta", false);
 
-    expect(summariseWeights(backOn).balanced).toBe(true);
+    expect(summariseWeights(setRoleEnabled(off, "ta", true)).balanced).toBe(true);
   });
 
   it("does not divide by zero when every role is switched off", () => {
-    let weights = demoWeights();
+    let roles = demoRoles();
     for (const role of ["student", "inspector", "teacher", "ta"] as const) {
-      weights = setRoleEnabled(weights, role, false);
+      roles = setRoleEnabled(roles, role, false);
     }
 
-    expect(weights.every((weight) => Number.isFinite(weight.weightPercent))).toBe(true);
-    expect(summariseWeights(weights).totalPercent).toBe(0);
-    expect(summariseWeights(weights).enabledRoleCount).toBe(0);
+    expect(roles.every((role) => Number.isFinite(role.weightPercent))).toBe(true);
+    expect(summariseWeights(roles).totalPercent).toBe(0);
+    expect(summariseWeights(roles).enabledRoleCount).toBe(0);
   });
 
   it("spreads evenly when the enabled roles all sit at zero", () => {
-    const zeroed: RoleWeight[] = demoWeights().map((weight) => ({
-      ...weight,
-      weightPercent: 0,
-    }));
+    const zeroed = demoRoles().map((role) => ({ ...role, weightPercent: 0 }));
 
     const normalised = normaliseWeights(zeroed);
 
     expect(summariseWeights(normalised).totalPercent).toBe(100);
-    expect(normalised.every((weight) => weight.weightPercent === 25)).toBe(true);
+    expect(normalised.every((role) => role.weightPercent === 25)).toBe(true);
   });
 });
 
-describe("setRoleWeight and setCriteriaShare", () => {
+describe("setRoleWeight and setRankingShare", () => {
   it("clamps a weight into 0-100 rather than accepting nonsense", () => {
-    expect(setRoleWeight(demoWeights(), "ta", 250).find((w) => w.role === "ta")?.weightPercent).toBe(
-      100,
-    );
-    expect(setRoleWeight(demoWeights(), "ta", -40).find((w) => w.role === "ta")?.weightPercent).toBe(
-      0,
-    );
+    expect(
+      setRoleWeight(demoRoles(), "ta", 250).find((r) => r.role === "ta")?.weightPercent,
+    ).toBe(100);
+    expect(
+      setRoleWeight(demoRoles(), "ta", -40).find((r) => r.role === "ta")?.weightPercent,
+    ).toBe(0);
   });
 
   it("treats a non-finite input as zero instead of poisoning the blend", () => {
-    const weights = setRoleWeight(demoWeights(), "ta", Number.NaN);
+    const roles = setRoleWeight(demoRoles(), "ta", Number.NaN);
 
-    expect(weights.find((weight) => weight.role === "ta")?.weightPercent).toBe(0);
-    expect(Number.isFinite(summariseWeights(weights).totalPercent)).toBe(true);
+    expect(roles.find((role) => role.role === "ta")?.weightPercent).toBe(0);
+    expect(Number.isFinite(summariseWeights(roles).totalPercent)).toBe(true);
   });
 
   it("does not mutate the input", () => {
-    const original = demoWeights();
+    const original = demoRoles();
     setRoleWeight(original, "ta", 99);
     setRoleEnabled(original, "ta", false);
+    setRoleCriteria(original, "ta", [], ALL);
 
-    expect(original.find((weight) => weight.role === "ta")?.weightPercent).toBe(15);
-    expect(original.find((weight) => weight.role === "ta")?.enabled).toBe(true);
+    const ta = original.find((role) => role.role === "ta");
+    expect(ta?.weightPercent).toBe(15);
+    expect(ta?.enabled).toBe(true);
+    expect(ta?.criteria).toEqual(ALL);
+  });
+});
+
+describe("setRoleCriteria", () => {
+  it("orders the question set canonically, not by the order given", () => {
+    const roles = setRoleCriteria(
+      demoRoles(),
+      "ta",
+      ["leadership", "participation", "teamwork"],
+      ALL,
+    );
+
+    // Canonical order, so two setups asking the same questions serialise the
+    // same way and a diff between them is readable.
+    expect(roles.find((role) => role.role === "ta")?.criteria).toEqual([
+      "participation",
+      "teamwork",
+      "leadership",
+    ]);
+  });
+
+  it("drops anything not in the canonical list", () => {
+    const roles = setRoleCriteria(
+      demoRoles(),
+      "ta",
+      ["participation", "notACriterion" as EvaluationCriterion],
+      ALL,
+    );
+
+    expect(roles.find((role) => role.role === "ta")?.criteria).toEqual(["participation"]);
+  });
+
+  it("de-duplicates a repeated criterion", () => {
+    const roles = setRoleCriteria(demoRoles(), "ta", ["teamwork", "teamwork"], ALL);
+
+    expect(roles.find((role) => role.role === "ta")?.criteria).toEqual(["teamwork"]);
+  });
+
+  it("allows an empty set, and leaves it to be reported rather than corrected", () => {
+    // Which questions a role should ask is a judgement. Silently restoring a
+    // default here would overwrite a deliberate edit mid-keystroke.
+    const roles = setRoleCriteria(demoRoles(), "ta", [], ALL);
+
+    expect(roles.find((role) => role.role === "ta")?.criteria).toEqual([]);
+  });
+});
+
+describe("rolesWithoutQuestions", () => {
+  it("finds a role weighted for the 360 form with nothing to ask", () => {
+    const roles = setRoleCriteria(demoRoles(), "ta", [], ALL);
+
+    expect(rolesWithoutQuestions(roles).map((role) => role.role)).toEqual(["ta"]);
+    // The blend still totals 100, which is exactly why this needs its own check:
+    // a balanced blend can still be unable to produce a score.
+    expect(summariseWeights(roles).balanced).toBe(true);
+  });
+
+  it("does not flag a role that only submits an ordering", () => {
+    // 100% of its weight comes from the ordering, so an empty question set is
+    // correct rather than broken.
+    const roles = setRoleCriteria(
+      setRankingShare(demoRoles(), "ta", 100),
+      "ta",
+      [],
+      ALL,
+    );
+
+    expect(rolesWithoutQuestions(roles)).toEqual([]);
+  });
+
+  it("does not flag a disabled role", () => {
+    const roles = setRoleEnabled(setRoleCriteria(demoRoles(), "ta", [], ALL), "ta", false);
+
+    expect(rolesWithoutQuestions(roles)).toEqual([]);
+  });
+
+  it("finds nothing wrong with the demo default", () => {
+    expect(rolesWithoutQuestions(demoRoles())).toEqual([]);
   });
 });

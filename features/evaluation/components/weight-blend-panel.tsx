@@ -1,46 +1,55 @@
 "use client";
 
 import { Section } from "@/components/shared";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { rankingSharePercent, summariseWeights } from "@/lib/calculations";
+import { summariseWeights, threeSixtySharePercent } from "@/lib/calculations";
 import { cn } from "@/lib/utils";
-import type { EvaluatorRole, RoleWeight } from "@/types";
-import { EVALUATOR_ROLE_DESCRIPTION, EVALUATOR_ROLE_LABEL } from "../constants";
+import { EVALUATION_CRITERIA } from "@/types";
+import type { EvaluationCriterion, EvaluatorRole, RoleConfig } from "@/types";
+import {
+  EVALUATION_CRITERION_LABEL,
+  EVALUATOR_ROLE_DESCRIPTION,
+  EVALUATOR_ROLE_LABEL,
+} from "../constants";
 import { WeightMeter } from "./weight-meter";
 
 /**
- * The weight blend, editable, with its arithmetic on screen (direction.md §20).
+ * What each role is worth, and what each role is asked (direction.md §18, §20).
  *
- * Two things are deliberately derived rather than typed:
+ * Three things on this panel are deliberately derived rather than typed:
  *
- *   - the effective criteria-to-ranking split at the top. A reference design
- *     for this screen let an administrator enter that split directly and the
- *     per-role weights underneath, which gives the same number two sources of
- *     truth and no rule for which wins.
+ *   - the effective 360-to-ranking split at the top. A reference design for this
+ *     screen let an administrator enter that split directly *and* the per-role
+ *     weights underneath, which gives the same quantity two sources of truth and
+ *     no rule for which one wins.
  *   - each role's own contribution to each kind, shown per row, so the headline
  *     can be checked against its parts rather than believed.
+ *   - the 360 share, which is always the complement of the stored ranking share.
  */
 export function WeightBlendPanel({
-  weights,
+  roles,
   disabled,
   onWeightChange,
-  onShareChange,
+  onRankingShareChange,
   onEnabledChange,
+  onCriteriaChange,
 }: Readonly<{
-  weights: RoleWeight[];
+  roles: RoleConfig[];
   disabled: boolean;
   onWeightChange: (role: EvaluatorRole, percent: number) => void;
-  onShareChange: (role: EvaluatorRole, percent: number) => void;
+  onRankingShareChange: (role: EvaluatorRole, percent: number) => void;
   onEnabledChange: (role: EvaluatorRole, enabled: boolean) => void;
+  onCriteriaChange: (role: EvaluatorRole, criteria: EvaluationCriterion[]) => void;
 }>) {
-  const summary = summariseWeights(weights);
+  const summary = summariseWeights(roles);
 
   return (
     <Section
-      title="Score blend"
-      description="Each role holds one weight, and that weight divides between the ratings it gives and the ordering it submits. A role that does both counts once."
+      title="Roles, weight and question sets"
+      description="All four roles take the 360 form; what differs is which criteria each is asked. A role's weight then divides between that form and the ordering it submits."
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <WeightMeter
@@ -49,20 +58,21 @@ export function WeightBlendPanel({
           balanced={summary.balanced}
         />
         <dl className="grid grid-cols-2 gap-3 rounded-lg border border-hairline bg-surface-sunken px-3.5 py-2.5">
-          <Derived label="Reaches the score as ratings" value={summary.effectiveCriteriaPercent} />
-          <Derived label="Reaches it as an ordering" value={summary.effectiveRankingPercent} />
+          <Derived label="Reaches the score via the 360 form" value={summary.effective360Percent} />
+          <Derived label="Via a submitted ordering" value={summary.effectiveRankingPercent} />
         </dl>
       </div>
 
       <ul className="mt-4 grid gap-2.5">
-        {weights.map((weight) => (
+        {roles.map((role) => (
           <RoleRow
-            key={weight.role}
-            weight={weight}
+            key={role.role}
+            config={role}
             disabled={disabled}
             onWeightChange={onWeightChange}
-            onShareChange={onShareChange}
+            onRankingShareChange={onRankingShareChange}
             onEnabledChange={onEnabledChange}
+            onCriteriaChange={onCriteriaChange}
           />
         ))}
       </ul>
@@ -76,76 +86,137 @@ export function WeightBlendPanel({
 }
 
 function RoleRow({
-  weight,
+  config,
   disabled,
   onWeightChange,
-  onShareChange,
+  onRankingShareChange,
   onEnabledChange,
+  onCriteriaChange,
 }: Readonly<{
-  weight: RoleWeight;
+  config: RoleConfig;
   disabled: boolean;
   onWeightChange: (role: EvaluatorRole, percent: number) => void;
-  onShareChange: (role: EvaluatorRole, percent: number) => void;
+  onRankingShareChange: (role: EvaluatorRole, percent: number) => void;
   onEnabledChange: (role: EvaluatorRole, enabled: boolean) => void;
+  onCriteriaChange: (role: EvaluatorRole, criteria: EvaluationCriterion[]) => void;
 }>) {
-  const ranking = rankingSharePercent(weight);
-  const label = EVALUATOR_ROLE_LABEL[weight.role];
-  const off = !weight.enabled;
+  const formShare = threeSixtySharePercent(config);
+  const label = EVALUATOR_ROLE_LABEL[config.role];
+  const off = !config.enabled;
+  // A role paid for the 360 form with nothing to ask cannot fill the share it
+  // holds. The server refuses to save it; this says so before they try.
+  const noQuestions = config.enabled && formShare > 0 && config.criteria.length === 0;
+
+  function toggleCriterion(criterion: EvaluationCriterion, checked: boolean) {
+    const next = checked
+      ? [...config.criteria, criterion]
+      : config.criteria.filter((entry) => entry !== criterion);
+    onCriteriaChange(config.role, next);
+  }
 
   return (
     <li
       className={cn(
-        "grid gap-3 rounded-lg border border-hairline bg-card px-3.5 py-3 sm:grid-cols-[minmax(0,1fr)_auto]",
+        "rounded-lg border border-hairline bg-card px-3.5 py-3",
         off && "opacity-60",
       )}
     >
-      <div className="min-w-0">
-        <div className="flex items-center gap-2">
-          <Switch
-            id={`role-${weight.role}-enabled`}
-            checked={weight.enabled}
-            disabled={disabled}
-            onCheckedChange={(checked) => onEnabledChange(weight.role, checked)}
-          />
-          <Label htmlFor={`role-${weight.role}-enabled`} className="text-sm font-medium">
-            {label}
-          </Label>
+      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <Switch
+              id={`role-${config.role}-enabled`}
+              checked={config.enabled}
+              disabled={disabled}
+              onCheckedChange={(checked) => onEnabledChange(config.role, checked)}
+            />
+            <Label htmlFor={`role-${config.role}-enabled`} className="text-sm font-medium">
+              {label}
+            </Label>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {EVALUATOR_ROLE_DESCRIPTION[config.role]}
+          </p>
+          {config.enabled ? (
+            // The row's own arithmetic, so the headline above can be checked
+            // against its parts instead of taken on trust.
+            <p className="mt-1.5 text-xs text-muted-foreground" data-numeric>
+              {share(config.weightPercent)} of the score:{" "}
+              {share((config.weightPercent * formShare) / 100)} from the 360 form,{" "}
+              {share((config.weightPercent * config.rankingSharePercent) / 100)} from the
+              ordering
+            </p>
+          ) : (
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Not evaluating. Its weight and question set are held, so switching it
+              back on restores what it had.
+            </p>
+          )}
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {EVALUATOR_ROLE_DESCRIPTION[weight.role]}
-        </p>
-        {weight.enabled ? (
-          // The row's own arithmetic, so the headline above can be checked
-          // against its parts instead of taken on trust.
-          <p className="mt-1.5 text-xs text-muted-foreground" data-numeric>
-            {share(weight.weightPercent)} of the score:{" "}
-            {share((weight.weightPercent * weight.criteriaSharePercent) / 100)} from ratings,{" "}
-            {share((weight.weightPercent * ranking) / 100)} from the ordering
-          </p>
-        ) : (
-          <p className="mt-1.5 text-xs text-muted-foreground">
-            Not evaluating. Its weight is held so switching it back on restores the blend.
-          </p>
-        )}
+
+        <div className="flex items-end gap-3">
+          <PercentField
+            id={`role-${config.role}-weight`}
+            label="Weight"
+            value={config.weightPercent}
+            disabled={disabled || off}
+            onValueChange={(value) => onWeightChange(config.role, value)}
+          />
+          <PercentField
+            id={`role-${config.role}-ranking-share`}
+            label="From ordering"
+            value={config.rankingSharePercent}
+            disabled={disabled || off}
+            onValueChange={(value) => onRankingShareChange(config.role, value)}
+            hint={`${share(formShare)} from the 360 form`}
+          />
+        </div>
       </div>
 
-      <div className="flex items-end gap-3">
-        <PercentField
-          id={`role-${weight.role}-weight`}
-          label="Weight"
-          value={weight.weightPercent}
+      {formShare > 0 ? (
+        <fieldset
+          className="mt-3 border-t border-hairline pt-2.5"
           disabled={disabled || off}
-          onValueChange={(value) => onWeightChange(weight.role, value)}
-        />
-        <PercentField
-          id={`role-${weight.role}-share`}
-          label="From ratings"
-          value={weight.criteriaSharePercent}
-          disabled={disabled || off}
-          onValueChange={(value) => onShareChange(weight.role, value)}
-          hint={`${share(ranking)} from the ordering`}
-        />
-      </div>
+        >
+          <legend className="sr-only">Criteria the {label} is asked</legend>
+          <p className="text-xs text-muted-foreground">
+            Asked on the 360 form —{" "}
+            <span data-numeric>
+              {config.criteria.length} of {EVALUATION_CRITERIA.length}
+            </span>
+          </p>
+          <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1.5">
+            {EVALUATION_CRITERIA.map((criterion) => {
+              const id = `role-${config.role}-${criterion}`;
+              return (
+                <div key={criterion} className="flex items-center gap-1.5">
+                  <Checkbox
+                    id={id}
+                    checked={config.criteria.includes(criterion)}
+                    disabled={disabled || off}
+                    onCheckedChange={(checked) =>
+                      toggleCriterion(criterion, checked === true)
+                    }
+                  />
+                  <Label htmlFor={id} className="text-xs font-normal">
+                    {EVALUATION_CRITERION_LABEL[criterion]}
+                  </Label>
+                </div>
+              );
+            })}
+          </div>
+          {noQuestions ? (
+            <p className="mt-2 text-xs text-error" role="alert">
+              This role is paid for the 360 form but is asked nothing, so its
+              share of the score cannot be filled.
+            </p>
+          ) : null}
+        </fieldset>
+      ) : (
+        <p className="mt-3 border-t border-hairline pt-2.5 text-xs text-muted-foreground">
+          This role only submits an ordering, so it is asked no criteria.
+        </p>
+      )}
     </li>
   );
 }

@@ -3,15 +3,16 @@
 import { ArrowLeft, Lock, TriangleAlert, Users } from "lucide-react";
 import { Section, StatusBadge } from "@/components/shared";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { rankingSharePercent } from "@/lib/calculations";
+import { threeSixtySharePercent } from "@/lib/calculations";
 import { cn } from "@/lib/utils";
 import type {
   EvaluationGroupSummary,
   EvaluationKind,
   EvaluationRelation,
-  RoleWeight,
+  RoleConfig,
 } from "@/types";
 import {
+  EVALUATION_CRITERION_LABEL,
   EVALUATION_KIND_DESCRIPTION,
   EVALUATION_KIND_LABEL,
   EVALUATOR_ROLE_DESCRIPTION,
@@ -33,24 +34,24 @@ import {
  */
 export function RelationsPanel({
   relations,
-  weights,
+  roles,
   groups,
   ungroupedCount,
 }: Readonly<{
   relations: EvaluationRelation[];
-  weights: RoleWeight[];
+  roles: RoleConfig[];
   groups: EvaluationGroupSummary[];
   ungroupedCount: number;
 }>) {
-  const shares = new Map(weights.map((weight) => [weight.role, weight]));
+  const shares = new Map(roles.map((role) => [role.role, role]));
 
   /** Roles that contribute to one kind of form, at a non-zero share. */
   const forKind = (kind: EvaluationKind) =>
     relations.filter((relation) => {
-      const weight = shares.get(relation.role);
-      if (!weight?.enabled) return false;
+      const config = shares.get(relation.role);
+      if (!config?.enabled) return false;
       const share =
-        kind === "criteria" ? weight.criteriaSharePercent : rankingSharePercent(weight);
+        kind === "360" ? threeSixtySharePercent(config) : config.rankingSharePercent;
       return share > 0;
     });
 
@@ -59,14 +60,14 @@ export function RelationsPanel({
       title="Roles and relations"
       description="Who assesses whom. The four roles are fixed by the evaluation model; what changes per course is which of them take part."
     >
-      <Tabs defaultValue="criteria">
+      <Tabs defaultValue="360">
         <TabsList>
-          <TabsTrigger value="criteria">{EVALUATION_KIND_LABEL.criteria}</TabsTrigger>
+          <TabsTrigger value="360">{EVALUATION_KIND_LABEL["360"]}</TabsTrigger>
           <TabsTrigger value="ranking">{EVALUATION_KIND_LABEL.ranking}</TabsTrigger>
           <TabsTrigger value="groups">Groups</TabsTrigger>
         </TabsList>
 
-        {(["criteria", "ranking"] as const).map((kind) => (
+        {(["360", "ranking"] as const).map((kind) => (
           <TabsContent key={kind} value={kind} className="mt-3.5">
             <p className="text-xs text-muted-foreground">
               {EVALUATION_KIND_DESCRIPTION[kind]}.
@@ -110,9 +111,7 @@ function RelationCard({
   relation,
 }: Readonly<{ kind: EvaluationKind; relation: EvaluationRelation }>) {
   const share =
-    kind === "criteria"
-      ? relation.criteriaSharePercent
-      : 100 - relation.criteriaSharePercent;
+    kind === "360" ? 100 - relation.rankingSharePercent : relation.rankingSharePercent;
   const contribution = (relation.weightPercent * share) / 100;
   const unsatisfiable = relation.assessorCount === 0;
 
@@ -155,6 +154,8 @@ function RelationCard({
         </div>
       </dl>
 
+      {kind === "360" ? <QuestionSet criteria={relation.criteria} /> : null}
+
       {unsatisfiable ? (
         <p className="mt-2 flex items-start gap-1.5 text-xs text-error">
           <TriangleAlert aria-hidden className="mt-px size-3.5 shrink-0" />
@@ -175,6 +176,41 @@ function RelationCard({
         </span>
       </p>
     </li>
+  );
+}
+
+/**
+ * The criteria this role is asked, listed rather than counted.
+ *
+ * A count would say "5 of 7" and leave the reader to work out which two are
+ * missing, and which two they are is the whole point of a per-role question
+ * set.
+ */
+function QuestionSet({
+  criteria,
+}: Readonly<{ criteria: EvaluationRelation["criteria"] }>) {
+  if (criteria.length === 0) {
+    return (
+      <p className="mt-2 text-xs text-error">
+        Asked no criteria, so this role cannot fill its share of the score.
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-2.5">
+      <p className="text-xs text-muted-foreground">Asked about</p>
+      <ul className="mt-1 flex flex-wrap gap-1">
+        {criteria.map((criterion) => (
+          <li
+            key={criterion}
+            className="rounded-full border border-hairline bg-surface-sunken px-2 py-0.5 text-[10px] text-muted-foreground"
+          >
+            {EVALUATION_CRITERION_LABEL[criterion]}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

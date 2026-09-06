@@ -764,6 +764,45 @@ Use a simple rating scale:
 
 Criteria can be adjusted during implementation if a better evaluation model is needed.
 
+## Question sets per role (added 2026-09-06)
+
+All four roles take the 360 form - a teacher assesses a student, and students
+assess each other - but they are not asked the same questions. **One canonical
+list of criteria, and each role is asked the subset it can actually judge:**
+
+```text
+                    Peer  Insp  Teach  TA
+  Participation       x     x      x    x
+  Teamwork            x     x      x    x
+  Communication       x     x      x    x
+  Problem solving     x     -      x    x
+  Responsibility      x     x      x    -
+  Leadership          x     x      x    -
+  Technical contrib.  -     -      x    x
+```
+
+The gaps carry the meaning. An inspector meets the group once, so it is not
+asked to judge problem solving. A TA sees the work rather than the whole cohort,
+so it is not asked about responsibility or leadership. Peers are not asked to
+grade technical contribution, which is the teacher's and the TA's judgement to
+make. Only the teacher answers all seven.
+
+**A subset, not a separately worded set per role.** Wording each role's
+questions independently was the alternative and was rejected: a criterion would
+then mean something slightly different depending on who answered it, and the
+scores would stop being comparable across roles. A role's 360 score is
+normalised over the criteria it was actually asked, so a shorter question set is
+not a penalty.
+
+The question set is configuration, held per role on the evaluation setup
+(§15a), so a course can adjust it without changing the canonical list.
+
+**A role weighted for the 360 form must be asked at least one criterion.** This
+is validated server-side alongside the weight total, because it is the same
+class of failure: the blend can total 100 and the setup still be unable to
+produce a score, since an empty question set contributes nothing to the half it
+is paid for.
+
 ---
 
 # 19. Evaluation Form
@@ -794,12 +833,18 @@ An evaluator meets two shapes of form, and they are shaped differently rather
 than being two views of one record. `Evaluation` is a discriminated union on
 `kind`, so neither can hold the other's data.
 
-### Criteria form
+### 360 form
 
-Rates **one subject at a time** against the seven criteria of §18, on the 1-5
-scale. The subjects an evaluator owes are stepped through one after another
-rather than listed on one page, because seven ratings for each of ten people is
-seventy inputs and a single scrolling page invites straight-lining.
+Assesses **one subject at a time** against the criteria this evaluator's role is
+asked (§18), on the 1-5 scale. The subjects an evaluator owes are stepped
+through one after another rather than listed on one page, because six or seven
+ratings for each of ten people is a lot of inputs and a single scrolling page
+invites straight-lining.
+
+**It is the 360 form, not the "criteria form".** All four roles take it, which
+is what makes the assessment 360 degrees; naming it after the criteria described
+the mechanism and hid the point. What differs between roles is the question set,
+not the kind of form.
 
 ### Ranking form
 
@@ -814,7 +859,7 @@ against, which offered a 1-5 score per subject with duplicates allowed. Do not
 "correct" it back to match that screenshot. The reasoning:
 
 - a rating that permits ties is a criteria rating wearing different clothes, and
-  the criteria form already does that job better, with seven dimensions instead
+  the 360 form already does that job better, with several dimensions instead
   of one;
 - the ordering earns its separate place in the blend (§20) precisely by forcing
   a discrimination the ratings do not. An evaluator who rates everyone a 4 has
@@ -859,7 +904,7 @@ TA          15%
 one:
 
 ```text
-Criteria form   rate ONE subject against the seven criteria
+360 form        assess ONE subject against the criteria your role is asked
 Ranking form    put EVERY subject in scope into an order
 ```
 
@@ -873,7 +918,7 @@ ratings the role gave and the ordering it submitted:
 
 ```text
 final = SUM over enabled roles of
-          weight% x ( criteriaShare% x criteriaScore
+          weight% x ( threeSixtyShare% x threeSixtyScore
                     + rankingShare% x rankingScore )
 ```
 
@@ -883,19 +928,19 @@ count twice, once as a teacher and once as a contributor to the ordering
 component. Under the rule above a teacher counts once, and how they express that
 judgement is a property of the teacher's own share.
 
-Only `criteriaShare` is stored; the ranking share is always its complement. Two
+Only the ranking share is stored; the 360 share is always its complement. Two
 stored numbers that must total 100 are two numbers that will eventually disagree.
 
 The demo default therefore reads:
 
 ```text
-role        weight    of which ratings / ordering
+role        weight    of which 360 form / ordering
 Peer          30%          60 / 40
 Inspector     20%          70 / 30
 Teacher       35%          70 / 30
 TA            15%         100 / 0
                        ─────────────
-effective              71.5% ratings, 28.5% ordering
+effective              71.5% on the 360 form, 28.5% on the ordering
 ```
 
 Peers and the teacher both rate and rank; an inspector mostly rates, because an
@@ -903,7 +948,7 @@ outsider can compare but knows less context; a TA rates only, because a TA sees
 the work rather than the whole cohort.
 
 **The effective split at the bottom is derived, never entered.** A reference
-design for the setup screen let an administrator type a headline "ratings 60 /
+design for the setup screen let an administrator type a headline "360 form 60 /
 ordering 40" *and* the per-role weights beneath it, which gives the same quantity
 two sources of truth and no rule for which one wins. The per-role figures are the
 truth; the headline is computed from them and shown as a read-out.

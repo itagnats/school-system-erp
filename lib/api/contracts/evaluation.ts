@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { paginatedSchema } from "./list";
-import { EVALUATOR_ROLES } from "@/types";
+import { EVALUATION_CRITERIA, EVALUATOR_ROLES } from "@/types";
 
 /**
  * Evaluation wire shapes.
@@ -14,6 +14,7 @@ import { EVALUATOR_ROLES } from "@/types";
 const windowStatus = z.enum(["draft", "open", "closed", "published"]);
 const readiness = z.enum(["ready", "not-configured", "not-applicable"]);
 const evaluatorRole = z.enum(EVALUATOR_ROLES);
+const criterion = z.enum(EVALUATION_CRITERIA);
 
 export const evaluationSetupSummarySchema = z.object({
   id: z.string(),
@@ -26,7 +27,7 @@ export const evaluationSetupSummarySchema = z.object({
   memberCount: z.number().int().nonnegative(),
   groupCount: z.number().int().nonnegative(),
   ungroupedCount: z.number().int().nonnegative(),
-  criteriaForm: readiness,
+  threeSixtyForm: readiness,
   rankingForm: readiness,
   weightRemainingPercent: z.number(),
 });
@@ -36,58 +37,78 @@ export const evaluationSetupListSchema = paginatedSchema(evaluationSetupSummaryS
 export type EvaluationSetupSummaryResponse = z.infer<typeof evaluationSetupSummarySchema>;
 
 /**
- * One role's weight, as a client may submit it.
+ * One role's configuration, as a client may submit it.
  *
- * `criteriaSharePercent` is the only half of the split that crosses the wire.
- * The ranking share is always its complement, and sending both would create two
- * numbers that have to agree - so the schema simply does not offer the chance.
+ * Only the ranking half of the split crosses the wire. The 360 share is always
+ * its complement, and sending both would create two numbers that have to agree
+ * - so the schema simply does not offer the chance.
  */
-export const roleWeightSchema = z.object({
+export const roleConfigSchema = z.object({
   role: evaluatorRole,
   enabled: z.boolean(),
   weightPercent: z
     .number({ message: "A weight must be a number" })
     .min(0, "A weight cannot be negative")
     .max(100, "A weight cannot exceed 100%"),
-  criteriaSharePercent: z
-    .number({ message: "A criteria share must be a number" })
+  rankingSharePercent: z
+    .number({ message: "A ranking share must be a number" })
     .min(0, "A share cannot be negative")
     .max(100, "A share cannot exceed 100%"),
+  criteria: z
+    .array(criterion)
+    .max(EVALUATION_CRITERIA.length, "There are only seven criteria")
+    .refine(
+      (list) => new Set(list).size === list.length,
+      "A criterion may appear once in a question set",
+    ),
 });
 
 /**
- * The blend, checked as a whole.
+ * The role configuration, checked as a whole.
  *
- * Two rules that a per-field schema cannot express, so they are refinements on
+ * Four rules that a per-field schema cannot express, so they are refinements on
  * the array:
  *
  *   - the enabled roles must total 100, or every score in the course is scaled
  *     wrongly and nothing downstream can detect it;
  *   - a role may appear once. A duplicate would be silently counted twice by
- *     any reducer over the list.
+ *     any reducer over the list;
+ *   - at least one role must evaluate;
+ *   - a role paid for the 360 form must have questions to ask. This became
+ *     possible when question sets went per-role: the blend can total 100 and
+ *     still be unable to produce a score, because an empty question set
+ *     contributes nothing to the half it is weighted for.
  *
- * The tolerance is 0.01 rather than exact equality, because these arrive as
- * renormalised percentages rounded to two places.
+ * The weight tolerance is 0.01 rather than exact equality, because these arrive
+ * as renormalised percentages rounded to two places.
  */
-export const roleWeightsSchema = z
-  .array(roleWeightSchema)
+export const roleConfigsSchema = z
+  .array(roleConfigSchema)
   .min(1, "At least one evaluator role is required")
   .max(EVALUATOR_ROLES.length, "There are only four evaluator roles")
   .refine(
-    (weights) => new Set(weights.map((weight) => weight.role)).size === weights.length,
+    (roles) => new Set(roles.map((role) => role.role)).size === roles.length,
     "Each evaluator role may appear once",
   )
-  .refine((weights) => weights.some((weight) => weight.enabled), {
+  .refine((roles) => roles.some((role) => role.enabled), {
     message: "At least one evaluator role must be enabled",
   })
   .refine(
-    (weights) => {
-      const total = weights
-        .filter((weight) => weight.enabled)
-        .reduce((sum, weight) => sum + weight.weightPercent, 0);
+    (roles) => {
+      const total = roles
+        .filter((role) => role.enabled)
+        .reduce((sum, role) => sum + role.weightPercent, 0);
       return Math.abs(100 - total) <= 0.01;
     },
     { message: "The enabled role weights must total 100%" },
+  )
+  .refine(
+    (roles) =>
+      roles.every(
+        (role) =>
+          !role.enabled || role.rankingSharePercent >= 100 || role.criteria.length > 0,
+      ),
+    { message: "A role that answers the 360 form must be asked at least one criterion" },
   );
 
 export const evaluationSetupUpdateSchema = z.object({
@@ -113,7 +134,7 @@ export const evaluationSetupUpdateSchema = z.object({
     .trim()
     .max(4000, "That guidance is longer than anyone will read")
     .optional(),
-  weights: roleWeightsSchema.optional(),
+  roles: roleConfigsSchema.optional(),
 });
 
 export type EvaluationSetupUpdateInput = z.infer<typeof evaluationSetupUpdateSchema>;

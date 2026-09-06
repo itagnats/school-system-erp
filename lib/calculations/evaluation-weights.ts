@@ -1,16 +1,16 @@
 import { clamp, round } from "./number";
-import type { EvaluatorRole, RoleWeight, WeightSummary } from "@/types";
+import type { EvaluationCriterion, EvaluatorRole, RoleConfig, WeightSummary } from "@/types";
 
 /**
  * The weight blend behind the final score (direction.md §20).
  *
  * Two structures were defensible when the spec was written. The one taken here,
  * decided 2026-09-06, is that a submitted ordering is **not** a fifth evaluator:
- * each role holds one weight, and that weight divides internally between what
- * the role rated against the criteria and how the role ordered the subjects.
+ * each role holds one weight, and that weight divides internally between the
+ * 360 form it filled in and the ordering it submitted.
  *
  *   final = SUM over enabled roles of
- *             weight% x ( criteriaShare% x criteriaScore
+ *             weight% x ( threeSixtyShare% x threeSixtyScore
  *                       + rankingShare% x rankingScore )
  *
  * A teacher who both rates and ranks therefore counts once, not twice, which is
@@ -20,12 +20,18 @@ import type { EvaluatorRole, RoleWeight, WeightSummary } from "@/types";
  * submission, no clock - so it can be tested without any of them.
  */
 
-/** The share of a role's weight carried by its orderings rather than its ratings. */
-export function rankingSharePercent(weight: RoleWeight): number {
-  return 100 - weight.criteriaSharePercent;
+/**
+ * The share of a role's weight carried by its 360 form rather than its ordering.
+ *
+ * Only the ranking share is stored; this is its complement. Which of the two is
+ * stored is arbitrary, but storing exactly one of them is not - two stored
+ * numbers that must total 100 will eventually disagree.
+ */
+export function threeSixtySharePercent(role: RoleConfig): number {
+  return 100 - role.rankingSharePercent;
 }
 
-export function enabledWeights(weights: readonly RoleWeight[]): RoleWeight[] {
+export function enabledWeights(weights: readonly RoleConfig[]): RoleConfig[] {
   return weights.filter((weight) => weight.enabled);
 }
 
@@ -38,7 +44,7 @@ export function enabledWeights(weights: readonly RoleWeight[]): RoleWeight[] {
  * no rule for which one wins. Here the per-role figures are the truth and the
  * headline is computed from them.
  */
-export function summariseWeights(weights: readonly RoleWeight[]): WeightSummary {
+export function summariseWeights(weights: readonly RoleConfig[]): WeightSummary {
   const active = enabledWeights(weights);
 
   const totalPercent = round(
@@ -46,12 +52,12 @@ export function summariseWeights(weights: readonly RoleWeight[]): WeightSummary 
     2,
   );
 
-  const criteria = active.reduce(
-    (sum, weight) => sum + (weight.weightPercent * weight.criteriaSharePercent) / 100,
+  const threeSixty = active.reduce(
+    (sum, role) => sum + (role.weightPercent * threeSixtySharePercent(role)) / 100,
     0,
   );
   const ranking = active.reduce(
-    (sum, weight) => sum + (weight.weightPercent * rankingSharePercent(weight)) / 100,
+    (sum, role) => sum + (role.weightPercent * role.rankingSharePercent) / 100,
     0,
   );
 
@@ -61,7 +67,7 @@ export function summariseWeights(weights: readonly RoleWeight[]): WeightSummary 
     // Tolerance rather than equality: the weights are user-entered percentages
     // and a renormalised set can land on 99.999999999999.
     balanced: Math.abs(100 - totalPercent) < 0.005,
-    effectiveCriteriaPercent: round(criteria, 2),
+    effective360Percent: round(threeSixty, 2),
     effectiveRankingPercent: round(ranking, 2),
     enabledRoleCount: active.length,
   };
@@ -79,7 +85,7 @@ export function summariseWeights(weights: readonly RoleWeight[]): WeightSummary 
  * switching it back on restores the blend it had. Its weight is simply not
  * counted while it is off.
  */
-export function normaliseWeights(weights: readonly RoleWeight[]): RoleWeight[] {
+export function normaliseWeights(weights: readonly RoleConfig[]): RoleConfig[] {
   const active = enabledWeights(weights);
   const total = active.reduce((sum, weight) => sum + weight.weightPercent, 0);
 
@@ -111,7 +117,7 @@ export function normaliseWeights(weights: readonly RoleWeight[]): RoleWeight[] {
  * balanced reads as a bug. The largest weight absorbs the residue because it is
  * where a hundredth of a percent is least visible.
  */
-function settleRounding(weights: RoleWeight[]): RoleWeight[] {
+function settleRounding(weights: RoleConfig[]): RoleConfig[] {
   const active = weights.filter((weight) => weight.enabled);
   if (active.length === 0) return weights;
 
@@ -132,25 +138,61 @@ function settleRounding(weights: RoleWeight[]): RoleWeight[] {
 
 /** Set one role's weight, leaving the others alone so the shortfall stays visible. */
 export function setRoleWeight(
-  weights: readonly RoleWeight[],
+  roles: readonly RoleConfig[],
   role: EvaluatorRole,
   weightPercent: number,
-): RoleWeight[] {
-  return weights.map((weight) =>
-    weight.role === role ? { ...weight, weightPercent: clampPercent(weightPercent) } : weight,
+): RoleConfig[] {
+  return roles.map((entry) =>
+    entry.role === role ? { ...entry, weightPercent: clampPercent(weightPercent) } : entry,
   );
 }
 
-/** Set one role's internal criteria-to-ranking split. */
-export function setCriteriaShare(
-  weights: readonly RoleWeight[],
+/** Set one role's internal 360-to-ranking split, by its ranking half. */
+export function setRankingShare(
+  roles: readonly RoleConfig[],
   role: EvaluatorRole,
-  criteriaSharePercent: number,
-): RoleWeight[] {
-  return weights.map((weight) =>
-    weight.role === role
-      ? { ...weight, criteriaSharePercent: clampPercent(criteriaSharePercent) }
-      : weight,
+  rankingSharePercent: number,
+): RoleConfig[] {
+  return roles.map((entry) =>
+    entry.role === role
+      ? { ...entry, rankingSharePercent: clampPercent(rankingSharePercent) }
+      : entry,
+  );
+}
+
+/**
+ * Replace one role's question set.
+ *
+ * Order follows the canonical criteria list rather than the order they were
+ * clicked, so two setups asking the same questions serialise identically and a
+ * diff between them is readable.
+ */
+export function setRoleCriteria(
+  roles: readonly RoleConfig[],
+  role: EvaluatorRole,
+  criteria: readonly EvaluationCriterion[],
+  canonicalOrder: readonly EvaluationCriterion[],
+): RoleConfig[] {
+  const chosen = new Set(criteria);
+  const ordered = canonicalOrder.filter((criterion) => chosen.has(criterion));
+  return roles.map((entry) =>
+    entry.role === role ? { ...entry, criteria: [...ordered] } : entry,
+  );
+}
+
+/**
+ * Roles that carry weight on the 360 form but have no questions to ask.
+ *
+ * A new way to be misconfigured, introduced when question sets became per-role:
+ * the blend can total 100 and still be unable to produce a score, because a
+ * role with an empty question set contributes nothing to the half it is paid
+ * for. Reported rather than auto-corrected - which questions a role should ask
+ * is a judgement, not something to guess.
+ */
+export function rolesWithoutQuestions(roles: readonly RoleConfig[]): RoleConfig[] {
+  return roles.filter(
+    (role) =>
+      role.enabled && threeSixtySharePercent(role) > 0 && role.criteria.length === 0,
   );
 }
 
@@ -162,10 +204,10 @@ export function setCriteriaShare(
  * exists to prevent.
  */
 export function setRoleEnabled(
-  weights: readonly RoleWeight[],
+  weights: readonly RoleConfig[],
   role: EvaluatorRole,
   enabled: boolean,
-): RoleWeight[] {
+): RoleConfig[] {
   const toggled = weights.map((weight) =>
     weight.role === role ? { ...weight, enabled } : weight,
   );

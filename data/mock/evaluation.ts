@@ -1,4 +1,9 @@
-import type { EvaluationSetup, RoleWeight } from "@/types";
+import type {
+  EvaluationCriterion,
+  EvaluationSetup,
+  EvaluatorRole,
+  RoleConfig,
+} from "@/types";
 
 /**
  * Fictional evaluation fixtures (scaffold.md §12).
@@ -15,38 +20,96 @@ import type { EvaluationSetup, RoleWeight } from "@/types";
  *
  * The per-role splits are not uniform, and that is the point of the default:
  *
- *   peers      rate and rank - they see each other work every week
- *   inspector  mostly rates; an outsider can compare but knows less context
- *   teacher    rates and ranks, with the heaviest single weight
- *   TA         rates only - a TA sees the work, not the whole cohort
+ *   peers      answer and rank - they see each other work every week
+ *   inspector  mostly answers; an outsider can compare but knows less context
+ *   teacher    answers and ranks, with the heaviest single weight
+ *   TA         answers only - a TA sees the work, not the whole cohort
  *
- * Effective split works out at roughly 71.5% criteria to 28.5% ordering. That
- * figure is derived by `summariseWeights`, never typed in.
+ * Effective split works out at roughly 71.5% on the 360 form to 28.5% on the
+ * ordering. That figure is derived by `summariseWeights`, never typed in.
  */
-export const DEFAULT_ROLE_WEIGHTS: readonly RoleWeight[] = [
-  { role: "student", enabled: true, weightPercent: 30, criteriaSharePercent: 60 },
-  { role: "inspector", enabled: true, weightPercent: 20, criteriaSharePercent: 70 },
-  { role: "teacher", enabled: true, weightPercent: 35, criteriaSharePercent: 70 },
-  { role: "ta", enabled: true, weightPercent: 15, criteriaSharePercent: 100 },
+/**
+ * Which criteria each role is asked on the 360 form - the default question sets.
+ *
+ * Decided 2026-09-06: one canonical list of seven (direction.md 18), and each
+ * role is asked the subset it can actually judge. The alternative, a separately
+ * worded set per role, was rejected because a criterion would then mean
+ * something slightly different depending on who answered it and the scores
+ * would stop being comparable.
+ *
+ *                     Peer  Insp  Teach  TA
+ *   Participation       x     x      x    x
+ *   Teamwork            x     x      x    x
+ *   Communication       x     x      x    x
+ *   Problem solving     x     -      x    x
+ *   Responsibility      x     x      x    -
+ *   Leadership          x     x      x    -
+ *   Technical contrib.  -     -      x    x
+ *
+ * The gaps are the interesting part. An inspector meets the group once, so it is
+ * not asked to judge problem solving. A TA sees the work rather than the whole
+ * cohort, so it is not asked about responsibility or leadership. Peers are not
+ * asked to grade technical contribution, which is the teacher's and the TA's
+ * judgement to make. Only the teacher answers all seven.
+ */
+export const DEFAULT_ROLE_CRITERIA: Record<EvaluatorRole, EvaluationCriterion[]> = {
+  student: [
+    "participation",
+    "teamwork",
+    "communication",
+    "problemSolving",
+    "responsibility",
+    "leadership",
+  ],
+  inspector: [
+    "participation",
+    "teamwork",
+    "communication",
+    "responsibility",
+    "leadership",
+  ],
+  teacher: [
+    "participation",
+    "teamwork",
+    "communication",
+    "problemSolving",
+    "responsibility",
+    "leadership",
+    "technicalContribution",
+  ],
+  ta: [
+    "participation",
+    "teamwork",
+    "communication",
+    "problemSolving",
+    "technicalContribution",
+  ],
+};
+
+export const DEFAULT_ROLE_CONFIG: readonly RoleConfig[] = [
+  { role: "student", enabled: true, weightPercent: 30, rankingSharePercent: 40, criteria: DEFAULT_ROLE_CRITERIA.student },
+  { role: "inspector", enabled: true, weightPercent: 20, rankingSharePercent: 30, criteria: DEFAULT_ROLE_CRITERIA.inspector },
+  { role: "teacher", enabled: true, weightPercent: 35, rankingSharePercent: 30, criteria: DEFAULT_ROLE_CRITERIA.teacher },
+  { role: "ta", enabled: true, weightPercent: 15, rankingSharePercent: 0, criteria: DEFAULT_ROLE_CRITERIA.ta },
 ];
 
 /**
- * A blend that uses criteria ratings only.
+ * A blend that uses the 360 form only.
  *
  * Kept as a named fixture rather than assembled inline because it is the
- * configuration that produces the "not applicable" state on the ranking column:
- * a course whose evaluation asks for no ordering at all.
+ * configuration that produces the "not used" mark on the ranking column: a
+ * course whose evaluation asks for no ordering at all.
  */
-export const CRITERIA_ONLY_WEIGHTS: readonly RoleWeight[] = DEFAULT_ROLE_WEIGHTS.map(
-  (weight) => ({ ...weight, criteriaSharePercent: 100 }),
+export const THREE_SIXTY_ONLY_CONFIG: readonly RoleConfig[] = DEFAULT_ROLE_CONFIG.map(
+  (role) => ({ ...role, rankingSharePercent: 0 }),
 );
 
 /** A blend with no teaching assistant, renormalised across the other three. */
-export const NO_TA_WEIGHTS: readonly RoleWeight[] = [
-  { role: "student", enabled: true, weightPercent: 35.29, criteriaSharePercent: 60 },
-  { role: "inspector", enabled: true, weightPercent: 23.53, criteriaSharePercent: 70 },
-  { role: "teacher", enabled: true, weightPercent: 41.18, criteriaSharePercent: 70 },
-  { role: "ta", enabled: false, weightPercent: 15, criteriaSharePercent: 100 },
+export const NO_TA_CONFIG: readonly RoleConfig[] = [
+  { role: "student", enabled: true, weightPercent: 35.29, rankingSharePercent: 40, criteria: DEFAULT_ROLE_CRITERIA.student },
+  { role: "inspector", enabled: true, weightPercent: 23.53, rankingSharePercent: 30, criteria: DEFAULT_ROLE_CRITERIA.inspector },
+  { role: "teacher", enabled: true, weightPercent: 41.18, rankingSharePercent: 30, criteria: DEFAULT_ROLE_CRITERIA.teacher },
+  { role: "ta", enabled: false, weightPercent: 15, rankingSharePercent: 0, criteria: DEFAULT_ROLE_CRITERIA.ta },
 ];
 
 /**
@@ -84,7 +147,7 @@ export const mockEvaluationSetups: EvaluationSetup[] = [
     reportDate: "2026-03-06T00:00:00.000Z",
     scaleMax: 5,
     guidance: DEFAULT_GUIDANCE,
-    weights: DEFAULT_ROLE_WEIGHTS.map((weight) => ({ ...weight })),
+    roles: cloneRoles(DEFAULT_ROLE_CONFIG),
   },
   {
     id: "evs-it101-202602",
@@ -99,7 +162,7 @@ export const mockEvaluationSetups: EvaluationSetup[] = [
     reportDate: "2026-08-07T00:00:00.000Z",
     scaleMax: 5,
     guidance: DEFAULT_GUIDANCE,
-    weights: CRITERIA_ONLY_WEIGHTS.map((weight) => ({ ...weight })),
+    roles: cloneRoles(THREE_SIXTY_ONLY_CONFIG),
   },
   {
     id: "evs-it205-202602",
@@ -114,6 +177,16 @@ export const mockEvaluationSetups: EvaluationSetup[] = [
     reportDate: "2026-08-07T00:00:00.000Z",
     scaleMax: 5,
     guidance: DEFAULT_GUIDANCE,
-    weights: NO_TA_WEIGHTS.map((weight) => ({ ...weight })),
+    roles: cloneRoles(NO_TA_CONFIG),
   },
 ];
+
+/**
+ * Deep-copy a role configuration.
+ *
+ * `criteria` is an array, so a shallow spread would leave every setup sharing
+ * one question-set instance and an edit to one would silently change the rest.
+ */
+function cloneRoles(roles: readonly RoleConfig[]): RoleConfig[] {
+  return roles.map((role) => ({ ...role, criteria: [...role.criteria] }));
+}

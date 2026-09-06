@@ -75,14 +75,19 @@ export interface CriterionScore {
  * An evaluation form has two kinds, and they are shaped differently rather than
  * being two views of one record:
  *
- *   criteria  rate ONE subject against the seven criteria
- *   ranking   put EVERY subject in scope into an order
+ *   360      rate ONE subject against the criteria your role is asked
+ *   ranking  put EVERY subject in scope into an order
+ *
+ * The first is called the **360 form**, not the "criteria form". All four roles
+ * take it - a teacher assesses a student, and students assess each other - and
+ * what differs between them is which questions they are asked, not the kind of
+ * form. Naming it after the criteria described the mechanism and hid the point.
  *
  * A single interface with an optional ordering could express both, and would
- * quietly permit a criteria evaluation with an ordering attached, or a ranking
- * with a single subject. The union makes those unrepresentable.
+ * quietly permit a 360 evaluation with an ordering attached, or a ranking with
+ * a single subject. The union makes those unrepresentable.
  */
-export type EvaluationKind = "criteria" | "ranking";
+export type EvaluationKind = "360" | "ranking";
 
 /**
  * One position in a submitted ordering.
@@ -93,7 +98,7 @@ export type EvaluationKind = "criteria" | "ranking";
  *
  * A reference design offered a 1-5 score per subject with duplicates allowed.
  * That was rejected and should not be reintroduced: a rating that permits ties
- * is a criteria rating with one dimension instead of seven, and the ordering
+ * is a 360 rating with one dimension instead of several, and the ordering
  * earns its own place in the blend by forcing a discrimination the ratings do
  * not.
  */
@@ -115,9 +120,15 @@ interface EvaluationBase {
   updatedAt: string;
 }
 
-/** Ratings against the criteria, for one subject. */
-export interface CriteriaEvaluation extends EvaluationBase {
-  kind: "criteria";
+/**
+ * A 360 assessment of one subject, against the criteria this evaluator's role
+ * is asked about.
+ *
+ * `scores` covers that role's own question set (see `RoleConfig.criteria`), not
+ * all seven, so the length varies by evaluator.
+ */
+export interface ThreeSixtyEvaluation extends EvaluationBase {
+  kind: "360";
   /** Enrollment id of the student under evaluation. */
   subjectEnrollmentId: string;
   scores: CriterionScore[];
@@ -135,26 +146,28 @@ export interface RankingEvaluation extends EvaluationBase {
   ordering: RankedPeer[];
 }
 
-export type Evaluation = CriteriaEvaluation | RankingEvaluation;
+export type Evaluation = ThreeSixtyEvaluation | RankingEvaluation;
 
 /* -------------------------------------------------------------------------- */
 /* Weighting (direction.md §20)                                               */
 /* -------------------------------------------------------------------------- */
 
 /**
- * One role's share of the final score, and how that share divides between the
- * two kinds of form.
+ * Everything that varies per evaluator role in one evaluation: whether the role
+ * takes part, what it is worth, how that worth divides between the two kinds of
+ * form, and which questions it is asked.
+ *
+ * The four fields belong on one record rather than in parallel per-role arrays.
+ * Two arrays keyed by role are two things that can disagree about which roles
+ * exist, and a role present in the weights but missing from the question set
+ * would carry weight while being asked nothing.
  *
  * Resolved 2026-09-06: the ordering is not a fifth evaluator. Each role holds a
- * single weight, and that weight splits internally between what the role rated
- * against the criteria and how the role ordered the subjects. A teacher who
- * both rates and ranks therefore does not count twice.
- *
- * `criteriaSharePercent` is stored and the ranking share is derived from it,
- * because two stored numbers that must total 100 are two numbers that will
- * eventually disagree.
+ * single weight, and that weight splits internally between the 360 form it
+ * filled in and the ordering it submitted. A teacher who both rates and ranks
+ * therefore does not count twice.
  */
-export interface RoleWeight {
+export interface RoleConfig {
   role: EvaluatorRole;
   /**
    * Whether this role evaluates at all in this course-semester. A course with
@@ -164,14 +177,30 @@ export interface RoleWeight {
   enabled: boolean;
   /** Share of the final score. Enabled roles are expected to total 100. */
   weightPercent: number;
-  /** Of this role's own weight, the part carried by criteria ratings. 0-100. */
-  criteriaSharePercent: number;
+  /**
+   * Of this role's own weight, the part carried by its submitted ordering.
+   * 0-100. The 360 share is the complement and is never stored, because two
+   * stored numbers that must total 100 will eventually disagree.
+   */
+  rankingSharePercent: number;
+  /**
+   * The criteria this role is asked about on the 360 form - its question set.
+   *
+   * Decided 2026-09-06: one canonical list of criteria (§18), and each role is
+   * asked the subset it can actually judge. A TA sees the work rather than the
+   * whole cohort, so it is not asked about leadership; an inspector meets the
+   * group once, so it is not asked to judge problem solving.
+   *
+   * A subset rather than a per-role wording, so that a criterion means the same
+   * thing whoever answered it and the scores stay comparable across roles.
+   */
+  criteria: EvaluationCriterion[];
 }
 
 /**
  * What the weight configuration adds up to.
  *
- * Every field here is derived from `RoleWeight[]` and none of it is stored: the
+ * Every field here is derived from `RoleConfig[]` and none of it is stored: the
  * screen shows the sum, the shortfall and the effective form split so that a
  * misconfigured blend is visible before anyone submits against it.
  */
@@ -181,8 +210,8 @@ export interface WeightSummary {
   /** `100 - totalPercent`. Negative when the blend is over-allocated. */
   remainingPercent: number;
   balanced: boolean;
-  /** Share of the final score reaching it through criteria forms. */
-  effectiveCriteriaPercent: number;
+  /** Share of the final score reaching it through 360 forms. */
+  effective360Percent: number;
   /** Share reaching it through submitted orderings. The two total `totalPercent`. */
   effectiveRankingPercent: number;
   enabledRoleCount: number;
@@ -226,7 +255,8 @@ export interface EvaluationSetup {
    * being asked to weigh up is a property of the evaluation, not of the widget.
    */
   guidance: string;
-  weights: RoleWeight[];
+  /** Per-role weight, form split and question set. One record per role. */
+  roles: RoleConfig[];
 }
 
 /** ✓ configured · ✗ not configured · ⊘ not applicable to this course-semester. */
@@ -246,7 +276,7 @@ export interface EvaluationSetupSummary {
   groupCount: number;
   /** Members not yet assigned to a group; they cannot be evaluated. */
   ungroupedCount: number;
-  criteriaForm: FormReadiness;
+  threeSixtyForm: FormReadiness;
   rankingForm: FormReadiness;
   /** Non-zero means the blend does not total 100 and the score is unsound. */
   weightRemainingPercent: number;
@@ -264,7 +294,9 @@ export interface EvaluationRelation {
   role: EvaluatorRole;
   enabled: boolean;
   weightPercent: number;
-  criteriaSharePercent: number;
+  rankingSharePercent: number;
+  /** The criteria this role is asked, so the card can name its question set. */
+  criteria: EvaluationCriterion[];
   /**
    * Assessors of this role reachable in scope. Zero on an enabled role is a
    * configuration that cannot produce a score, which is worth saying out loud.
@@ -296,14 +328,27 @@ export interface EvaluationSetupDetail {
   groups: EvaluationGroupSummary[];
   relations: EvaluationRelation[];
   weights: WeightSummary;
+  /**
+   * Enabled roles paid for the 360 form that have no criteria to ask.
+   *
+   * A blend can total 100 and still be unable to produce a score, so this is
+   * reported separately from the weight summary rather than folded into it.
+   */
+  rolesMissingQuestions: EvaluatorRole[];
   memberCount: number;
   ungroupedCount: number;
 }
 
 export interface RoleScore {
   role: EvaluatorRole;
-  /** Mean of the criteria evaluations for that role, normalised to 0-100. */
-  criteriaScore: number;
+  /**
+   * Mean of that role's 360 assessments, normalised to 0-100.
+   *
+   * Normalised over the criteria the role was actually asked, not all seven, so
+   * a role with a shorter question set is not penalised for the questions it
+   * never saw.
+   */
+  threeSixtyScore: number;
   /** The role's orderings converted to a 0-100 contribution. */
   rankingScore: number;
   /** Mean of the two, weighted by the role's own internal split. */

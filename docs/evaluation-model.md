@@ -100,6 +100,39 @@ Rated 1–5:
 Each `CriterionScore` may carry its own comment, and an evaluation may carry an
 `overallComment`.
 
+### Question sets per role
+
+Decided 2026-09-06. All four roles take the 360 form, but they are not asked the
+same questions. One canonical list, and each role is asked the subset it can
+actually judge:
+
+```
+                    Peer  Insp  Teach  TA
+  Participation       x     x      x    x
+  Teamwork            x     x      x    x
+  Communication       x     x      x    x
+  Problem solving     x     -      x    x
+  Responsibility      x     x      x    -
+  Leadership          x     x      x    -
+  Technical contrib.  -     -      x    x
+```
+
+The gaps carry the meaning. An inspector meets the group once, so it is not
+asked about problem solving. A TA sees the work rather than the whole cohort, so
+it is not asked about responsibility or leadership. Peers are not asked to grade
+technical contribution. Only the teacher answers all seven.
+
+**A subset, not a separate wording per role.** Wording each role's questions
+independently was rejected: a criterion would then mean something slightly
+different depending on who answered it, and scores would stop being comparable
+across roles. A role's 360 score is normalised over the criteria it was actually
+asked, so a shorter set is not a penalty.
+
+The set lives on `RoleConfig.criteria`, per role, per setup. A role weighted for
+the 360 form with an **empty** set is rejected server-side — the same class of
+failure as an unbalanced blend, in that the setup can look complete and still be
+unable to produce a score.
+
 ---
 
 ## The evaluation form: two kinds
@@ -109,11 +142,16 @@ differently rather than being two views of one record:
 
 | Kind | Scope | What is submitted |
 | --- | --- | --- |
-| `criteria` | one subject | a rating against each of the seven criteria |
+| `360` | one subject | a rating against each criterion that role is asked |
 | `ranking` | every subject in scope | an ordering, strongest first |
 
+**It is the 360 form, not the "criteria form".** All four roles take it — a
+teacher assesses a student, and students assess each other — which is what makes
+the assessment 360 degrees. Naming it after the criteria described the mechanism
+and hid the point; what varies by role is the question set, not the kind of form.
+
 `Evaluation` is a discriminated union on `kind` for that reason. A single
-interface with an optional ordering would permit a criteria evaluation carrying
+interface with an optional ordering would permit a 360 evaluation carrying
 an ordering, or a ranking with a single subject; the union makes both
 unrepresentable.
 
@@ -285,7 +323,7 @@ is a share of each role's own weight, not a fifth evaluator.**
 
 ```text
 final = SUM over enabled roles of
-          weight% x ( criteriaShare% x criteriaScore
+          weight% x ( threeSixtyShare% x threeSixtyScore
                     + rankingShare% x rankingScore )
 ```
 
@@ -293,18 +331,18 @@ The alternative — an ordering component sitting beside the four roles — was
 rejected because a teacher who both rates and ranks would then count twice.
 
 ```text
-role        weight    ratings / ordering
+role        weight    360 form / ordering
 Peer          30%         60 / 40
 Inspector     20%         70 / 30
 Teacher       35%         70 / 30
 TA            15%        100 / 0
                       ─────────────────
-effective             71.5% ratings, 28.5% ordering
+effective             71.5% on the 360 form, 28.5% on the ordering
 ```
 
 Four properties are load-bearing:
 
-- **Only `criteriaSharePercent` is stored.** The ranking share is its
+- **Only `rankingSharePercent` is stored.** The 360 share is its
   complement. Two stored numbers that must total 100 will eventually disagree.
 - **The effective split is derived** by `summariseWeights`, never entered. A
   reference design offered both the headline and the per-role weights as inputs,

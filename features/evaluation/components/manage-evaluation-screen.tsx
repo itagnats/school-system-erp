@@ -167,9 +167,11 @@ const columns: PrimeColumnDef<EvaluationSetupSummary>[] = [
     meta: { align: "right", width: "6rem" },
   },
   {
-    id: "criteriaForm",
-    header: () => <span title="Rate one subject against the seven criteria">Criteria</span>,
-    cell: ({ row }) => <ReadinessMark readiness={row.original.criteriaForm} />,
+    id: "threeSixtyForm",
+    header: () => (
+      <span title="Assess one subject against the criteria your role is asked">360</span>
+    ),
+    cell: ({ row }) => <ReadinessMark readiness={row.original.threeSixtyForm} />,
     meta: { align: "center", width: "6rem" },
   },
   {

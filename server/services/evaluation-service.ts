@@ -1,6 +1,6 @@
 import "server-only";
 
-import { summariseWeights } from "@/lib/calculations";
+import { summariseWeights, threeSixtySharePercent } from "@/lib/calculations";
 import {
   courseTable,
   enrollmentTable,
@@ -19,7 +19,7 @@ import type {
   EvaluatorRole,
   FormReadiness,
   PaginatedResult,
-  RoleWeight,
+  RoleConfig,
 } from "@/types";
 
 /**
@@ -89,6 +89,22 @@ function readinessFor(
   return "ready";
 }
 
+/**
+ * Roles paid for the 360 form that have no questions to ask.
+ *
+ * Possible only since question sets went per-role. The blend can total 100 and
+ * the setup still be unable to produce a score, because a role with an empty
+ * question set contributes nothing to the half it is weighted for.
+ */
+function rolesMissingQuestions(setup: EvaluationSetup): EvaluatorRole[] {
+  return setup.roles
+    .filter(
+      (role) =>
+        role.enabled && threeSixtySharePercent(role) > 0 && role.criteria.length === 0,
+    )
+    .map((role) => role.role);
+}
+
 function buildSummary(setup: EvaluationSetup): EvaluationSetupSummary | undefined {
   const course = courseTable.find((row) => row.id === setup.courseId);
   if (!course) return undefined;
@@ -96,7 +112,7 @@ function buildSummary(setup: EvaluationSetup): EvaluationSetupSummary | undefine
   const members = membersInScope(setup.courseId, setup.semesterCode);
   const groups = groupsInScope(setup.courseId, setup.semesterCode);
   const grouped = new Set(groups.flatMap((group) => group.memberEnrollmentIds));
-  const weights = summariseWeights(setup.weights);
+  const weights = summariseWeights(setup.roles);
 
   return {
     id: setup.id,
@@ -109,7 +125,7 @@ function buildSummary(setup: EvaluationSetup): EvaluationSetupSummary | undefine
     memberCount: members.length,
     groupCount: groups.length,
     ungroupedCount: members.filter((member) => !grouped.has(member.id)).length,
-    criteriaForm: readinessFor(weights.effectiveCriteriaPercent, setup, groups.length),
+    threeSixtyForm: readinessFor(weights.effective360Percent, setup, groups.length),
     rankingForm: readinessFor(weights.effectiveRankingPercent, setup, groups.length),
     weightRemainingPercent: weights.remainingPercent,
   };
@@ -151,13 +167,14 @@ function buildRelations(setup: EvaluationSetup, groups: EvaluationGroup[]): Eval
     0,
   );
 
-  return setup.weights.map((weight) => ({
-    role: weight.role,
-    enabled: weight.enabled,
-    weightPercent: weight.weightPercent,
-    criteriaSharePercent: weight.criteriaSharePercent,
-    assessorCount: assessorCountFor(weight.role, groups, groupedTotal),
-    subjectsPerAssessor: subjectsPerAssessorFor(weight.role, largestGroup, groupedTotal),
+  return setup.roles.map((role) => ({
+    role: role.role,
+    enabled: role.enabled,
+    weightPercent: role.weightPercent,
+    rankingSharePercent: role.rankingSharePercent,
+    criteria: [...role.criteria],
+    assessorCount: assessorCountFor(role.role, groups, groupedTotal),
+    subjectsPerAssessor: subjectsPerAssessorFor(role.role, largestGroup, groupedTotal),
     // Never true, for any role. direction.md §16.
     selfEvaluation: false as const,
   }));
@@ -237,7 +254,8 @@ function buildDetail(setup: EvaluationSetup): EvaluationSetupDetail | undefined 
       inspectorSourceGroupName: inspectorSourceName(groups, index),
     })),
     relations: buildRelations(setup, groups),
-    weights: summariseWeights(setup.weights),
+    weights: summariseWeights(setup.roles),
+    rolesMissingQuestions: rolesMissingQuestions(setup),
     memberCount: members.length,
     ungroupedCount: members.filter((member) => !grouped.has(member.id)).length,
   };
@@ -270,7 +288,7 @@ export function updateEvaluationSetup(
     editingLocked: input.editingLocked ?? current.editingLocked,
     scaleMax: input.scaleMax ?? current.scaleMax,
     guidance: input.guidance ?? current.guidance,
-    weights: input.weights ? mergeWeights(current.weights, input.weights) : current.weights,
+    roles: input.roles ? mergeRoles(current.roles, input.roles) : current.roles,
   };
 
   return buildDetail(next);
@@ -282,14 +300,14 @@ export function updateEvaluationSetup(
  * The blend is rendered as a list and read as a list, so a client that happens
  * to serialise its roles differently should not reorder the screen.
  */
-function mergeWeights(
-  current: RoleWeight[],
-  incoming: EvaluationSetupUpdateInput["weights"],
-): RoleWeight[] {
-  const byRole = new Map((incoming ?? []).map((weight) => [weight.role, weight]));
-  return current.map((weight) => {
-    const update = byRole.get(weight.role);
-    return update ? { ...weight, ...update } : weight;
+function mergeRoles(
+  current: RoleConfig[],
+  incoming: EvaluationSetupUpdateInput["roles"],
+): RoleConfig[] {
+  const byRole = new Map((incoming ?? []).map((role) => [role.role, role]));
+  return current.map((role) => {
+    const update = byRole.get(role.role);
+    return update ? { ...role, ...update, criteria: [...update.criteria] } : role;
   });
 }
 

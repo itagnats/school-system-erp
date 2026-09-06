@@ -2,10 +2,10 @@ import { mockCostSheets } from "@/data/mock/costs";
 import { mockCourses } from "@/data/mock/courses";
 import { mockEnrollments } from "@/data/mock/enrollments";
 import {
-  CRITERIA_ONLY_WEIGHTS,
   DEFAULT_GUIDANCE,
-  DEFAULT_ROLE_WEIGHTS,
-  NO_TA_WEIGHTS,
+  DEFAULT_ROLE_CONFIG,
+  NO_TA_CONFIG,
+  THREE_SIXTY_ONLY_CONFIG,
   mockEvaluationSetups,
 } from "@/data/mock/evaluation";
 import {
@@ -30,7 +30,7 @@ import type {
   ProgramEnrollment,
   ProgramTerm,
   ProgramTermStatus,
-  RoleWeight,
+  RoleConfig,
   Semester,
   SemesterStatus,
   Student,
@@ -652,7 +652,7 @@ function generateEvaluationSetups(
     if (rng.chance(0.18)) continue;
 
     const status = windowStatusFor(rng, semesterStatus.get(semesterCode as Semester["code"]));
-    const weights = pickBlend(rng);
+    const roles = pickBlend(rng);
 
     const opensDays = rng.int(20, 200);
     setups.push({
@@ -669,7 +669,7 @@ function generateEvaluationSetups(
       reportDate: isoFromEpoch(opensDays + 32),
       scaleMax: 5,
       guidance: DEFAULT_GUIDANCE,
-      weights: weights.map((weight) => ({ ...weight })),
+      roles: roles.map((role) => ({ ...role, criteria: [...role.criteria] })),
     });
   }
 
@@ -679,14 +679,14 @@ function generateEvaluationSetups(
 /**
  * Vary the blend across setups so every readiness state appears in the list.
  *
- * A criteria-only blend is what produces the "not used" mark on the ranking
+ * A 360-only blend is what produces the "not used" mark on the ranking
  * column, and a blend with no TA is what makes the disabled-role case visible
  * without an administrator having to build it by hand.
  */
-function pickBlend(rng: Random): readonly RoleWeight[] {
-  if (rng.chance(0.2)) return CRITERIA_ONLY_WEIGHTS;
-  if (rng.chance(0.15)) return NO_TA_WEIGHTS;
-  return DEFAULT_ROLE_WEIGHTS;
+function pickBlend(rng: Random): readonly RoleConfig[] {
+  if (rng.chance(0.2)) return THREE_SIXTY_ONLY_CONFIG;
+  if (rng.chance(0.15)) return NO_TA_CONFIG;
+  return DEFAULT_ROLE_CONFIG;
 }
 
 /**

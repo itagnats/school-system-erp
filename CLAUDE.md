@@ -137,14 +137,26 @@ Semester codes are `YYYYNN` (`202601`, `202602`). A course can be offered in man
 
 Four evaluator roles: `STUDENT` (peers in own group), `INSPECTOR` (a student from *another* group), `TEACHER`, `TA`. **A student must never evaluate themselves.**
 
-**Two kinds of form** (revised 2026-09-06): a `criteria` form rates one subject
-against the seven criteria; a `ranking` form puts every subject in scope into an
-order. `Evaluation` is a discriminated union on `kind` so neither shape can hold
-the other's data.
+**Two kinds of form** (revised 2026-09-06): the **360 form** (`kind: "360"`)
+assesses one subject against the criteria that evaluator's role is asked; a
+`ranking` form puts every subject in scope into an order. `Evaluation` is a
+discriminated union on `kind` so neither shape can hold the other's data.
+
+**It is the 360 form, never the "criteria form".** All four roles take it — a
+teacher assesses a student, and students assess each other — which is what makes
+it 360 degrees. What differs by role is the question set, not the kind of form.
+
+**Question sets are per role** (`direction.md` §18, decided 2026-09-06): one
+canonical list of seven criteria, and each role is asked the subset it can judge
+— teacher 7, peer 6, inspector 5, TA 5. A subset rather than per-role wording, so
+a criterion means one thing whoever answered and scores stay comparable. Held on
+`RoleConfig.criteria`. A role weighted for the 360 form with an **empty** question
+set is rejected server-side: the blend can total 100 and still be unable to
+produce a score.
 
 **How they combine was decided 2026-09-06** (`direction.md` §20): an ordering is
 **a share of each role's own weight**, not a fifth evaluator. Each role holds one
-`weightPercent`, split internally by `criteriaSharePercent`; the ranking share is
+`weightPercent`, split internally by `rankingSharePercent`; the 360 share is
 its complement and is never stored. A teacher who both rates and ranks therefore
 counts once. Enabled role weights must total 100 — validated **server-side**,
 because an unbalanced blend produces no error, only uniformly wrong scores. A role

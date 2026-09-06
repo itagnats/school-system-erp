@@ -174,11 +174,16 @@ export const READINESS_TONE: Record<FormReadiness, StatusTone> = {
 
 /** What each kind of form asks an evaluator to do. */
 export const EVALUATION_KIND_LABEL: Record<EvaluationKind, string> = {
-  criteria: "Criteria form",
+  "360": "360 form",
   ranking: "Ranking form",
 };
 
+/**
+ * All four roles take the 360 form - a teacher assesses a student, and students
+ * assess each other. What differs is the question set, not the kind of form,
+ * which is why this is not called the "criteria form".
+ */
 export const EVALUATION_KIND_DESCRIPTION: Record<EvaluationKind, string> = {
-  criteria: "Rate one subject at a time against the seven criteria",
-  ranking: "Put every subject in scope into an order",
+  "360": "Assess one subject at a time, against the criteria your role is asked",
+  ranking: "Put every subject in scope into an order, strongest first",
 };

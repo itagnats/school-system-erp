@@ -8,15 +8,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { HttpError } from "@/lib/api";
-import { setCriteriaShare, setRoleEnabled, setRoleWeight, summariseWeights } from "@/lib/calculations";
+import {
+  setRankingShare,
+  setRoleCriteria,
+  setRoleEnabled,
+  setRoleWeight,
+  summariseWeights,
+} from "@/lib/calculations";
 import { formatDate } from "@/lib/utils";
+import { EVALUATION_CRITERIA } from "@/types";
 import type {
+  EvaluationCriterion,
   EvaluationSetupDetail,
   EvaluationWindowStatus,
   EvaluatorRole,
-  RoleWeight,
+  RoleConfig,
 } from "@/types";
-import { WINDOW_STATUS_LABEL, WINDOW_STATUS_TONE } from "../constants";
+import { EVALUATOR_ROLE_LABEL, WINDOW_STATUS_LABEL, WINDOW_STATUS_TONE } from "../constants";
 import { useUpdateEvaluationSetup } from "../hooks/use-evaluation-setups";
 import { RelationsPanel } from "./relations-panel";
 import { WeightBlendPanel } from "./weight-blend-panel";
@@ -50,14 +58,14 @@ export function EvaluationSetupScreen({
   const [baseline, setBaseline] = useState(() => JSON.stringify(toDraft(detail)));
   const dirty = JSON.stringify(draft) !== baseline;
 
-  const summary = summariseWeights(draft.weights);
+  const summary = summariseWeights(draft.roles);
   const locked = setup.editingLocked;
 
   const fieldErrors =
     mutation.error instanceof HttpError ? mutation.error.fieldErrors : undefined;
 
-  function editWeights(next: RoleWeight[]) {
-    setDraft((current) => ({ ...current, weights: next }));
+  function editRoles(next: RoleConfig[]) {
+    setDraft((current) => ({ ...current, roles: next }));
   }
 
   function save() {
@@ -68,7 +76,7 @@ export function EvaluationSetupScreen({
         status: draft.status,
         editingLocked: draft.editingLocked,
         guidance: draft.guidance,
-        weights: draft.weights,
+        roles: draft.roles,
       },
       {
         onSuccess: (saved) => {
@@ -164,24 +172,27 @@ export function EvaluationSetupScreen({
           </p>
         ) : null}
 
-        {fieldErrors?.weights ? (
+        {fieldErrors?.roles ? (
           <p className="mt-3 text-xs text-error" role="alert">
-            {fieldErrors.weights}
+            {fieldErrors.roles}
           </p>
         ) : null}
       </Section>
 
       <WeightBlendPanel
-        weights={draft.weights}
+        roles={draft.roles}
         disabled={locked}
         onWeightChange={(role: EvaluatorRole, percent: number) =>
-          editWeights(setRoleWeight(draft.weights, role, percent))
+          editRoles(setRoleWeight(draft.roles, role, percent))
         }
-        onShareChange={(role: EvaluatorRole, percent: number) =>
-          editWeights(setCriteriaShare(draft.weights, role, percent))
+        onRankingShareChange={(role: EvaluatorRole, percent: number) =>
+          editRoles(setRankingShare(draft.roles, role, percent))
         }
         onEnabledChange={(role: EvaluatorRole, enabled: boolean) =>
-          editWeights(setRoleEnabled(draft.weights, role, enabled))
+          editRoles(setRoleEnabled(draft.roles, role, enabled))
+        }
+        onCriteriaChange={(role: EvaluatorRole, criteria: EvaluationCriterion[]) =>
+          editRoles(setRoleCriteria(draft.roles, role, criteria, EVALUATION_CRITERIA))
         }
       />
 
@@ -195,9 +206,18 @@ export function EvaluationSetupScreen({
 
       {/* Relations read the saved configuration, not the draft: the assessor
           counts come from the server and would be stale against unsaved edits. */}
+      {detail.rolesMissingQuestions.length > 0 ? (
+        <p className="text-xs text-error" role="alert">
+          {detail.rolesMissingQuestions.map((role) => EVALUATOR_ROLE_LABEL[role]).join(", ")}
+          {detail.rolesMissingQuestions.length === 1 ? " is" : " are"} weighted for
+          the 360 form but asked no criteria, so that share of the score cannot
+          be filled.
+        </p>
+      ) : null}
+
       <RelationsPanel
         relations={detail.relations}
-        weights={detail.setup.weights}
+        roles={detail.setup.roles}
         groups={detail.groups}
         ungroupedCount={detail.ungroupedCount}
       />
@@ -211,7 +231,7 @@ interface Draft {
   status: EvaluationWindowStatus;
   editingLocked: boolean;
   guidance: string;
-  weights: RoleWeight[];
+  roles: RoleConfig[];
 }
 
 function toDraft(detail: EvaluationSetupDetail): Draft {
@@ -222,7 +242,9 @@ function toDraft(detail: EvaluationSetupDetail): Draft {
     status: setup.status,
     editingLocked: setup.editingLocked,
     guidance: setup.guidance,
-    weights: setup.weights.map((weight) => ({ ...weight })),
+    // criteria is an array, so a shallow spread would have the draft and the
+    // server response sharing one question-set instance.
+    roles: setup.roles.map((role) => ({ ...role, criteria: [...role.criteria] })),
   };
 }
 
