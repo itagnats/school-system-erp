@@ -1,0 +1,12 @@
+import "server-only";
+
+/**
+ * Domain services. Both the route handlers under `app/api` and any server
+ * component read through these, which is what keeps the hybrid boundary safe:
+ * the two paths differ only in whether HTTP sits in the middle.
+ */
+export * from "./course-service";
+export * from "./semester-service";
+export * from "./student-service";
+export * from "./enrollment-service";
+export * from "./cost-service";

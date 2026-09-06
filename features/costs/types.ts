@@ -1,0 +1,28 @@
+import type { CostSheetStatus, ListQuery, SemesterCode } from "@/types";
+
+export interface CostQueryParams extends ListQuery {
+  courseId?: string;
+  semester?: SemesterCode;
+  status?: CostSheetStatus;
+}
+
+/**
+ * The derived row a cost table shows.
+ *
+ * The nested groups stay on the detail page: a table needs the total and the
+ * per-student figure, and sending four levels of nesting so the browser can add
+ * them up would move business math into the client.
+ */
+export interface CostSheetRow {
+  id: string;
+  courseId: string;
+  courseCode: string;
+  courseName: string;
+  semesterCode: string;
+  status: CostSheetStatus;
+  currency: string;
+  studentCount: number;
+  totalCost: number;
+  costPerStudent: number | null;
+  updatedAt: string;
+}
