@@ -3,10 +3,11 @@ import {
   CalendarRange,
   ClipboardCheck,
   FileText,
+  GraduationCap,
   LayoutDashboard,
   Layers,
   Receipt,
-  Trophy,
+  Settings2,
   UserPlus,
   Users,
   type LucideIcon,
@@ -40,6 +41,7 @@ export const NAVIGATION: NavSection[] = [
   {
     label: "Academic",
     items: [
+      { label: "Curriculum", href: "/programs", icon: GraduationCap },
       { label: "Courses", href: "/courses", icon: BookOpen },
       { label: "Semesters", href: "/semesters", icon: CalendarRange },
     ],
@@ -57,14 +59,15 @@ export const NAVIGATION: NavSection[] = [
   },
   {
     label: "Evaluation",
+    // Split by perspective rather than by feature. "Manage" is the teacher and
+    // administrator view - groups, evaluator assignment, completion, results.
+    // "Your Evaluation" is the evaluator's own queue of forms to fill in.
+    // Ranking is not a destination: an ordering is something an evaluator
+    // submits inside a form, and the computed leaderboard is a result shown
+    // under Manage.
     items: [
-      {
-        label: "Evaluation Groups",
-        href: "/evaluation/groups",
-        icon: Layers,
-      },
-      { label: "Evaluations", href: "/evaluation", icon: ClipboardCheck },
-      { label: "Ranking", href: "/evaluation/ranking", icon: Trophy },
+      { label: "Manage Evaluation", href: "/evaluation/manage", icon: Settings2 },
+      { label: "Your Evaluation", href: "/evaluation", icon: ClipboardCheck },
     ],
   },
   {
@@ -81,8 +84,9 @@ export const NAV_ITEMS: NavItem[] = NAVIGATION.flatMap((s) => s.items);
 
 /**
  * Which nav item owns a pathname. Longest matching href wins, so
- * `/evaluation/ranking` resolves to Ranking rather than to Evaluations even
- * though both match, and `/courses/IT101` still resolves to Courses.
+ * `/evaluation/manage` resolves to Manage Evaluation rather than to Your
+ * Evaluation even though both match, and `/courses/IT101` still resolves to
+ * Courses.
  */
 export function findActiveNavItem(pathname: string): NavItem | undefined {
   const matches = NAV_ITEMS.filter((item) => {

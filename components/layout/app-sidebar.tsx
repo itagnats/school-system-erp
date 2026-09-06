@@ -28,8 +28,17 @@ export function AppSidebar() {
         <SidebarNav />
       </ScrollArea>
 
-      <div className="shrink-0 px-4 py-2.5 text-[10px] text-sidebar-muted-foreground hairline-t">
-        {APP.name} v{APP.version}
+      {/* Writes are validated and shaped but never stored, so every load starts
+          from the same seed. Saying so here is what makes a vanished edit read
+          as a scoping decision rather than a bug. See docs/decisions/why-bff.md. */}
+      <div
+        className="shrink-0 px-4 py-2.5 text-[10px] text-sidebar-muted-foreground hairline-t"
+        data-print="hide"
+      >
+        <p>
+          {APP.name} v{APP.version}
+        </p>
+        <p className="mt-0.5">Demo data resets on reload</p>
       </div>
     </aside>
   );

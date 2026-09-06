@@ -23,3 +23,28 @@ export const costSheetListItemSchema = z.object({
 export const costSheetListSchema = paginatedSchema(costSheetListItemSchema);
 
 export type CostSheetListResponse = z.infer<typeof costSheetListSchema>;
+
+/**
+ * What a client may change on a cost sheet.
+ *
+ * Only the three inputs the total actually depends on. The groups, items and
+ * options are not editable here: changing them is a different, larger screen,
+ * and allowing a partial nested write through this endpoint would make the
+ * recomputed breakdown impossible to reason about.
+ */
+export const costSheetUpdateSchema = z.object({
+  markupPercent: z
+    .number({ message: "Markup must be a number" })
+    .min(0, "Markup cannot be negative")
+    .max(100, "A markup over 100 percent is almost certainly a typo")
+    .optional(),
+  studentCount: z
+    .number({ message: "Student count must be a number" })
+    .int("A head count is a whole number")
+    .min(0, "A head count cannot be negative")
+    .max(500, "That is larger than any cohort in this demo")
+    .optional(),
+  status: z.enum(["draft", "review", "approved"]).optional(),
+});
+
+export type CostSheetUpdateInput = z.infer<typeof costSheetUpdateSchema>;

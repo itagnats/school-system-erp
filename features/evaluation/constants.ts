@@ -1,7 +1,10 @@
 import type {
   EvaluationCriterion,
+  EvaluationKind,
   EvaluationStatus,
+  EvaluationWindowStatus,
   EvaluatorRole,
+  FormReadiness,
   Option,
   RankingScope,
   RatingValue,
@@ -122,3 +125,60 @@ export const RANKING_SCOPE_LABEL: Record<RankingScope, string> = {
 export const RANKING_SCOPE_OPTIONS: Option<RankingScope>[] = (
   ["group", "course-semester"] as const
 ).map((value) => ({ value, label: RANKING_SCOPE_LABEL[value] }));
+
+/* -------------------------------------------------------------------------- */
+/* The evaluation window                                                      */
+/* -------------------------------------------------------------------------- */
+
+export const WINDOW_STATUS_LABEL: Record<EvaluationWindowStatus, string> = {
+  draft: "Draft",
+  open: "Open",
+  closed: "Closed",
+  published: "Published",
+};
+
+export const WINDOW_STATUS_TONE: Record<EvaluationWindowStatus, StatusTone> = {
+  draft: "neutral",
+  open: "success",
+  closed: "warning",
+  published: "info",
+};
+
+export const WINDOW_STATUS_OPTIONS: Option<EvaluationWindowStatus>[] = (
+  ["draft", "open", "closed", "published"] as const
+).map((value) => ({ value, label: WINDOW_STATUS_LABEL[value] }));
+
+/* -------------------------------------------------------------------------- */
+/* Form readiness                                                             */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The three states a form kind can be in, in words.
+ *
+ * "Not applicable" is the one that has to be distinguishable at a glance from
+ * "not configured": a blend that gives the ordering no weight is a finished
+ * decision, not an unfinished setup, and marking it as a failure would push
+ * someone to fix a configuration that is already right.
+ */
+export const READINESS_LABEL: Record<FormReadiness, string> = {
+  ready: "Configured",
+  "not-configured": "Not configured",
+  "not-applicable": "Not used",
+};
+
+export const READINESS_TONE: Record<FormReadiness, StatusTone> = {
+  ready: "success",
+  "not-configured": "error",
+  "not-applicable": "neutral",
+};
+
+/** What each kind of form asks an evaluator to do. */
+export const EVALUATION_KIND_LABEL: Record<EvaluationKind, string> = {
+  criteria: "Criteria form",
+  ranking: "Ranking form",
+};
+
+export const EVALUATION_KIND_DESCRIPTION: Record<EvaluationKind, string> = {
+  criteria: "Rate one subject at a time against the seven criteria",
+  ranking: "Put every subject in scope into an order",
+};

@@ -144,6 +144,37 @@ IT101
 
 ---
 
+# 4a. Curriculum and Programmes
+
+*Added 2026-09-06. A course on its own has a cost but no price, so cost
+management could describe spending and never answer whether it was worth it.*
+
+A **programme** is what a student actually enrols in. It gathers courses into a
+package per semester and puts a price on that package:
+
+```text
+Program (BSC-IT)
+  └── Program Term (BSC-IT, 202601)
+        ├── Courses: IT101, IT205, IT310
+        └── Package price: 49,200
+```
+
+The **term** is the unit that matters. It is what a student enrols in, what
+carries the price, and what profit is measured on, because the same curriculum
+at the same price makes or loses money depending on how many people took it.
+
+A course still belongs to itself and may appear in several programmes. That is
+why a programme is charged a course cost *per student* rather than being handed
+the whole cost sheet.
+
+Support:
+
+- Programme with code, name and credential
+- Per-semester curriculum: which courses, in teaching order
+- Package price per term
+- Term status: planning, open, closed
+- Programme roster: who is under this programme this term
+
 # 5. Semester
 
 ## Purpose
@@ -274,6 +305,25 @@ Enroll
 Only collect the minimum information necessary for the initial enrollment.
 
 ---
+
+# 7a. Enrolment Through a Programme
+
+*Added 2026-09-06.*
+
+Enrolment is entered at the **programme** level, not the course level. A student
+joins a programme term, and that enrols them in the courses of its curriculum.
+
+```text
+Enrol student -> Program Term (BSC-IT, 202601)
+                   └── creates a course enrollment per course in the curriculum
+```
+
+Two consequences the UI must respect:
+
+- the enrollment screen can be entered from a programme, and answers "who is
+  under this programme" as directly as it answers "who is on this course";
+- a student may still drop an individual course, so a per-course head count is a
+  subset of the programme head count and never assumed equal to it.
 
 # 8. Enrollment Status
 
@@ -474,7 +524,52 @@ Do not reproduce every production cost-management workflow.
 
 ---
 
+# 13a. Revenue and Profitability
+
+*Added 2026-09-06. This is what makes §13 a decision rather than bookkeeping.*
+
+```text
+Package price x Enrolled students = Revenue
+Sum of attributed course costs     = Total cost
+Revenue - Total cost               = Net profit
+Net profit / Revenue               = Margin
+```
+
+**Attributed** is the load-bearing word. A course cost sheet covers everyone on
+that course, and a course can be taught into several programmes at once, so a
+programme cannot be charged the whole sheet. It is charged:
+
+```text
+Course cost per student x Students from this programme on that course
+```
+
+which is the only split that stays correct when two programmes share a course.
+
+Three things must not be hidden:
+
+- a course with no cost sheet contributes **unknown**, not zero, and the screen
+  says how many such courses there are, because a total assembled from an
+  incomplete curriculum is a different claim from a complete one;
+- a loss is shown as a negative number, never clamped;
+- a margin with no revenue is **not** 0%, it has no value.
+
+The break-even package price should be shown beside the margin: it answers
+"what would this have to cost" rather than only "what did we make".
+
 # 14. Evaluation
+
+**Navigation (revised 2026-09-06).** The evaluation area is split by
+perspective rather than by feature:
+
+```text
+Manage Evaluation   groups, evaluator assignment, completion, computed ranking
+Your Evaluation     the forms assigned to you, and the ones you have submitted
+```
+
+Because there is no sign-in, "you" comes from a **demo persona switcher**: a
+control that lets a reader act as a student, an inspector, a teacher or a TA.
+That is what makes the four roles and the no-self-evaluation rule visible rather
+than merely described.
 
 ## Purpose
 
@@ -520,6 +615,49 @@ Evaluation Group B
 ```
 
 The evaluation group is the main context for peer evaluation.
+
+## Evaluation setup (added 2026-09-06)
+
+Groups are membership. The **evaluation setup** beside them is configuration,
+and it belongs to one course-semester:
+
+```text
+IT101 — 202602
+├── name, short name, window (opens / closes / report date)
+├── rating scale, guidance for evaluators
+├── the weight blend (§20)
+└── groups A…F
+```
+
+One setup per course-semester, because everything it holds is scoped that way.
+Attaching it to a group instead would mean repeating the same blend five times
+for a course with five groups, and then reconciling them when they drift.
+
+A setup moves through four window states — **draft, open, closed, published** —
+and carries a separate **editing lock**. The two are kept apart deliberately: an
+administrator sometimes has to reopen editing on an open window to correct a
+weight, and that should be a visible, deliberate act rather than a side effect
+of the window's state.
+
+Manage Evaluation lists one row per setup and answers a single question: which
+cohorts are not ready. Each kind of form is in one of three states, and the
+third is the one that matters:
+
+```text
+configured      the form is used and the setup can produce a score
+not configured  the form is used but the setup is incomplete
+not used        the blend gives this form no weight — a decision, not a fault
+```
+
+Marking "not used" as a failure would push someone to fix a configuration that
+is already correct.
+
+Two conditions are reported rather than hidden, because both quietly produce
+wrong results instead of errors:
+
+- **Ungrouped students.** A student not in a group is not evaluated by peers and
+  does not appear in a group ranking, so a bare head count overstates coverage.
+- **An unbalanced blend.** See §20.
 
 ---
 
@@ -650,6 +788,45 @@ The UI must support:
 
 After submission, the evaluation should become read-only unless reopening is intentionally supported.
 
+## The two form kinds (added 2026-09-06)
+
+An evaluator meets two shapes of form, and they are shaped differently rather
+than being two views of one record. `Evaluation` is a discriminated union on
+`kind`, so neither can hold the other's data.
+
+### Criteria form
+
+Rates **one subject at a time** against the seven criteria of §18, on the 1-5
+scale. The subjects an evaluator owes are stepped through one after another
+rather than listed on one page, because seven ratings for each of ten people is
+seventy inputs and a single scrolling page invites straight-lining.
+
+### Ranking form
+
+Puts **every subject in scope into an order**, strongest first.
+
+**Decided 2026-09-06: an ordering is a strict permutation. No ties.** Every
+position is used exactly once, and the form is a reorderable list rather than a
+score per row.
+
+This is a deliberate divergence from the reference design the decision was taken
+against, which offered a 1-5 score per subject with duplicates allowed. Do not
+"correct" it back to match that screenshot. The reasoning:
+
+- a rating that permits ties is a criteria rating wearing different clothes, and
+  the criteria form already does that job better, with seven dimensions instead
+  of one;
+- the ordering earns its separate place in the blend (§20) precisely by forcing
+  a discrimination the ratings do not. An evaluator who rates everyone a 4 has
+  said nothing; an evaluator who must place them in order has to.
+
+The cost is accepted: ordering is harder work than scoring, and grows with the
+number of subjects. That is why an ordering is scoped to an evaluation group
+rather than a whole cohort.
+
+An evaluator never appears in their own ordering. Ranking yourself first is the
+same violation as rating yourself (§16), wearing different clothes.
+
 ---
 
 # 20. Score Calculation
@@ -677,6 +854,69 @@ Inspector   20%
 Teacher     35%
 TA          15%
 ```
+
+**Two kinds of form (added 2026-09-06).** An evaluator submits two things, not
+one:
+
+```text
+Criteria form   rate ONE subject against the seven criteria
+Ranking form    put EVERY subject in scope into an order
+```
+
+Both feed the final score. A submitted ordering converts to a score
+contribution and joins the weighted blend alongside the criteria ratings.
+
+**Resolved 2026-09-06: the ordering is a share of each role's own weight.**
+
+Each role holds one weight, and that weight divides internally between the
+ratings the role gave and the ordering it submitted:
+
+```text
+final = SUM over enabled roles of
+          weight% x ( criteriaShare% x criteriaScore
+                    + rankingShare% x rankingScore )
+```
+
+The alternative — adding the ordering as a fifth weighted component beside the
+four roles — was rejected because a teacher who both rates and ranks would then
+count twice, once as a teacher and once as a contributor to the ordering
+component. Under the rule above a teacher counts once, and how they express that
+judgement is a property of the teacher's own share.
+
+Only `criteriaShare` is stored; the ranking share is always its complement. Two
+stored numbers that must total 100 are two numbers that will eventually disagree.
+
+The demo default therefore reads:
+
+```text
+role        weight    of which ratings / ordering
+Peer          30%          60 / 40
+Inspector     20%          70 / 30
+Teacher       35%          70 / 30
+TA            15%         100 / 0
+                       ─────────────
+effective              71.5% ratings, 28.5% ordering
+```
+
+Peers and the teacher both rate and rank; an inspector mostly rates, because an
+outsider can compare but knows less context; a TA rates only, because a TA sees
+the work rather than the whole cohort.
+
+**The effective split at the bottom is derived, never entered.** A reference
+design for the setup screen let an administrator type a headline "ratings 60 /
+ordering 40" *and* the per-role weights beneath it, which gives the same quantity
+two sources of truth and no rule for which one wins. The per-role figures are the
+truth; the headline is computed from them and shown as a read-out.
+
+**A role can be switched off**, and the remaining weights are renormalised so
+they still total 100. A course with no teaching assistant would otherwise leave
+15% of every score unallocated, and nothing downstream would detect it. A
+disabled role keeps its stored weight, so switching it back on restores the
+blend it had.
+
+The enabled weights totalling 100 is validated **server-side**. It is the one
+mistake on that screen that nothing downstream would catch: an unbalanced blend
+does not fail, it silently scales every score in the course by the same amount.
 
 The weighting should be configurable in the demo.
 
@@ -711,6 +951,18 @@ Rank   Student       Score
 3      Student C     87.2
 4      Student D     83.9
 ```
+
+**Ranking now means two things (added 2026-09-06), and they must not be
+confused:**
+
+- an **ordering submitted by an evaluator**, which is an input and lives in the
+  evaluation form (§20);
+- the **computed leaderboard** described here, which is an output derived from
+  final scores.
+
+The computed leaderboard is not a separate destination in the navigation. It is
+a result shown under Manage Evaluation, next to the groups and completion it is
+derived from.
 
 Ranking should clearly indicate its scope:
 

@@ -214,11 +214,22 @@ Ten files. Missing one is how a domain ends up half-wired:
 | `types/` — including `PaginatedResult<T>` and `ListQuery` | **built** |
 | `lib/constants/query-keys.ts` — filter-aware keys, every domain | **built** |
 | `hooks/use-list-query-params.ts` — URL ⇄ list state | **built** |
-| `data/mock/*.ts` | six files, every array **empty** |
-| `data/seed/` | **empty** |
-| `server/`, `app/api/`, `lib/api/contracts/` | **do not exist** |
-| `features/*/services`, `features/*/hooks` | **do not exist** |
+| `data/mock/*.ts` | **built** — eight files, hand-written fixtures |
+| `data/seed/` | **built** — seeded PRNG, deterministic generator |
+| `server/` | **built** — repositories, seven services, query, simulate, http, validation |
+| `app/api/` | **built** — thirteen route handlers, reads and writes |
+| `lib/api/contracts/` | **built** — one per domain, plus shared list shapes |
+| `features/*` | **built** for programs, courses, semesters, students, enrollment, costs, evaluation (the manage half) |
+| `features/reports` | vocabulary only; no services or screens |
 
-The client half was built first and already presumes this exact shape:
-`NEXT_PUBLIC_API_URL` defaults to `/api`. Everything from `server/` down is the
-work still ahead.
+Writes exist for courses (`POST`, `PATCH`), cost sheets (`PATCH`), programme
+terms (`PATCH`) and evaluation setups (`PATCH`). They validate, run their
+business rules, return the correct status and shape — and store nothing.
+
+The evaluation setup write is the one where server-side validation is not
+ceremony: the enabled role weights must total 100, and an unbalanced blend
+raises no error downstream, it merely scales every score in the course by the
+same amount.
+
+Still ahead: the evaluator half of evaluation, the reports domain, and the demo
+persona switcher that answers "who is you" on Your Evaluation.

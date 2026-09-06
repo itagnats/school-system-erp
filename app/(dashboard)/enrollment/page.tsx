@@ -3,7 +3,11 @@ import { Suspense } from "react";
 import { TableSkeleton } from "@/components/feedback";
 import { PageHeader } from "@/components/shared";
 import { EnrollmentScreen } from "@/features/enrollment/components/enrollment-screen";
-import { courseFilterOptions, courseSemesterOptions } from "@/server/services";
+import {
+  courseFilterOptions,
+  courseSemesterOptions,
+  programFilterOptions,
+} from "@/server/services";
 
 export const metadata: Metadata = { title: "Enrollment" };
 
@@ -18,11 +22,12 @@ export default function Page() {
     <>
       <PageHeader
         title="Enrollment"
-        description="Which students are taking which course, in which semester, and in which evaluation group."
+        description="Enter from a programme to see who is under it, or narrow to a single course, semester or evaluation group."
       />
       <Suspense fallback={<TableSkeleton columns={5} />}>
         <EnrollmentScreen
           courseOptions={courseFilterOptions()}
+          programOptions={programFilterOptions()}
           semesterOptions={courseSemesterOptions()}
         />
       </Suspense>

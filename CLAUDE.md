@@ -10,10 +10,14 @@ Reply in English even when the user writes in another language.
 
 ## Current state
 
-**Scaffold complete; no feature modules built.** The token layer, theme, application
-shell, shared components, routing, domain types, API layer and test harness are in place.
-Every application route under `app/(dashboard)/` renders `ScaffoldPlaceholder`, which
-names the module that will replace it.
+**Seven modules built; Your Evaluation and Reports remain.** The token layer, theme,
+application shell, shared components, routing, domain types, API layer and test harness are
+in place. Curriculum, Course, Semester, Enrollment, Student, Cost and **Manage Evaluation**
+render real data from the BFF under `app/api/`. Your Evaluation and Reports still render
+`ScaffoldPlaceholder`, which names the module that will replace it.
+
+Your Evaluation is blocked on the **demo persona switcher**, which is chosen but not
+built: without it there is no answer to who "you" are.
 
 The design system is **settled**: the Sakura palette was walked and approved on
 2026-09-03, which closes the gate that was holding feature work. Do not propose replacing
@@ -91,7 +95,8 @@ Design Tokens → Theme → components/ui → components/decor → components/da
 - `components/shared/` — app-level reusable patterns (page header, data table, filter bar, status badge, empty/error/loading states, form section, stat card). Still no business logic.
 - `features/<domain>/` — self-contained: `components/`, `hooks/`, `services/`, `validations/`, `calculations/`, `types.ts`, `constants.ts`. Business rules live here.
 
-Domains: `courses`, `semesters`, `enrollment`, `students`, `costs`, `evaluation`, `reports`.
+Domains: `programs`, `courses`, `semesters`, `enrollment`, `students`, `costs`,
+`evaluation`, `reports`.
 
 ### Data flow
 
@@ -114,9 +119,17 @@ One file per domain under `types/` (`course.ts`, `semester.ts`, `student.ts`, `e
 Two hierarchies hang off Course → Semester:
 
 ```
+Program → Program Term → Courses + Package price → Program Enrollment → Student
 Course → Semester → Enrollment → Student → Evaluation Group → 360° Evaluation → Score → Grade → Report
 Course → Semester → Cost Sheet → Cost Group → Cost Item → Cost Option → Cost per Student
 ```
+
+A **programme term** is what a student enrols in: a curriculum for one semester
+plus a package price. Enrolment is entered at the programme level and the course
+enrollments follow from the curriculum (`direction.md` §4a, §7a). Revenue is
+`package price × head count`; cost is each course charged at its own cost per
+student for the programme members who took it; the difference is net profit
+(§13a). A course with no cost sheet contributes **unknown**, never zero.
 
 Semester codes are `YYYYNN` (`202601`, `202602`). A course can be offered in many semesters.
 
@@ -124,7 +137,35 @@ Semester codes are `YYYYNN` (`202601`, `202602`). A course can be offered in man
 
 Four evaluator roles: `STUDENT` (peers in own group), `INSPECTOR` (a student from *another* group), `TEACHER`, `TA`. **A student must never evaluate themselves.**
 
-Final score is a configurable weighted blend — the demo default is Peer 30% / Inspector 20% / Teacher 35% / TA 15% — and the UI should show the arithmetic rather than hide it. Grade is **derived** from the final score (90+ A, 80+ B, 70+ C, 60+ D, else F) and must not be stored as an independent source of truth. Ranking must always state its scope (group vs. course/semester).
+**Two kinds of form** (revised 2026-09-06): a `criteria` form rates one subject
+against the seven criteria; a `ranking` form puts every subject in scope into an
+order. `Evaluation` is a discriminated union on `kind` so neither shape can hold
+the other's data.
+
+**How they combine was decided 2026-09-06** (`direction.md` §20): an ordering is
+**a share of each role's own weight**, not a fifth evaluator. Each role holds one
+`weightPercent`, split internally by `criteriaSharePercent`; the ranking share is
+its complement and is never stored. A teacher who both rates and ranks therefore
+counts once. Enabled role weights must total 100 — validated **server-side**,
+because an unbalanced blend produces no error, only uniformly wrong scores. A role
+can be switched off and the rest renormalise. The headline criteria-to-ordering
+split is **derived** (`summariseWeights`) and must never become an input.
+
+**Ranking means two things.** An ordering submitted by an evaluator is an input;
+the computed leaderboard is an output. The leaderboard is not a route — it lives
+under Manage Evaluation.
+
+**An ordering is a strict permutation — no ties** (decided 2026-09-06,
+`direction.md` §19). Every position is used exactly once, so the form is a
+reorderable list, not a score per row. This deliberately diverges from the
+reference design the decision was taken against, which allowed duplicate
+scores; do not "correct" it back.
+
+**Navigation is split by perspective**: `/evaluation/manage` is the teacher and
+administrator view, `/evaluation` is the evaluator's own queue. There is no
+sign-in, so "you" comes from a demo persona switcher (not built yet).
+
+Final score is a configurable weighted blend — the demo default is Peer 30% / Inspector 20% / Teacher 35% / TA 15%, with per-role rating/ordering splits of 60/40, 70/30, 70/30 and 100/0 — and the UI should show the arithmetic rather than hide it. Grade is **derived** from the final score (90+ A, 80+ B, 70+ C, 60+ D, else F) and must not be stored as an independent source of truth. Ranking must always state its scope (group vs. course/semester).
 
 ### Cost rules (`direction.md` §13)
 
@@ -144,7 +185,18 @@ Final score is a configurable weighted blend — the demo default is Peer 30% / 
 
 ## Build order
 
-`scaffold.md` §33: Design System → App Shell → Course → Semester → Enrollment → Student Profile → Cost Management → Evaluation Groups → 360° Evaluation → Score → Ranking → Grade → Individual Report.
+`scaffold.md` §33, amended as the curriculum layer was added:
+
+Design System → App Shell → **Curriculum → Course → Semester → Enrollment →
+Student Profile → Cost Management → Manage Evaluation** (all built) →
+demo persona switcher → Your Evaluation → the two form kinds → Score → Grade →
+Individual Report.
+
+An **evaluation setup** is the configuration for one course-semester
+(`direction.md` §15a): window, scale, guidance and the blend. Groups are
+membership beside it, partitioned from that cohort's enrollments — never
+generated independently, which is the rule the programme layer learned the hard
+way.
 
 When uncertain, pick the smallest implementation that demonstrates the intended capability.
 

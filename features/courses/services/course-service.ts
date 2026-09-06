@@ -1,6 +1,7 @@
 import { api, apiPath } from "@/lib/api";
 import { courseListSchema, courseSchema } from "@/lib/api/contracts";
 import type { Course, PaginatedResult } from "@/types";
+import type { CourseCreateInput, CourseUpdateInput } from "@/lib/api/contracts";
 import type { CourseQueryParams } from "../types";
 
 /**
@@ -20,5 +21,18 @@ export async function fetchCourses(
 
 export async function fetchCourse(courseId: string): Promise<Course> {
   const raw = await api.get<unknown>(apiPath("courses", courseId));
+  return courseSchema.parse(raw);
+}
+
+export async function createCourse(input: CourseCreateInput): Promise<Course> {
+  const raw = await api.post<unknown>("courses", { body: input });
+  return courseSchema.parse(raw);
+}
+
+export async function updateCourse(
+  courseId: string,
+  input: CourseUpdateInput,
+): Promise<Course> {
+  const raw = await api.patch<unknown>(apiPath("courses", courseId), { body: input });
   return courseSchema.parse(raw);
 }

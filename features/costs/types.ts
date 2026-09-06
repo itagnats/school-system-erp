@@ -1,4 +1,4 @@
-import type { CostSheetStatus, ListQuery, SemesterCode } from "@/types";
+import type { CostBreakdown, CostSheet, CostSheetStatus, ListQuery, SemesterCode } from "@/types";
 
 export interface CostQueryParams extends ListQuery {
   courseId?: string;
@@ -25,4 +25,12 @@ export interface CostSheetRow {
   totalCost: number;
   costPerStudent: number | null;
   updatedAt: string;
+}
+
+/** What the detail endpoint returns: the sheet, its course, and the working. */
+export interface CostSheetDetailResponse {
+  sheet: CostSheet;
+  courseCode: string;
+  courseName: string;
+  breakdown: CostBreakdown;
 }

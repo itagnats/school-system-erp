@@ -217,6 +217,18 @@ All fixtures are fictional and follow the specification examples: `IT101`,
 `202602`, `Student 001`, `Evaluation Group A`, `ST-2026-001`. No real student or
 employee information, no real internal identifiers, no third-party branding.
 
+The dataset is generated from a fixed seed, so the same rows appear on every
+build and in every process. Nothing is random: seed data that differed between
+the server and client renders would be a hydration mismatch.
+
+**Writes are validated and shaped, but not persisted.** A mutation runs its
+validation and its business rules and returns the correct result and status
+code, and then changes nothing - every page load starts again from the seed.
+The deploy target is serverless, so there is no long-lived process to hold
+state, and a store shared across visitors would show one visitor the edits of
+another. The reasoning and the three rejected alternatives are in
+[docs/decisions/why-bff.md](docs/decisions/why-bff.md).
+
 ---
 
 ## Code quality

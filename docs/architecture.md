@@ -102,29 +102,35 @@ tests/                    unit tests over the calculation layer
 docs/                     this folder
 ```
 
-Seven domains: `courses`, `semesters`, `enrollment`, `students`, `costs`,
-`evaluation`, `reports`.
+Eight domains: `programs`, `courses`, `semesters`, `enrollment`, `students`,
+`costs`, `evaluation`, `reports`.
 
 ---
 
 ## Routing
 
-Nineteen routes. Everything under `(dashboard)/` is wrapped in the application
-shell by a single group layout.
+Everything under `(dashboard)/` is wrapped in the application shell by a single
+group layout.
 
 ```
 /                                    → redirects to /dashboard
 /dashboard
+/programs                            /programs/[programTermId]
 /courses                             /courses/[courseId]
 /semesters                           /semesters/[semesterId]
 /enrollment
 /students                            /students/[studentId]
 /costs                               /costs/[costSheetId]
 /evaluation                          /evaluation/[evaluationId]
-/evaluation/groups                   /evaluation/ranking
+/evaluation/manage
 /reports                             /reports/students/[studentId]
 /design-system
 ```
+
+The evaluation area is split by perspective: `/evaluation/manage` is the teacher
+and administrator view, `/evaluation` is the evaluator's own queue. Ranking is
+not a route — an ordering is submitted inside a form, and the computed
+leaderboard is a result shown under Manage.
 
 The route shape mirrors the domain model rather than the navigation menu, so a
 URL reads as a location in the data.
@@ -133,10 +139,13 @@ URL reads as a location in the data.
 
 ## The domain model
 
-Two chains hang off Course → Semester. A course can be offered in many
-semesters; semester codes are `YYYYNN` (`202601`, `202602`).
+Three chains. A course can be offered in many semesters and can appear in many
+programmes; semester codes are `YYYYNN` (`202601`, `202602`).
 
 ```
+Program → Program Term → Courses          → Package price
+                       → Program Enrollment → Student
+
 Course → Semester → Enrollment → Student → Evaluation Group
                                         → 360° Evaluation → Score → Grade → Report
                                                                   → Ranking
@@ -144,6 +153,12 @@ Course → Semester → Enrollment → Student → Evaluation Group
 Course → Semester → Cost Sheet → Cost Group → Cost Item → Cost Option
                                                         → Cost per Student
 ```
+
+**The programme chain is what a student actually buys.** A course has a cost but
+no price; a programme term has both, which is what lets the same data answer
+"did this make money" rather than only "what did it spend". Enrolment is entered
+at the programme level and the course enrollments follow from the curriculum, so
+the two can never disagree about who is on what.
 
 **The evaluation chain** is documented in full in
 [evaluation-model.md](evaluation-model.md).
@@ -155,7 +170,21 @@ Direct costs + Shared costs = Total course cost
 Total course cost ÷ Number of students = Cost per student
 ```
 
-with allocation and an optional markup. Both chains share a design constraint
+with allocation and an optional markup. **The programme chain adds the other
+half of the sum:**
+
+```
+Package price × Enrolled students = Revenue
+Σ (course cost per student × programme head count on that course) = Cost
+Revenue − Cost = Net profit
+```
+
+Cost is attributed per student rather than per sheet, because a course taught
+into two programmes cannot charge its whole sheet to either. A course with no
+cost sheet contributes *unknown*, not zero, and the count of those travels with
+the result so an incomplete total is never shown as a finished one.
+
+All three chains share a design constraint
 that shaped the types: **the arithmetic is shown, not hidden.** A cost screen
 displays the operands and the running total; an evaluation score displays each
 role's contribution before the sum. That is why `ScoreResult` carries
@@ -190,7 +219,8 @@ tests, because it is the part that can be wrong without looking wrong.
 | `calculateRanking` | `lib/calculations/ranking.ts` | built, tested |
 | `clamp`, rounding helpers | `lib/calculations/number.ts` | built, tested |
 | `calculateEvaluationScore` | `features/evaluation/calculations/` | planned |
-| `calculateTotalCost`, `calculateCostPerStudent` | `features/costs/calculations/` | planned |
+| `calculateCostBreakdown`, `calculateTotalCost`, `calculateCostPerStudent` | `lib/calculations/cost.ts` | built, tested |
+| `calculateProgramProfit`, `breakEvenPrice` | `lib/calculations/profit.ts` | built, tested |
 
 Two invariants worth stating out loud:
 
@@ -233,13 +263,17 @@ exists is worse than no document.
 | Token layer, theme, motion, accessibility docs | **built** |
 | `components/ui` (26), `shared` (11), `feedback`, `forms`, `data-table`, `data-viz`, `decor`, `layout` | **built** |
 | `/design-system` — 6 groups, ~60 anchored sections | **built** |
-| Routing — 19 routes | **built**, every application route renders `ScaffoldPlaceholder` |
+| Routing | **built** — programme, course, semester, student, enrollment and cost screens render real data; evaluation and reports still render `ScaffoldPlaceholder` |
 | `types/`, `lib/api/`, `lib/constants/`, `hooks/` | **built** |
-| `lib/calculations/` | grade, ranking, number only |
-| `data/mock/*.ts` | six files, every array **empty** |
-| `server/`, `app/api/` | **do not exist** — this is the BFF work |
-| `features/*` | seven README stubs; every subfolder empty |
+| `lib/calculations/` | grade, ranking, number, cost, profit — all unit tested |
+| `data/mock/`, `data/seed/` | **built** — deterministic generator |
+| `server/`, `app/api/` | **built** — the BFF, eleven route handlers |
+| `features/programs\|courses\|semesters\|students\|enrollment\|costs` | **built** |
+| `features/evaluation` | vocabulary and types only |
+| `features/reports` | README stub |
 
-Build order for what comes next: Course → Semester → Enrollment → Student
-Profile → Cost Management → Evaluation Groups → 360° Evaluation → Score →
-Ranking → Grade → Individual Report.
+Built so far: Curriculum → Course → Semester → Enrollment → Student Profile →
+Cost Management.
+
+What comes next: the demo persona switcher, then Manage Evaluation → Your
+Evaluation → the two form kinds → Score → Grade → Individual Report.

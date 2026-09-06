@@ -3,10 +3,13 @@ import "server-only";
 import {
   courseTable,
   enrollmentTable,
+  evaluationGroupTable,
+  programEnrollmentTable,
   studentTable,
 } from "@/server/repositories";
 import { matchesSearch, paginate, sortRows, type ListQueryInput } from "@/server/query";
 import { toSummary } from "./student-service";
+import { evaluationGroupName } from "@/types";
 import type { EnrollmentListItem, PaginatedResult } from "@/types";
 
 /**
@@ -23,14 +26,20 @@ export interface EnrollmentQuery extends ListQueryInput {
   semester?: string;
   status?: string;
   evaluationGroupId?: string;
+  /** Narrow to students enrolled in a programme, per direction.md §7a. */
+  programId?: string;
 }
 
-const GROUP_NAMES: Record<string, string> = {
-  "grp-a": "Evaluation Group A",
-  "grp-b": "Evaluation Group B",
-  "grp-c": "Evaluation Group C",
-  "grp-d": "Evaluation Group D",
-};
+/**
+ * Group id to group name, read from the group table.
+ *
+ * This was a hardcoded map of four ids until evaluation groups became real
+ * records. A group belongs to one course-semester (direction.md 15), so there
+ * are now hundreds of ids and no fixed list to hardcode.
+ */
+function groupNames(): Map<string, string> {
+  return new Map(evaluationGroupTable.map((group) => [group.id, group.name]));
+}
 
 const SORTABLE: Record<string, (row: EnrollmentListItem) => string | number> = {
   student: (e) => e.student.fullName,
@@ -41,9 +50,30 @@ const SORTABLE: Record<string, (row: EnrollmentListItem) => string | number> = {
   group: (e) => e.evaluationGroupName ?? "",
 };
 
+/**
+ * Student ids enrolled in a programme, optionally narrowed to one semester.
+ *
+ * Enrolment is entered at the programme level, so "who is under this
+ * programme" is the programme enrollment table rather than a property of the
+ * course rows.
+ */
+function programMembers(programId: string, semesterCode?: string): Set<string> {
+  return new Set(
+    programEnrollmentTable
+      .filter(
+        (enrollment) =>
+          enrollment.programId === programId &&
+          enrollment.status !== "withdrawn" &&
+          (!semesterCode || enrollment.semesterCode === semesterCode),
+      )
+      .map((enrollment) => enrollment.studentId),
+  );
+}
+
 function buildListItems(): EnrollmentListItem[] {
   const studentsById = new Map(studentTable.map((s) => [s.id, s]));
   const coursesById = new Map(courseTable.map((c) => [c.id, c]));
+  const names = groupNames();
 
   const items: EnrollmentListItem[] = [];
   for (const enrollment of enrollmentTable) {
@@ -61,7 +91,7 @@ function buildListItems(): EnrollmentListItem[] {
       semesterCode: enrollment.semesterCode,
       status: enrollment.status,
       evaluationGroupName: enrollment.evaluationGroupId
-        ? GROUP_NAMES[enrollment.evaluationGroupId]
+        ? names.get(enrollment.evaluationGroupId)
         : undefined,
     });
   }
@@ -70,12 +100,19 @@ function buildListItems(): EnrollmentListItem[] {
 
 export function listEnrollments(query: EnrollmentQuery): PaginatedResult<EnrollmentListItem> {
   const filtered = buildListItems().filter((item) => {
+    if (query.programId && !programMembers(query.programId, query.semester).has(item.student.id)) {
+      return false;
+    }
     if (query.courseId && item.courseId !== query.courseId) return false;
     if (query.semester && item.semesterCode !== query.semester) return false;
     if (query.status && item.status !== query.status) return false;
+    // The filter carries a group letter, not an id: a scoped id matches at most
+    // one course-semester, so "show me every group A" is the only cross-course
+    // question this filter can answer.
     if (query.evaluationGroupId) {
-      const expected = GROUP_NAMES[query.evaluationGroupId];
-      if (item.evaluationGroupName !== expected) return false;
+      if (item.evaluationGroupName !== evaluationGroupName(query.evaluationGroupId)) {
+        return false;
+      }
     }
     return matchesSearch(
       query.search,

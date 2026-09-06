@@ -74,14 +74,14 @@ than the small loss of locality.
   operation.
 - The layering rule becomes mechanically checkable: nothing under `components/`
   may import from `features/`.
-- Seven domains done the same way is itself a demonstration — consistency across
+- Eight domains done the same way is itself a demonstration — consistency across
   repetition reads as discipline, where seven bespoke arrangements read as drift.
 - Feature-local `constants.ts` gives the status-to-tone mapping an obvious home,
   which is what keeps the generic components generic.
 
 **Costs**
 
-- More directories. The scaffold currently has 35 empty feature subfolders, which
+- More directories. The scaffold still has empty feature subfolders, which
   looks like ceremony until the modules land.
 - Genuinely shared logic needs a conscious move. Left in a feature, it gets
   copy-pasted; moved too eagerly, `lib/` becomes a junk drawer.

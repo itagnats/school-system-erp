@@ -10,3 +10,5 @@ export * from "./semester-service";
 export * from "./student-service";
 export * from "./enrollment-service";
 export * from "./cost-service";
+export * from "./program-service";
+export * from "./evaluation-service";

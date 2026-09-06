@@ -6,6 +6,11 @@
  * happen to be mounted (scaffold.md §25).
  */
 export const queryKeys = {
+  programs: {
+    all: ["programs"] as const,
+    list: (filters?: unknown) => ["programs", "list", filters ?? null] as const,
+    detail: (id: string) => ["programs", "detail", id] as const,
+  },
   courses: {
     all: ["courses"] as const,
     list: (filters?: unknown) => ["courses", "list", filters ?? null] as const,
@@ -33,6 +38,10 @@ export const queryKeys = {
   },
   evaluation: {
     all: ["evaluation"] as const,
+    /** Manage Evaluation: one row per course-semester setup. */
+    list: (filters?: unknown) => ["evaluation", "list", filters ?? null] as const,
+    /** One setup, with its groups, relations and weight summary. */
+    setup: (id: string) => ["evaluation", "setup", id] as const,
     groups: (courseId?: string, semester?: string) =>
       ["evaluation", "groups", courseId ?? null, semester ?? null] as const,
     detail: (id: string) => ["evaluation", "detail", id] as const,

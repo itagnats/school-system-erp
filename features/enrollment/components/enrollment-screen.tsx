@@ -18,19 +18,24 @@ import { useEnrollments } from "../hooks/use-enrollments";
 /**
  * The enrollment roster (direction.md §6-8).
  *
- * Four filters, because an enrollment is only meaningful in context: which
- * course, which semester, what state, and which evaluation group. The BFF joins
- * the student and course in, so a row arrives ready to render.
+ * Five filters, because an enrollment is only meaningful in context: which
+ * programme, which course, which semester, what state, and which evaluation
+ * group. Programme comes first because that is what a student actually enrols
+ * in - the course rows follow from the curriculum. The BFF joins the student
+ * and course in, so a row arrives ready to render.
  */
 export function EnrollmentScreen({
   courseOptions,
+  programOptions,
   semesterOptions,
-}: {
+}: Readonly<{
   courseOptions: Option[];
+  programOptions: Option[];
   semesterOptions: SemesterCode[];
-}) {
+}>) {
   const table = useListTable({ sort: "student" });
 
+  const programId = table.getFilter("programId");
   const courseId = table.getFilter("courseId");
   const semester = table.getFilter("semester");
   const status = table.getFilter("status");
@@ -42,6 +47,7 @@ export function EnrollmentScreen({
     pageSize: table.pageSize,
     sort: table.sort,
     direction: table.direction,
+    programId: programId === "all" ? undefined : programId,
     courseId: courseId === "all" ? undefined : courseId,
     semester: semester === "all" ? undefined : semester,
     status: status === "all" ? undefined : (status as EnrollmentStatus),
@@ -62,6 +68,12 @@ export function EnrollmentScreen({
           placeholder="Search student or course"
           aria-label="Search enrollments"
           className="w-full max-w-xs"
+        />
+        <FilterSelect
+          label="Programme"
+          value={programId}
+          options={programOptions}
+          onValueChange={(value) => table.setFilter("programId", value)}
         />
         <FilterSelect
           label="Course"

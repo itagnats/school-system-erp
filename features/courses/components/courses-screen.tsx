@@ -1,14 +1,24 @@
 "use client";
 
+import { Archive, Pencil, Plus, RotateCcw } from "lucide-react";
 import Link from "next/link";
-import { DataTable, DataTableColumnHeader, type PrimeColumnDef } from "@/components/data-table";
+import { useState } from "react";
+import {
+  DataTable,
+  DataTableColumnHeader,
+  DataTableRowActions,
+  type PrimeColumnDef,
+} from "@/components/data-table";
 import { EmptyState } from "@/components/feedback";
 import { FilterBar, FilterSelect, SearchInput, StatusBadge } from "@/components/shared";
+import { Button } from "@/components/ui/button";
 import { useListTable } from "@/hooks";
 import { routes } from "@/lib/constants";
 import type { Course, CourseStatus, Option, SemesterCode } from "@/types";
 import { COURSE_STATUS_LABEL, COURSE_STATUS_OPTIONS, COURSE_STATUS_TONE } from "../constants";
 import { useCourses } from "../hooks/use-courses";
+import { useSetCourseStatus } from "../hooks/use-course-mutations";
+import { CourseFormDialog } from "./course-form-dialog";
 
 /**
  * The course list (direction.md §4).
@@ -19,6 +29,19 @@ import { useCourses } from "../hooks/use-courses";
  */
 export function CoursesScreen({ semesterOptions }: { semesterOptions: SemesterCode[] }) {
   const table = useListTable({ sort: "code" });
+  const [editing, setEditing] = useState<Course | undefined>(undefined);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const setStatus = useSetCourseStatus();
+
+  function openCreate() {
+    setEditing(undefined);
+    setDialogOpen(true);
+  }
+
+  function openEdit(course: Course) {
+    setEditing(course);
+    setDialogOpen(true);
+  }
 
   const status = table.getFilter("status");
   const semester = table.getFilter("semester");
@@ -43,6 +66,12 @@ export function CoursesScreen({ semesterOptions }: { semesterOptions: SemesterCo
       <FilterBar
         activeCount={table.activeCount}
         onClear={table.clearAll}
+        actions={
+          <Button size="sm" onClick={openCreate} className="gap-1.5">
+            <Plus className="size-3.5" aria-hidden />
+            New course
+          </Button>
+        }
       >
         <SearchInput
           value={table.search}
@@ -66,7 +95,14 @@ export function CoursesScreen({ semesterOptions }: { semesterOptions: SemesterCo
       </FilterBar>
 
       <DataTable
-        columns={columns}
+        columns={buildColumns({
+          onEdit: openEdit,
+          onToggleStatus: (course) =>
+            setStatus.mutate({
+              course,
+              status: course.status === "archived" ? "active" : "archived",
+            }),
+        })}
         isLoading={query.isPending}
         error={query.error}
         onRetry={() => query.refetch()}
@@ -80,67 +116,103 @@ export function CoursesScreen({ semesterOptions }: { semesterOptions: SemesterCo
         }
         {...table.tableProps(query.data)}
       />
+
+      <CourseFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        course={editing}
+      />
     </>
   );
 }
 
-const columns: PrimeColumnDef<Course>[] = [
-  {
-    accessorKey: "code",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Code" />,
-    cell: ({ row }) => (
-      <Link
-        href={routes.course(row.original.id)}
-        className="rounded-sm font-medium text-foreground underline-offset-4 hover:underline"
-      >
-        {row.original.code}
-      </Link>
-    ),
-    meta: { width: "7rem" },
-  },
-  {
-    accessorKey: "name",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
-    cell: ({ row }) => (
-      <div className="min-w-0">
-        <p className="truncate text-foreground">{row.original.name}</p>
-        <p className="truncate text-xs text-muted-foreground">{row.original.description}</p>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "credits",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Credits" align="right" />
-    ),
-    cell: ({ row }) => row.original.credits,
-    meta: { align: "right", width: "6rem" },
-  },
-  {
-    id: "offerings",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Semesters" align="right" />
-    ),
-    cell: ({ row }) => {
-      const codes = row.original.offeredIn;
-      // A draft course has never been scheduled. Saying so beats a bare zero,
-      // which reads as a data problem rather than a state.
-      if (codes.length === 0) {
-        return <span className="text-muted-foreground">Not scheduled</span>;
-      }
-      return <span data-numeric>{codes.join(", ")}</span>;
+function buildColumns({
+  onEdit,
+  onToggleStatus,
+}: {
+  onEdit: (course: Course) => void;
+  onToggleStatus: (course: Course) => void;
+}): PrimeColumnDef<Course>[] {
+  return [
+    {
+      accessorKey: "code",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Code" />,
+      cell: ({ row }) => (
+        <Link
+          href={routes.course(row.original.id)}
+          className="rounded-sm font-medium text-foreground underline-offset-4 hover:underline"
+        >
+          {row.original.code}
+        </Link>
+      ),
+      meta: { width: "7rem" },
     },
-    meta: { align: "right", width: "12rem" },
-  },
-  {
-    accessorKey: "status",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
-    cell: ({ row }) => (
-      <StatusBadge
-        tone={COURSE_STATUS_TONE[row.original.status]}
-        label={COURSE_STATUS_LABEL[row.original.status]}
-      />
-    ),
-    meta: { width: "8rem" },
-  },
-];
+    {
+      accessorKey: "name",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+      cell: ({ row }) => (
+        <div className="min-w-0">
+          <p className="truncate text-foreground">{row.original.name}</p>
+          <p className="truncate text-xs text-muted-foreground">{row.original.description}</p>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "credits",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Credits" align="right" />
+      ),
+      cell: ({ row }) => row.original.credits,
+      meta: { align: "right", width: "6rem" },
+    },
+    {
+      id: "offerings",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Semesters" align="right" />
+      ),
+      cell: ({ row }) => {
+        const codes = row.original.offeredIn;
+        // A draft course has never been scheduled. Saying so beats a bare zero,
+        // which reads as a data problem rather than a state.
+        if (codes.length === 0) {
+          return <span className="text-muted-foreground">Not scheduled</span>;
+        }
+        return <span data-numeric>{codes.join(", ")}</span>;
+      },
+      meta: { align: "right", width: "12rem" },
+    },
+    {
+      accessorKey: "status",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+      cell: ({ row }) => (
+        <StatusBadge
+          tone={COURSE_STATUS_TONE[row.original.status]}
+          label={COURSE_STATUS_LABEL[row.original.status]}
+        />
+      ),
+      meta: { width: "8rem" },
+    },
+    {
+      id: "actions",
+      header: "",
+      cell: ({ row }) => {
+        const course = row.original;
+        const archived = course.status === "archived";
+        return (
+          <DataTableRowActions
+            label={course.code}
+            actions={[
+              { label: "Edit course", icon: Pencil, onSelect: () => onEdit(course) },
+              {
+                label: archived ? "Restore to active" : "Archive course",
+                icon: archived ? RotateCcw : Archive,
+                onSelect: () => onToggleStatus(course),
+              },
+            ]}
+          />
+        );
+      },
+      meta: { align: "right", width: "4rem" },
+    },
+    ];
+}

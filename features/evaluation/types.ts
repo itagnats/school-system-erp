@@ -1,5 +1,6 @@
 import type {
   EvaluationStatus,
+  EvaluationWindowStatus,
   EvaluatorRole,
   ListQuery,
   RankingScope,
@@ -32,6 +33,19 @@ export interface EvaluationListFilters extends ListQuery {
   groupId?: string;
   role?: EvaluatorRole;
   status?: EvaluationStatus;
+}
+
+/**
+ * Filters for Manage Evaluation.
+ *
+ * One row is one course-semester setup, so the filters are the three things
+ * that identify one: which course, which semester, and where the window has
+ * got to.
+ */
+export interface EvaluationSetupFilters extends ListQuery {
+  courseId?: string;
+  semester?: SemesterCode;
+  status?: EvaluationWindowStatus;
 }
 
 /** Filters for the evaluation groups screen. */

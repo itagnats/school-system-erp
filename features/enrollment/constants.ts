@@ -1,5 +1,9 @@
 import type { EnrollmentStatus, Option, StatusTone } from "@/types";
-import { ENROLLMENT_STATUSES } from "@/types";
+import {
+  ENROLLMENT_STATUSES,
+  EVALUATION_GROUP_LETTERS,
+  evaluationGroupName,
+} from "@/types";
 
 /**
  * Enrollment vocabulary (direction.md §8).
@@ -33,10 +37,14 @@ export const ENROLLMENT_STATUS_OPTIONS: Option<EnrollmentStatus>[] =
     label: ENROLLMENT_STATUS_LABEL[value],
   }));
 
-/** Evaluation group ids the seed uses, for the group filter. */
-export const EVALUATION_GROUP_OPTIONS: Option[] = [
-  { value: "grp-a", label: "Evaluation Group A" },
-  { value: "grp-b", label: "Evaluation Group B" },
-  { value: "grp-c", label: "Evaluation Group C" },
-  { value: "grp-d", label: "Evaluation Group D" },
-];
+/**
+ * The group filter, keyed by letter rather than by group id.
+ *
+ * An evaluation group belongs to one course-semester (direction.md §15), so its
+ * id is scoped and no single id spans the list. The letter is the part that
+ * repeats: filtering to "A" answers "show me every first group", which is the
+ * only cross-course question this filter can honestly answer.
+ */
+export const EVALUATION_GROUP_OPTIONS: Option[] = EVALUATION_GROUP_LETTERS.map(
+  (letter) => ({ value: letter, label: evaluationGroupName(letter) }),
+);

@@ -3,6 +3,7 @@ import "server-only";
 import { calculateCostBreakdown } from "@/lib/calculations";
 import { costSheetTable, courseTable } from "@/server/repositories";
 import { matchesSearch, paginate, sortRows, type ListQueryInput } from "@/server/query";
+import type { CostSheetUpdateInput } from "@/lib/api/contracts";
 import type { CostBreakdown, CostSheet, PaginatedResult } from "@/types";
 
 /**
@@ -107,4 +108,35 @@ export function getCostSheet(costSheetId: string): CostSheetDetail | undefined {
 /** Cost sheets recorded against one course, for the course detail page. */
 export function costSheetsForCourse(courseId: string): CostSheetListItem[] {
   return buildListItems().filter((item) => item.courseId === courseId);
+}
+
+/**
+ * Adjust the three inputs the total depends on, and recompute.
+ *
+ * Nothing is stored - see docs/decisions/why-bff.md - but the response is the
+ * sheet as it would have been saved, with the breakdown recalculated from the
+ * new values. That recomputation is the point of the endpoint: markup and head
+ * count change the total and the per-student figure, and the client should see
+ * the server derive them rather than derive them itself.
+ */
+export function updateCostSheet(
+  costSheetId: string,
+  input: CostSheetUpdateInput,
+): CostSheetDetail | undefined {
+  const current = getCostSheet(costSheetId);
+  if (!current) return undefined;
+
+  const next: CostSheet = {
+    ...current.sheet,
+    markupPercent: input.markupPercent ?? current.sheet.markupPercent,
+    studentCount: input.studentCount ?? current.sheet.studentCount,
+    status: input.status ?? current.sheet.status,
+  };
+
+  return {
+    sheet: next,
+    courseCode: current.courseCode,
+    courseName: current.courseName,
+    breakdown: calculateCostBreakdown(next),
+  };
 }

@@ -1,7 +1,18 @@
 import "server-only";
 
 import { seed } from "@/data/seed";
-import type { CostSheet, Course, Enrollment, Semester, Student } from "@/types";
+import type {
+  CostSheet,
+  Course,
+  Enrollment,
+  EvaluationGroup,
+  EvaluationSetup,
+  Program,
+  ProgramEnrollment,
+  ProgramTerm,
+  Semester,
+  Student,
+} from "@/types";
 
 /**
  * The in-memory store.
@@ -22,3 +33,8 @@ export const semesterTable: Semester[] = [...seed.semesters];
 export const studentTable: Student[] = [...seed.students];
 export const enrollmentTable: Enrollment[] = [...seed.enrollments];
 export const costSheetTable: CostSheet[] = [...seed.costSheets];
+export const programTable: Program[] = [...seed.programs];
+export const programTermTable: ProgramTerm[] = [...seed.programTerms];
+export const programEnrollmentTable: ProgramEnrollment[] = [...seed.programEnrollments];
+export const evaluationGroupTable: EvaluationGroup[] = [...seed.evaluationGroups];
+export const evaluationSetupTable: EvaluationSetup[] = [...seed.evaluationSetups];

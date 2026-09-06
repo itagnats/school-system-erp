@@ -102,7 +102,36 @@ Each `CriterionScore` may carry its own comment, and an evaluation may carry an
 
 ---
 
-## The evaluation form
+## The evaluation form: two kinds
+
+Revised 2026-09-06. An evaluator submits **two** things, and they are shaped
+differently rather than being two views of one record:
+
+| Kind | Scope | What is submitted |
+| --- | --- | --- |
+| `criteria` | one subject | a rating against each of the seven criteria |
+| `ranking` | every subject in scope | an ordering, strongest first |
+
+`Evaluation` is a discriminated union on `kind` for that reason. A single
+interface with an optional ordering would permit a criteria evaluation carrying
+an ordering, or a ranking with a single subject; the union makes both
+unrepresentable.
+
+Neither kind ever lists the evaluator among its subjects. Ranking yourself first
+is the same violation as rating yourself, wearing different clothes.
+
+**An ordering is a strict permutation — no ties** (decided 2026-09-06). Every
+position is used exactly once, so the form is a reorderable list rather than a
+score per subject. A reference design offered a 1-5 score per subject with
+duplicates allowed; it was rejected, because a rating that permits ties is a
+criteria rating with one dimension instead of seven, and the ordering earns its
+separate place in the blend precisely by forcing a discrimination the ratings do
+not. The cost — ordering is harder work than scoring, and grows with the number
+of subjects — is why an ordering is scoped to an evaluation group rather than a
+whole cohort.
+
+**Both feed the final score.** How they combine was decided on 2026-09-06 — see
+"The blend" below.
 
 An evaluator selects a subject, rates each criterion, optionally comments,
 reviews, and then saves as a draft or submits.
@@ -153,7 +182,17 @@ so.
 
 ---
 
-## Ranking
+## Ranking means two things
+
+Keep them apart:
+
+- an **ordering submitted by an evaluator** — an input, described above;
+- the **computed leaderboard** below — an output derived from final scores.
+
+The leaderboard is not a navigation destination. It is a result shown under
+Manage Evaluation, beside the groups and completion it comes from.
+
+## The computed leaderboard
 
 Students are ranked on their final score.
 
@@ -224,6 +263,62 @@ HTTP, since there is nothing on it to interact with.
 
 ---
 
+## Where the screens live
+
+Revised 2026-09-06, split by perspective rather than by feature:
+
+| Screen | Route | Who it is for |
+| --- | --- | --- |
+| Manage Evaluation | `/evaluation/manage` | teacher and administrator: groups, evaluator assignment, completion, the computed leaderboard |
+| Your Evaluation | `/evaluation` | the evaluator: forms assigned to you, and ones you have submitted |
+| Evaluation form | `/evaluation/[evaluationId]` | one form, of either kind |
+
+There is no sign-in, so "you" comes from a **demo persona switcher** — a control
+that lets a reader act as a student, an inspector, a teacher or a TA. That is
+what makes the four roles and the no-self-evaluation rule visible rather than
+merely described.
+
+## The blend
+
+Decided 2026-09-06, closing what `direction.md` §20 had held open. **An ordering
+is a share of each role's own weight, not a fifth evaluator.**
+
+```text
+final = SUM over enabled roles of
+          weight% x ( criteriaShare% x criteriaScore
+                    + rankingShare% x rankingScore )
+```
+
+The alternative — an ordering component sitting beside the four roles — was
+rejected because a teacher who both rates and ranks would then count twice.
+
+```text
+role        weight    ratings / ordering
+Peer          30%         60 / 40
+Inspector     20%         70 / 30
+Teacher       35%         70 / 30
+TA            15%        100 / 0
+                      ─────────────────
+effective             71.5% ratings, 28.5% ordering
+```
+
+Four properties are load-bearing:
+
+- **Only `criteriaSharePercent` is stored.** The ranking share is its
+  complement. Two stored numbers that must total 100 will eventually disagree.
+- **The effective split is derived** by `summariseWeights`, never entered. A
+  reference design offered both the headline and the per-role weights as inputs,
+  which gives one quantity two sources of truth and no rule for which wins.
+- **A role can be switched off** and the rest renormalise, so a course without a
+  teaching assistant does not leave 15% of every score unallocated.
+- **The total is validated server-side.** It is the one input whose corruption
+  raises no error at all — an unbalanced blend simply scales every score in the
+  course by the same amount.
+
+`lib/calculations/evaluation-weights.ts` holds the arithmetic; the setup screen
+shows each role's own contribution beside the headline, so the derived figure can
+be checked against its parts.
+
 ## What exists today
 
 | Piece | State |
@@ -232,10 +327,15 @@ HTTP, since there is nothing on it to interact with.
 | Default weights, grade thresholds | **built** (`config/app.ts`) |
 | `calculateGrade`, `gradeRange` | **built**, tested |
 | `calculateRanking` | **built**, tested |
-| `calculateEvaluationScore` | **not built** |
-| Self-evaluation guard | **not built** |
-| Evaluation groups, forms, score, ranking, grade, report screens | **not built** — routes exist and render placeholders |
-| `data/mock/evaluation.ts` | file exists, array **empty** |
+| Weight blend — `summariseWeights`, `normaliseWeights`, role toggles | **built**, tested (14 tests) |
+| Evaluation setup — types, seed, repository, service, contract, routes | **built** |
+| Manage Evaluation list and setup detail screens | **built** |
+| Evaluation groups | **built** — partitioned from each course-semester's enrollments |
+| `calculateEvaluationScore` | **not built** — needs submitted evaluations |
+| Self-evaluation guard | **not built** — the rule is rendered as locked, not yet enforced against a submission |
+| Demo persona switcher | **not built** — blocks Your Evaluation |
+| Evaluation forms, score, ranking, grade, report screens | **not built** |
+| `data/mock/evaluation.ts` | **built** — default blends, guidance, three setups |
 
 The types are further along than the logic, deliberately: they encode the
 "show the arithmetic" and "state the scope" constraints so that the calculations
