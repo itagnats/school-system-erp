@@ -594,4 +594,88 @@
     body {
         background: #ffffff;
     }
+
+    /* Printing a report.
+       
+       When a report dialog is open, the sheet should carry the document and
+       nothing else - not the sidebar, not the header, not a dimmed overlay.
+       `:has()` is what makes this possible without JavaScript toggling a class:
+       the rule applies only while a [data-print="report"] element exists in the
+       DOM, which is exactly while the dialog is mounted.
+       
+       The dialog is centred, height-capped and scrollable on screen. On paper
+       all three are wrong - a printed page has no viewport - so they are undone
+       here rather than compromised on screen. */
+    /* A4 portrait. Declared rather than left to the browser so the sheet is
+       the same size whoever prints it, and so the margins below are known
+       quantities the content can be sized against. 12mm leaves 186mm of
+       printable width, which is about 703px at 96dpi. */
+    @page {
+        size: A4 portrait;
+        margin: 12mm;
+    }
+
+    body:has([data-print="report"]) [data-print="app"] {
+        display: none !important;
+    }
+    body:has([data-print="report"]) [data-slot="dialog-overlay"] {
+        display: none !important;
+    }
+    /* The dialog's own close button is chrome, and it is rendered by the
+       primitive rather than by the report, so it cannot carry data-print. */
+    body:has([data-print="report"]) [data-slot="dialog-close"] {
+        display: none !important;
+    }
+
+    [data-print="report"] {
+        position: static !important;
+        inset: auto !important;
+        transform: none !important;
+        /* auto, not 100%: 100% of what the dialog thought it was is wider than
+           the page box. Letting it size to the page is the whole point. */
+        width: auto !important;
+        max-width: none !important;
+        max-height: none !important;
+        overflow: visible !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+        gap: 0 !important;
+        background: #ffffff !important;
+
+        /* Keep the tinted panels and the pass badge. Without this the browser
+           strips every background and the report loses the structure that tells
+           a reader which figures are the summary. It costs ink, deliberately. */
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+
+    /* Recharts measures its container once, on screen, and writes the result
+       into the SVG's width and height attributes. Widening the dialog for print
+       does not make it measure again, so the chart would keep its on-screen
+       width and run off the page. Overriding both here scales it proportionally
+       instead, which is the one thing SVG is good at. */
+    [data-print="report"] svg {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+
+    /* Pagination. A card or a table row split across a page boundary is the
+       most common way a printed report looks broken. */
+    [data-print="report"] section,
+    [data-print="report"] header,
+    [data-print="report"] li,
+    [data-print="report"] tr {
+        break-inside: avoid;
+    }
+    [data-print="report"] table {
+        break-inside: auto;
+    }
+    /* Part 2 starts its own page, as the reference report does. The comments
+       are a separate document in practice - read after the score, rarely
+       beside it. */
+    [data-print="report"] [data-print-break="page"] {
+        break-before: page;
+    }
 }

@@ -17,8 +17,9 @@ render real data from the BFF under `app/api/`. **Your Evaluation** is scaffolde
 the queue and both form kinds work; its layout is deliberately plain, pending the
 user's design pass. Reports still renders `ScaffoldPlaceholder`.
 
-Still unbuilt: submission contracts, `calculateEvaluationScore`, grade, the
-leaderboard, and the staff feedback report.
+**Reports are built**: Manage Evaluation → a setup → **Results** tab → a row's
+Report button opens a dialog printed with `window.print()`. Still unbuilt:
+submission contracts, and the computed leaderboard.
 
 The design system is **settled**: the Sakura palette was walked and approved on
 2026-09-03, which closes the gate that was holding feature work. Do not propose replacing
@@ -92,7 +93,7 @@ Design Tokens → Theme → components/ui → components/decor → components/da
 
 - `components/ui/` — generic primitives (shadcn foundation, restyled into the PRIME visual system). **No** course/enrollment/cost/evaluation logic here.
 - `components/decor/` — the petal layer. All `aria-hidden`, `pointer-events-none` and tagged `data-decor`, which the print rule strips.
-- `components/data-viz/` — the only place `recharts` is imported. Three chart components that take `{ label, value }[]`; every prop must be serializable, because charts are client components rendered from server pages. A formatter function across that boundary fails at prerender, not at typecheck.
+- `components/data-viz/` — the only place `recharts` is imported. Four chart components that take `{ label, value }[]`; every prop must be serializable, because charts are client components rendered from server pages. A formatter function across that boundary fails at prerender, not at typecheck.
 - `components/shared/` — app-level reusable patterns (page header, data table, filter bar, status badge, empty/error/loading states, form section, stat card). Still no business logic.
 - `features/<domain>/` — self-contained: `components/`, `hooks/`, `services/`, `validations/`, `calculations/`, `types.ts`, `constants.ts`. Business rules live here.
 
@@ -162,6 +163,18 @@ control so the rule is visible, and never accepted from a client.
 
 **Ranking and grade are student-only** (§21, §22). A staff assessee stops at the
 score and a feedback report; `isGradedRole` is the guard.
+
+**The score stays on the rating scale.** `calculateEvaluationScore` returns
+behavioural, ranking and total as means out of `scaleMax`, plus a derived
+`percent` (`total / scaleMax × 100`), `grade` and `passed` (total ≥ 4). A pass
+mark of 4/5 is 80%, which is a B — the two scales were not designed together and
+happen to agree. **A score with no submissions is `null`**, never zero and never
+"not pass": has-not-passed and has-not-been-assessed are different claims.
+
+**Ratings are seeded from a hash**, per subject, role and criterion, because
+writes do not persist. Each subject has a `baselineFor` standing and ratings
+jitter around it — varying only the *ratings* made every subject average to the
+same mean and every one of 28 failed.
 
 **Two kinds of form** (revised 2026-09-06): the **360 form** (`kind: "360"`)
 assesses one subject against the criteria that evaluator's role is asked; a
@@ -240,7 +253,8 @@ Final score is a configurable weighted blend — the demo default is Peer 30% / 
 Design System → App Shell → **Curriculum → Course → Semester → Enrollment →
 Student Profile → Cost Management → Manage Evaluation** (all built) →
 demo persona switcher → Your Evaluation → the two form kinds (all built) →
-submission contracts → Score → Grade → Individual Report.
+submission contracts → the computed leaderboard.
+Score, grade and the individual report are built.
 
 An **evaluation setup** is the configuration for one course-semester
 (`direction.md` §15a): window, scale, guidance and the blend. Groups are

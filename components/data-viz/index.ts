@@ -2,7 +2,7 @@
  * components/data-viz — the only place recharts is imported.
  *
  * A feature module never names the charting library: it hands one of these
- * three components an array of `{ label, value }` and gets a chart that is
+ * four components an array of `{ label, value }` and gets a chart that is
  * already on the tokens, already carries a caption, already has an empty state
  * and already exposes its numbers to assistive technology.
  *
@@ -23,5 +23,6 @@ export {
   type ChartValueFormat,
 } from "./chart-tokens";
 export { CategoryBarChart } from "./category-bar-chart";
+export { CriteriaRadarChart } from "./criteria-radar-chart";
 export { ShareDonutChart } from "./share-donut-chart";
 export { TrendAreaChart } from "./trend-area-chart";

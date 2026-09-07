@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
 import { Section } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import type { EvaluationAssignment, EvaluationSubject } from "@/types";
+import { SubjectAvatar } from "./subject-avatar";
 
 /**
  * The ranking form (direction.md §19).
@@ -72,6 +73,8 @@ export function RankingForm({
             >
               {position + 1}
             </span>
+
+            <SubjectAvatar displayName={subject.displayName} size="sm" />
 
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm text-foreground">{subject.displayName}</p>

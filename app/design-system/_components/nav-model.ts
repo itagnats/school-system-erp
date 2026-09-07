@@ -59,6 +59,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "textarea", label: "Textarea" },
       { id: "checkbox-switch", label: "Checkbox & switch" },
       { id: "radio-group", label: "Radio group" },
+      { id: "slider", label: "Slider" },
       { id: "form-bindings", label: "Form bindings" },
       { id: "card", label: "Card" },
       { id: "badge", label: "Badge" },

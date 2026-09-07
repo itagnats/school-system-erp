@@ -45,6 +45,11 @@ export const queryKeys = {
     /** One assignment, opened as one persona. */
     assignment: (personaId: string, assignmentId: string) =>
       ["evaluation", "assignment", personaId, assignmentId] as const,
+    /** Every assessee in a setup, scored. */
+    results: (setupId: string) => ["evaluation", "results", setupId] as const,
+    /** One subject's report, fetched when its modal opens. */
+    report: (setupId: string, subjectId: string) =>
+      ["evaluation", "report", setupId, subjectId] as const,
     /** Manage Evaluation: one row per course-semester setup. */
     list: (filters?: unknown) => ["evaluation", "list", filters ?? null] as const,
     /** One setup, with its groups, relations and weight summary. */

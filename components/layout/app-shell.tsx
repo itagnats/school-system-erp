@@ -11,7 +11,9 @@ import { AppSidebar } from "./app-sidebar";
  */
 export function AppShell({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-svh bg-background">
+    // data-print="app" is the hook the report print rule keys off: printing a
+    // report hides the application and leaves the document. See globals.css.
+    <div data-print="app" className="flex min-h-svh bg-background">
       {/* First tab stop on every page, and invisible until it is focused.
           Without it, reaching the content means tabbing through the whole
           sidebar again after every navigation. */}

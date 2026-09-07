@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { EvaluationAssignment, EvaluationCriterion, RatingValue } from "@/types";
-import { EVALUATION_CRITERION_LABEL, RATING_LABEL, RATING_VALUES } from "../constants";
+import { RatingScale } from "./rating-scale";
+import { SubjectAvatar } from "./subject-avatar";
 
 /** One subject's answers: a rating per criterion, plus an optional comment. */
 type SubjectAnswers = {
@@ -51,15 +52,23 @@ export function ThreeSixtyForm({
 
   const doneCount = subjects.filter((s) => isComplete(s.id)).length;
 
-  function rate(criterion: EvaluationCriterion, rating: RatingValue) {
+  /**
+   * Record a rating, or clear it when the slider is dragged back to zero.
+   *
+   * Clearing matters: the button row this replaced had no way to undo an
+   * accidental tap, so a mis-click was permanent for that criterion.
+   */
+  function rate(criterion: EvaluationCriterion, rating: RatingValue | undefined) {
     if (!subject) return;
-    setAnswers((prev) => ({
-      ...prev,
-      [subject.id]: {
-        ratings: { ...(prev[subject.id]?.ratings ?? {}), [criterion]: rating },
-        comment: prev[subject.id]?.comment ?? "",
-      },
-    }));
+    setAnswers((prev) => {
+      const ratings = { ...(prev[subject.id]?.ratings ?? {}) };
+      if (rating === undefined) delete ratings[criterion];
+      else ratings[criterion] = rating;
+      return {
+        ...prev,
+        [subject.id]: { ratings, comment: prev[subject.id]?.comment ?? "" },
+      };
+    });
   }
 
   function setComment(comment: string) {
@@ -82,7 +91,12 @@ export function ThreeSixtyForm({
 
   return (
     <Section
-      title={`Assessing ${subject.displayName}`}
+      title={
+        <span className="flex items-center gap-2">
+          <SubjectAvatar displayName={subject.displayName} />
+          <span>Assessing {subject.displayName}</span>
+        </span>
+      }
       description={
         subject.groupName
           ? `${subject.groupName} · subject ${index + 1} of ${subjects.length}`
@@ -117,14 +131,15 @@ export function ThreeSixtyForm({
                   onClick={() => setIndex(position)}
                   aria-current={active ? "true" : undefined}
                   className={cn(
-                    "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors duration-fast",
+                    "flex items-center gap-1.5 rounded-full border py-1 pr-2.5 pl-1 text-xs transition-colors duration-fast",
                     active
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-hairline bg-card text-muted-foreground hover:bg-muted",
                   )}
                 >
+                  <SubjectAvatar displayName={entry.displayName} size="sm" />
+                  <span className="max-w-28 truncate">{entry.displayName}</span>
                   {complete ? <Check aria-hidden className="size-3" /> : null}
-                  <span className="max-w-32 truncate">{entry.displayName}</span>
                   <span className="sr-only">
                     {complete ? "complete" : "not complete"}
                   </span>
@@ -153,36 +168,13 @@ export function ThreeSixtyForm({
             key={criterion}
             className="rounded-lg border border-hairline bg-card px-3.5 py-3"
           >
-            <fieldset disabled={readOnly}>
-              <legend className="text-sm font-medium text-foreground">
-                {EVALUATION_CRITERION_LABEL[criterion]}
-              </legend>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {RATING_VALUES.map((value) => {
-                  const selected = current.ratings[criterion] === value;
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      disabled={readOnly}
-                      onClick={() => rate(criterion, value)}
-                      aria-pressed={selected}
-                      className={cn(
-                        "rounded-md border px-2.5 py-1.5 text-xs transition-colors duration-fast disabled:opacity-55",
-                        selected
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-hairline bg-background text-muted-foreground hover:bg-muted",
-                      )}
-                    >
-                      {/* The number and the words together: a 4 means nothing
-                          on its own, and the scale is the whole judgement. */}
-                      <span data-numeric>{value}</span>{" "}
-                      <span className="hidden sm:inline">{RATING_LABEL[value]}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </fieldset>
+            <RatingScale
+              criterion={criterion}
+              value={current.ratings[criterion]}
+              scaleMax={assignment.scaleMax}
+              disabled={readOnly}
+              onChange={(rating) => rate(criterion, rating)}
+            />
           </li>
         ))}
       </ul>

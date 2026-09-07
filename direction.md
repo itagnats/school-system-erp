@@ -1115,6 +1115,31 @@ The grade should be calculated automatically from the final score.
 
 Do not manually store the final grade as an independent source of truth.
 
+## Pass and not pass (added 2026-09-07)
+
+The score itself stays on the **rating scale** - a mean out of `scaleMax`,
+because that is the scale the ratings were given on and converting early hides
+the arithmetic 20 asks to be visible. The operational outcome is:
+
+```text
+Total >= 4.0   Pass
+Total <  4.0   Not pass
+```
+
+The percentage and the letter grade are conversions of that one number, applied
+at the end: `percent = total / scaleMax x 100`. The two scales were not designed
+together and it is worth knowing they happen to line up - a pass mark of 4 out
+of 5 is 80%, which is a B.
+
+**The report shows all three**, because they answer different questions. The
+mean is what an assessor recognises, the percentage is what compares across
+courses, and the grade is the academic record.
+
+**A score with no submissions is null, never zero and never "not pass".** "Has
+not passed" and "has not been assessed" are different claims, and a report that
+prints Not pass for an unassessed student is making an accusation the data does
+not support.
+
 ---
 
 # 23. Individual Student Report
@@ -1157,9 +1182,51 @@ Responsibility    96
 
 ## Feedback
 
-Display appropriate evaluator comments.
+Display appropriate evaluator comments, **attributed to a role and never to a
+person**. A peer who can be identified is a peer who can be bargained with, and
+the peer component stops measuring anything.
+
+A role that submitted nothing is shown as such rather than omitted: "the teacher
+has not commented" is information.
+
+## Report delivery (added 2026-09-07)
 
 The report should be visually structured and suitable for printing.
+
+**Reached from the results table**, not from a route of its own: Manage
+Evaluation -> a course-semester -> Results -> Report. The table carries the raw
+score, the calculated score, the grade and the pass status, so the report is
+opened for the one subject a reader has a question about rather than browsed.
+
+**Raw beside calculated.** The raw figure is the unweighted mean of every rating
+received; the calculated one is the 20 blend. Showing both makes the weighting
+visible as a difference rather than asserted - where they diverge, the blend is
+doing something and a reader can see what.
+
+**Printed with `window.print()`**, from a dialog. The browser already knows how
+to paginate a document and produce a PDF; shipping a library to do it worse
+would be a large dependency for a worse result. A print rule hides the
+application chrome so the sheet carries the report and nothing else.
+
+**Two parts**, following the reference document:
+
+```text
+Part 1   the scored criteria, and the arithmetic that produced the total
+Part 2   the comments, grouped by role
+```
+
+Part 1 keeps a **Self column, always empty**. Nobody assesses themselves (16),
+so every cell is a dash - and keeping the column states the rule, where dropping
+it would leave a reader wondering whether self-assessment happened and simply
+was not shown.
+
+A **behavioural profile chart** sits between the two: a radar across the
+criteria, on the rating scale, because the shape is the finding. Its radius axis
+is fixed to the scale rather than inferred from the data - auto-scaling would
+make a weak profile fill the frame exactly like a strong one.
+
+**Coverage below 100% is stated on the face of the report.** A confident number
+computed over half the evidence is the most misleading thing a report can print.
 
 ---
 

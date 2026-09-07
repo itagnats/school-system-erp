@@ -13,3 +13,4 @@ export * from "./cost-service";
 export * from "./program-service";
 export * from "./evaluation-service";
 export * from "./persona-service";
+export * from "./report-service";

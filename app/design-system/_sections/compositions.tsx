@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import {
   CategoryBarChart,
+  CriteriaRadarChart,
   ShareDonutChart,
   TrendAreaChart,
 } from "@/components/data-viz";
@@ -154,6 +155,20 @@ const COST_SPLIT = [
   { label: "Shared overhead", value: 28_500 },
 ];
 
+/**
+ * A real profile from the seeded report data, so the shape is one the
+ * application actually produces rather than a flattering invention.
+ */
+const CRITERIA_PROFILE = [
+  { label: "Participation", value: 4.83 },
+  { label: "Teamwork", value: 4.78 },
+  { label: "Communication", value: 4.91 },
+  { label: "Problem solving", value: 4.75 },
+  { label: "Responsibility", value: 4.58 },
+  { label: "Leadership", value: 4.91 },
+  { label: "Technical", value: 4.85 },
+];
+
 const ACTIVITY = [
   { who: "Student 014", what: "submitted peer evaluations for Group B", when: "12 minutes ago", tone: "success" as const, state: "Complete" },
   { who: "Cost sheet 202602-02", what: "moved to review", when: "1 hour ago", tone: "warning" as const, state: "Pending" },
@@ -276,7 +291,7 @@ export function CompositionsSection() {
       <Section
         id="charts"
         title="Charts"
-        description="Three chart types and a hard rule about which to reach for. Each takes an array of { label, value } and nothing else, so a feature module never imports recharts or picks a colour."
+        description="Four chart types and a hard rule about which to reach for. Each takes an array of { label, value } and nothing else, so a feature module never imports recharts or picks a colour."
         decor
       >
         <div className="flex flex-col gap-5">
@@ -324,6 +339,22 @@ export function CompositionsSection() {
               unit="Cost"
               valuePrefix="¥"
               height={190}
+            />
+          </Demo>
+
+          <Demo
+            title="CriteriaRadarChart"
+            note="A profile across several measures on one shared scale, when the shape is the finding - strong on delivery, weak on communication reads at a glance. The radius axis is fixed to the scale, never inferred from the data, because auto-scaling makes a weak profile fill the frame exactly like a strong one. Four to eight axes; past that the labels collide."
+            contentClassName="bg-card"
+          >
+            <CriteriaRadarChart
+              title="Behavioural profile"
+              description="Student 222 · IT101 202601 · peers, inspector, teacher and TA"
+              data={CRITERIA_PROFILE}
+              unit="Mean rating"
+              max={5}
+              format="decimal"
+              height={240}
             />
           </Demo>
 

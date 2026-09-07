@@ -44,6 +44,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Slider } from "@/components/ui/slider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -136,6 +137,14 @@ export function PrimitivesSection() {
                 Disabled
               </Button>
             </div>
+          </Demo>
+
+          <Demo
+            id="slider"
+            title="Slider"
+            note="For a value whose position in a range is the point. Named options belong in a radio group instead."
+          >
+            <SliderDemo />
           </Demo>
         </div>
       </Section>
@@ -487,6 +496,112 @@ export function PrimitivesSection() {
           </Demo>
         </div>
       </Section>
+    </div>
+  );
+}
+
+/**
+ * A playable 1-5 scale, matching what Your Evaluation renders.
+ *
+ * **This is a replica, not the live component.** The real one is
+ * `features/evaluation/components/rating-scale.tsx`, and it stays there because
+ * it knows evaluation vocabulary - criteria names and the words behind each
+ * number - which `components/ui` must not learn. This page replicates feature
+ * compositions rather than importing them, the same way the worked dashboard
+ * below does. Change one and change the other.
+ *
+ * Two behaviours are worth playing with rather than reading about, which is why
+ * this demo is interactive:
+ *
+ *   - **zero is "not rated"**, so the range runs 0-5 rather than 1-5. A slider
+ *     always has a value, and starting at 1 would make an untouched criterion
+ *     look answered;
+ *   - **dragging back to zero clears it**, which the button row this replaced
+ *     could not do at all.
+ */
+function SliderDemo() {
+  const [value, setValue] = useState(0);
+
+  return (
+    <div className="grid max-w-sm gap-4">
+      <RatingScaleReplica value={value} onChange={setValue} />
+
+      <div className="flex items-center gap-2">
+        <Button size="xs" variant="outline" onClick={() => setValue(0)}>
+          Clear
+        </Button>
+        <span className="text-xs text-muted-foreground">
+          Drag to zero, or clear, to unset it
+        </span>
+      </div>
+
+      {/* Disabled is the state a closed evaluation window renders in, so it is
+          worth seeing beside the live one rather than only in the matrix. */}
+      <div className="border-t border-hairline pt-3">
+        <RatingScaleReplica value={4} disabled onChange={() => {}} />
+        <p className="mt-1.5 text-[10px] text-muted-foreground">
+          Disabled — a closed window is read-only
+        </p>
+      </div>
+    </div>
+  );
+}
+
+const RATING_WORDS = [
+  "Not rated",
+  "Needs improvement",
+  "Developing",
+  "Good",
+  "Very good",
+  "Excellent",
+] as const;
+
+function RatingScaleReplica({
+  value,
+  disabled = false,
+  onChange,
+}: Readonly<{ value: number; disabled?: boolean; onChange: (value: number) => void }>) {
+  const rated = value > 0;
+  const id = disabled ? "ds-rate-disabled" : "ds-rate-live";
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <Label htmlFor={id} className="text-sm font-medium">
+          Participation
+        </Label>
+        <p className={rated ? "text-xs font-medium text-foreground" : "text-xs text-muted-foreground"}>
+          {rated ? (
+            <>
+              <span data-numeric>{value}</span> — {RATING_WORDS[value]}
+            </>
+          ) : (
+            "Not rated"
+          )}
+        </p>
+      </div>
+
+      <Slider
+        id={id}
+        className="mt-2.5"
+        min={0}
+        max={5}
+        step={1}
+        value={[value]}
+        disabled={disabled}
+        aria-label="Participation, 1 to 5"
+        thumbProps={{ "aria-valuetext": RATING_WORDS[value] }}
+        onValueChange={([next]) => onChange(next)}
+      />
+
+      <div className="mt-1.5 flex justify-between text-[10px] text-muted-foreground">
+        <span>
+          <span data-numeric>1</span> Needs improvement
+        </span>
+        <span>
+          <span data-numeric>5</span> Excellent
+        </span>
+      </div>
     </div>
   );
 }

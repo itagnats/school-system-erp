@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Slider } from "@/components/ui/slider";
 import {
   Select,
   SelectContent,
@@ -296,6 +297,22 @@ export function StatesSection() {
               <Switch id="ds-st-s3" disabled defaultChecked />
               <Label htmlFor="ds-st-s3">Disabled</Label>
             </div>
+          </State>
+          <State label="Slider" hint="Zero is the unset position, not a rating">
+            <div className="flex flex-col gap-3">
+              <Slider aria-label="Unset" min={0} max={5} step={1} defaultValue={[0]} />
+              <Slider aria-label="Rated 4" min={0} max={5} step={1} defaultValue={[4]} />
+            </div>
+          </State>
+          <State label="Slider, unavailable">
+            <Slider
+              aria-label="Disabled, rated 3"
+              min={0}
+              max={5}
+              step={1}
+              defaultValue={[3]}
+              disabled
+            />
           </State>
           <State label="Radio group" hint="One choice from a small, visible set">
             <RadioGroup defaultValue="peer" className="gap-2">

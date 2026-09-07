@@ -413,34 +413,76 @@ export interface EvaluationSetupDetail {
   ungroupedCount: number;
 }
 
+/**
+ * One assessor role's contribution to one subject's score.
+ *
+ * Every figure is on the rating scale (1 to `scaleMax`), not a percentage,
+ * because that is the scale the ratings were given on and converting early
+ * hides the arithmetic §20 asks to be shown.
+ */
 export interface RoleScore {
   role: EvaluationRole;
   /**
-   * Mean of that role's 360 assessments, normalised to 0-100.
+   * Mean of this role's 360 ratings for the subject, on the rating scale.
    *
-   * Normalised over the criteria the role was actually asked, not all seven, so
-   * a role with a shorter question set is not penalised for the questions it
-   * never saw.
+   * Averaged over the criteria the role was actually asked, not all seven, so a
+   * shorter question set is not a penalty.
    */
-  threeSixtyScore: number;
-  /** The role's orderings converted to a 0-100 contribution. */
-  rankingScore: number;
-  /** Mean of the two, weighted by the role's own internal split. */
-  score: number;
+  threeSixtyScore: number | null;
+  /** This role's submitted ordering, converted to the rating scale. */
+  rankingScore: number | null;
+  /** The role's own blend of the two, by its internal split. */
+  score: number | null;
+  /** Share of the assessee's score this role holds. */
   weightPercent: number;
-  /** score * weightPercent / 100. */
-  weighted: number;
-  /** How many submitted evaluations fed this figure, across both kinds. */
+  /** How many submitted evaluations fed these figures, across both kinds. */
   evaluationCount: number;
 }
 
+/**
+ * One subject's score, with its working (direction.md §20, §22).
+ *
+ * Three figures, and the relationship between them is the report:
+ *
+ *   behavioural  the weighted mean of the 360 ratings
+ *   ranking      the weighted mean of the submitted orderings
+ *   total        the two blended by their derived effective shares
+ *
+ * All three are on the rating scale. `percent` and `grade` are conversions of
+ * `total` for the academic record; `passed` is the operational outcome. None of
+ * the three derived values is stored.
+ */
 export interface ScoreResult {
-  subjectEnrollmentId: string;
+  subjectId: string;
+  assesseeRole: EvaluationRole;
   roles: RoleScore[];
-  /** Sum of the weighted contributions, 0-100. */
-  finalScore: number;
-  /** Weight actually covered by submitted evaluations, 0-100. Below 100 means
-   *  the score is provisional because a role has not reported yet. */
+
+  /** Mean of the 360 ratings, weighted by each role's 360 contribution. */
+  behaviouralScore: number | null;
+  /** Mean of the orderings, weighted by each role's ranking contribution. */
+  rankingScore: number | null;
+  /** The blend of the two. Null when nothing has been submitted at all. */
+  totalScore: number | null;
+
+  /** The derived shares the two halves carry, from `summariseWeights`. */
+  behaviouralSharePercent: number;
+  rankingSharePercent: number;
+
+  /** `totalScore` as a percentage of the scale, for §22's thresholds. */
+  percent: number | null;
+  /** Derived from `percent`. Student assessees only. */
+  grade: Grade | null;
+  /** `totalScore >= passThreshold`. Null while there is no score. */
+  passed: boolean | null;
+  passThreshold: number;
+
+  /**
+   * Share of the blend actually covered by submitted work, 0-100.
+   *
+   * Below 100 means a role has not reported, and the score is provisional
+   * rather than wrong - which the report has to say, because a confident number
+   * over half the evidence is the most misleading thing a report can show.
+   */
   coveragePercent: number;
 }
 
