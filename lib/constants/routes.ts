@@ -17,10 +17,22 @@ export const routes = {
   student: (studentId: string) => `/students/${enc(studentId)}`,
   costs: () => "/costs",
   costSheet: (costSheetId: string) => `/costs/${enc(costSheetId)}`,
-  evaluation: () => "/evaluation",
+  /**
+   * The evaluator's queue. `as` carries the demo persona.
+   *
+   * Identity is a URL parameter rather than app-wide state, so a queue can be
+   * refreshed, bookmarked and pasted to someone else - the same reason list
+   * filters live in the URL. It is scoped to this area because the
+   * administrative screens do not have a "you".
+   */
+  evaluation: (personaId?: string) =>
+    personaId ? `/evaluation?as=${enc(personaId)}` : "/evaluation",
   evaluationManage: () => "/evaluation/manage",
   evaluationSetup: (setupId: string) => `/evaluation/manage/${enc(setupId)}`,
-  evaluationDetail: (evaluationId: string) => `/evaluation/${enc(evaluationId)}`,
+  evaluationAssignment: (assignmentId: string, personaId?: string) =>
+    personaId
+      ? `/evaluation/${enc(assignmentId)}?as=${enc(personaId)}`
+      : `/evaluation/${enc(assignmentId)}`,
   reports: () => "/reports",
   studentReport: (studentId: string) => `/reports/students/${enc(studentId)}`,
   designSystem: () => "/design-system",

@@ -12,7 +12,12 @@ import type {
   Option,
   SemesterCode,
 } from "@/types";
-import { WINDOW_STATUS_LABEL, WINDOW_STATUS_OPTIONS, WINDOW_STATUS_TONE } from "../constants";
+import {
+  ASSESSEE_ROLE_LABEL,
+  WINDOW_STATUS_LABEL,
+  WINDOW_STATUS_OPTIONS,
+  WINDOW_STATUS_TONE,
+} from "../constants";
 import { useEvaluationSetups } from "../hooks/use-evaluation-setups";
 import { ReadinessMark } from "./readiness-mark";
 
@@ -181,22 +186,29 @@ const columns: PrimeColumnDef<EvaluationSetupSummary>[] = [
     meta: { align: "center", width: "6rem" },
   },
   {
-    id: "weight",
-    header: () => <span>Blend</span>,
+    id: "assessees",
+    header: () => <span title="Which roles are assessed in this evaluation">Assessees</span>,
     cell: ({ row }) => {
-      const remaining = row.original.weightRemainingPercent;
-      if (remaining === 0) {
-        return <span className="text-xs text-muted-foreground">Balanced</span>;
+      const { assesseeRoles, unbalancedAssesseeCount } = row.original;
+      if (assesseeRoles.length === 0) {
+        return <span className="text-xs text-muted-foreground">None yet</span>;
       }
-      // A blend that does not total 100 scales every score in the course, and
-      // nothing downstream would flag it. Say so here, on the overview.
       return (
-        <span className="text-xs font-medium text-error" data-numeric>
-          {remaining > 0 ? `${remaining}% short` : `${-remaining}% over`}
-        </span>
+        <div className="min-w-0">
+          <p className="truncate text-xs text-foreground">
+            {assesseeRoles.map((role) => ASSESSEE_ROLE_LABEL[role]).join(", ")}
+          </p>
+          {unbalancedAssesseeCount > 0 ? (
+            // Each assessee is blended on its own, so one broken card is enough
+            // to make that assessee's scores wrong while the rest are fine.
+            <p className="text-[10px] font-medium text-error">
+              {unbalancedAssesseeCount} unbalanced
+            </p>
+          ) : null}
+        </div>
       );
     },
-    meta: { width: "8rem" },
+    meta: { width: "13rem" },
   },
   {
     accessorKey: "status",

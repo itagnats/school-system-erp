@@ -10,14 +10,15 @@ Reply in English even when the user writes in another language.
 
 ## Current state
 
-**Seven modules built; Your Evaluation and Reports remain.** The token layer, theme,
+**Eight modules built; Reports remains.** The token layer, theme,
 application shell, shared components, routing, domain types, API layer and test harness are
 in place. Curriculum, Course, Semester, Enrollment, Student, Cost and **Manage Evaluation**
-render real data from the BFF under `app/api/`. Your Evaluation and Reports still render
-`ScaffoldPlaceholder`, which names the module that will replace it.
+render real data from the BFF under `app/api/`. **Your Evaluation** is scaffolded —
+the queue and both form kinds work; its layout is deliberately plain, pending the
+user's design pass. Reports still renders `ScaffoldPlaceholder`.
 
-Your Evaluation is blocked on the **demo persona switcher**, which is chosen but not
-built: without it there is no answer to who "you" are.
+Still unbuilt: submission contracts, `calculateEvaluationScore`, grade, the
+leaderboard, and the staff feedback report.
 
 The design system is **settled**: the Sakura palette was walked and approved on
 2026-09-03, which closes the gate that was holding feature work. Do not propose replacing
@@ -135,7 +136,32 @@ Semester codes are `YYYYNN` (`202601`, `202602`). A course can be offered in man
 
 ### Evaluation rules (`direction.md` §14–22)
 
-Four evaluator roles: `STUDENT` (peers in own group), `INSPECTOR` (a student from *another* group), `TEACHER`, `TA`. **A student must never evaluate themselves.**
+**Four evaluation roles** — `student` (peers in own group), `inspector` (a
+student from *another* group), `teacher`, `ta` — and they sit on **both sides**
+of an evaluation. Corrected 2026-09-06: **an assessee is not always a student.**
+A teacher is assessed by their students, a TA by both. They are *evaluation*
+roles, not evaluator roles, and calling them the latter is what made an earlier
+build hard-code the assessee.
+
+**Which roles exist is fixed; which are assessed is configuration.** A setup
+holds one `AssesseeConfig` per assessee role, each with its own `assessors[]`.
+**The blend is per assessee** — a student's four assessors and a teacher's two
+each total 100 separately, which is why the weight meter lives inside the
+assessee card rather than once at the top of the screen.
+
+**A same-role pair is peer assessment, not self-assessment.** Student assessing
+student is the centre of the feature. "Nobody assesses themselves" is a rule
+about *people*, enforced where people are. A same-role pair is impossible only
+where the role holds one person — one teacher, one TA — and an `inspector` only
+ever assesses a student (`relationIsPossible`). Collapsing those two rules once
+made the server reject its own seed data.
+
+**Self-assessment is never permitted, for any role** — a deliberate divergence
+from the reference design, which offered it per card. Rendered as a locked
+control so the rule is visible, and never accepted from a client.
+
+**Ranking and grade are student-only** (§21, §22). A staff assessee stops at the
+score and a feedback report; `isGradedRole` is the guard.
 
 **Two kinds of form** (revised 2026-09-06): the **360 form** (`kind: "360"`)
 assesses one subject against the criteria that evaluator's role is asked; a
@@ -146,19 +172,19 @@ discriminated union on `kind` so neither shape can hold the other's data.
 teacher assesses a student, and students assess each other — which is what makes
 it 360 degrees. What differs by role is the question set, not the kind of form.
 
-**Question sets are per role** (`direction.md` §18, decided 2026-09-06): one
-canonical list of seven criteria, and each role is asked the subset it can judge
-— teacher 7, peer 6, inspector 5, TA 5. A subset rather than per-role wording, so
-a criterion means one thing whoever answered and scores stay comparable. Held on
-`RoleConfig.criteria`. A role weighted for the 360 form with an **empty** question
-set is rejected server-side: the blend can total 100 and still be unable to
-produce a score.
+**Question sets are per relation** (`direction.md` §18): one canonical list of
+seven criteria, and each *pair* is asked the subset it can judge — assessing a
+student, teacher 7 / peer 6 / inspector 5 / TA 5; assessing a teacher, a
+narrower set again, because what a student is asked about a peer is not what
+they are asked about their teacher. Held on `AssessorConfig.criteria`. An
+assessor weighted for the 360 form with an **empty** set is rejected
+server-side: the blend can total 100 and still be unable to produce a score.
 
 **How they combine was decided 2026-09-06** (`direction.md` §20): an ordering is
 **a share of each role's own weight**, not a fifth evaluator. Each role holds one
-`weightPercent`, split internally by `rankingSharePercent`; the 360 share is
-its complement and is never stored. A teacher who both rates and ranks therefore
-counts once. Enabled role weights must total 100 — validated **server-side**,
+`weightPercent` *within its assessee*, split internally by
+`rankingSharePercent`; the 360 share is its complement and is never stored. A teacher who both rates and ranks therefore
+counts once. Each assessee's enabled assessor weights must total 100 — validated **server-side**,
 because an unbalanced blend produces no error, only uniformly wrong scores. A role
 can be switched off and the rest renormalise. The headline criteria-to-ordering
 split is **derived** (`summariseWeights`) and must never become an input.
@@ -174,8 +200,20 @@ reference design the decision was taken against, which allowed duplicate
 scores; do not "correct" it back.
 
 **Navigation is split by perspective**: `/evaluation/manage` is the teacher and
-administrator view, `/evaluation` is the evaluator's own queue. There is no
-sign-in, so "you" comes from a demo persona switcher (not built yet).
+administrator view, `/evaluation` is the evaluator's own queue.
+
+**Identity is `?as=<personaId>`**, scoped to `/evaluation`. There is no sign-in,
+so "you" comes from a demo persona switcher — built. It is a URL parameter and
+not context or local storage, because local storage is unreadable during a
+server render and any component depending on it breaks hydration. **A persona is
+not an authorisation boundary**; real users would need server-side checks on the
+actual principal.
+
+**An assignment is derived, never stored** — it exists because some assessee
+card has your role switched on as an assessor at a non-zero share of that kind.
+Manage Evaluation and Your Evaluation therefore cannot disagree. `completedCount`
+is seeded from a hash of the assignment id, because writes do not persist and a
+queue of zeros would demonstrate none of its states.
 
 Final score is a configurable weighted blend — the demo default is Peer 30% / Inspector 20% / Teacher 35% / TA 15%, with per-role rating/ordering splits of 60/40, 70/30, 70/30 and 100/0 — and the UI should show the arithmetic rather than hide it. Grade is **derived** from the final score (90+ A, 80+ B, 70+ C, 60+ D, else F) and must not be stored as an independent source of truth. Ranking must always state its scope (group vs. course/semester).
 
@@ -201,8 +239,8 @@ Final score is a configurable weighted blend — the demo default is Peer 30% / 
 
 Design System → App Shell → **Curriculum → Course → Semester → Enrollment →
 Student Profile → Cost Management → Manage Evaluation** (all built) →
-demo persona switcher → Your Evaluation → the two form kinds → Score → Grade →
-Individual Report.
+demo persona switcher → Your Evaluation → the two form kinds (all built) →
+submission contracts → Score → Grade → Individual Report.
 
 An **evaluation setup** is the configuration for one course-semester
 (`direction.md` §15a): window, scale, guidance and the blend. Groups are

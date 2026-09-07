@@ -1,6 +1,10 @@
 import "server-only";
 
-import { summariseWeights, threeSixtySharePercent } from "@/lib/calculations";
+import {
+  relationsWithoutQuestions,
+  summariseWeights,
+  unbalancedAssessees,
+} from "@/lib/calculations";
 import {
   courseTable,
   enrollmentTable,
@@ -9,17 +13,20 @@ import {
 } from "@/server/repositories";
 import { matchesSearch, paginate, sortRows, type ListQueryInput } from "@/server/query";
 import type { EvaluationSetupUpdateInput } from "@/lib/api/contracts";
+import { isGradedRole } from "@/types";
 import type {
+  AssesseeConfig,
+  AssesseeSummary,
   EvaluationGroup,
   EvaluationGroupSummary,
   EvaluationRelation,
   EvaluationSetup,
   EvaluationSetupDetail,
   EvaluationSetupSummary,
-  EvaluatorRole,
+  EvaluationRole,
   FormReadiness,
   PaginatedResult,
-  RoleConfig,
+  AssessorConfig,
 } from "@/types";
 
 /**
@@ -73,10 +80,14 @@ function groupsInScope(courseId: string, semesterCode: string): EvaluationGroup[
  * Whether one kind of form is ready, not configured, or does not apply.
  *
  * The three states mirror what the screen renders, and the distinction that
- * matters is the last one: a blend that gives a form kind no weight is not an
- * unfinished setup, it is a deliberate choice to run without that kind. Showing
- * it as a failure would push administrators to "fix" a configuration that is
- * already correct.
+ * matters is the last one: a configuration that gives a form kind no weight
+ * anywhere is not an unfinished setup, it is a deliberate choice to run without
+ * that kind. Showing it as a failure would push administrators to "fix" a
+ * configuration that is already correct.
+ *
+ * Aggregated across assessees, because the table has one row per setup: the
+ * kind is used if any assessee weights it, and ready only once the setup has
+ * groups and has left draft.
  */
 function readinessFor(
   sharePercent: number,
@@ -84,25 +95,21 @@ function readinessFor(
   groupCount: number,
 ): FormReadiness {
   if (sharePercent <= 0) return "not-applicable";
+  if (setup.assessees.length === 0) return "not-configured";
   if (groupCount === 0) return "not-configured";
   if (setup.status === "draft") return "not-configured";
   return "ready";
 }
 
-/**
- * Roles paid for the 360 form that have no questions to ask.
- *
- * Possible only since question sets went per-role. The blend can total 100 and
- * the setup still be unable to produce a score, because a role with an empty
- * question set contributes nothing to the half it is weighted for.
- */
-function rolesMissingQuestions(setup: EvaluationSetup): EvaluatorRole[] {
-  return setup.roles
-    .filter(
-      (role) =>
-        role.enabled && threeSixtySharePercent(role) > 0 && role.criteria.length === 0,
-    )
-    .map((role) => role.role);
+/** The largest share any assessee gives to one kind of form. */
+function maxShare(
+  setup: EvaluationSetup,
+  pick: (summary: ReturnType<typeof summariseWeights>) => number,
+): number {
+  return setup.assessees.reduce(
+    (max, assessee) => Math.max(max, pick(summariseWeights(assessee.assessors))),
+    0,
+  );
 }
 
 function buildSummary(setup: EvaluationSetup): EvaluationSetupSummary | undefined {
@@ -112,7 +119,6 @@ function buildSummary(setup: EvaluationSetup): EvaluationSetupSummary | undefine
   const members = membersInScope(setup.courseId, setup.semesterCode);
   const groups = groupsInScope(setup.courseId, setup.semesterCode);
   const grouped = new Set(groups.flatMap((group) => group.memberEnrollmentIds));
-  const weights = summariseWeights(setup.roles);
 
   return {
     id: setup.id,
@@ -125,9 +131,19 @@ function buildSummary(setup: EvaluationSetup): EvaluationSetupSummary | undefine
     memberCount: members.length,
     groupCount: groups.length,
     ungroupedCount: members.filter((member) => !grouped.has(member.id)).length,
-    threeSixtyForm: readinessFor(weights.effective360Percent, setup, groups.length),
-    rankingForm: readinessFor(weights.effectiveRankingPercent, setup, groups.length),
-    weightRemainingPercent: weights.remainingPercent,
+    assesseeCount: setup.assessees.length,
+    assesseeRoles: setup.assessees.map((assessee) => assessee.role),
+    threeSixtyForm: readinessFor(
+      maxShare(setup, (w) => w.effective360Percent),
+      setup,
+      groups.length,
+    ),
+    rankingForm: readinessFor(
+      maxShare(setup, (w) => w.effectiveRankingPercent),
+      setup,
+      groups.length,
+    ),
+    unbalancedAssesseeCount: unbalancedAssessees(setup.assessees).length,
   };
 }
 
@@ -149,15 +165,17 @@ export function listEvaluationSetups(
 }
 
 /**
- * How many assessors of each role are reachable, and how many subjects each of
- * them is asked about.
+ * Build one assessee card: its blend, its relations and their counts.
  *
- * These two counts are what turn the relation card from a restatement of the
- * rules into something worth looking at: an enabled role with no assessors
- * cannot contribute, and the subject count is what tells an administrator that
- * they have asked every peer for thirty ratings.
+ * The counts are what turn a relation from a restatement of the rules into
+ * something worth looking at. An enabled assessor with nobody to do the
+ * assessing cannot contribute, and the subject count is what reveals that every
+ * peer has been asked for thirty ratings.
  */
-function buildRelations(setup: EvaluationSetup, groups: EvaluationGroup[]): EvaluationRelation[] {
+function buildAssessee(
+  assessee: AssesseeConfig,
+  groups: EvaluationGroup[],
+): AssesseeSummary {
   const largestGroup = groups.reduce(
     (max, group) => Math.max(max, group.memberEnrollmentIds.length),
     0,
@@ -167,21 +185,44 @@ function buildRelations(setup: EvaluationSetup, groups: EvaluationGroup[]): Eval
     0,
   );
 
-  return setup.roles.map((role) => ({
-    role: role.role,
-    enabled: role.enabled,
-    weightPercent: role.weightPercent,
-    rankingSharePercent: role.rankingSharePercent,
-    criteria: [...role.criteria],
-    assessorCount: assessorCountFor(role.role, groups, groupedTotal),
-    subjectsPerAssessor: subjectsPerAssessorFor(role.role, largestGroup, groupedTotal),
-    // Never true, for any role. direction.md §16.
+  return {
+    role: assessee.role,
     selfEvaluation: false as const,
-  }));
+    graded: isGradedRole(assessee.role),
+    subjectCount: subjectCountFor(assessee.role, groupedTotal),
+    weights: summariseWeights(assessee.assessors),
+    relations: assessee.assessors.map<EvaluationRelation>((assessor: AssessorConfig) => ({
+      assesseeRole: assessee.role,
+      assessorRole: assessor.role,
+      enabled: assessor.enabled,
+      weightPercent: assessor.weightPercent,
+      rankingSharePercent: assessor.rankingSharePercent,
+      criteria: [...assessor.criteria],
+      assessorCount: assessorCountFor(assessor.role, groups, groupedTotal),
+      subjectsPerAssessor: subjectsPerAssessorFor(
+        assessee.role,
+        assessor.role,
+        largestGroup,
+        groupedTotal,
+      ),
+    })),
+    assessorsMissingQuestions: relationsWithoutQuestions(assessee),
+  };
+}
+
+/**
+ * How many of this role are actually assessed in the course-semester.
+ *
+ * There is no staff table in this demo, so a teacher and a TA are one each -
+ * the count the domain implies rather than a row count. Students come from the
+ * grouped total, because an ungrouped student is not assessed by anyone.
+ */
+function subjectCountFor(role: EvaluationRole, groupedTotal: number): number {
+  return role === "student" || role === "inspector" ? groupedTotal : 1;
 }
 
 function assessorCountFor(
-  role: EvaluatorRole,
+  role: EvaluationRole,
   groups: EvaluationGroup[],
   groupedTotal: number,
 ): number {
@@ -201,15 +242,27 @@ function assessorCountFor(
   }
 }
 
+/**
+ * How many subjects one assessor of this role is asked about, for this assessee.
+ *
+ * Depends on the pair, not the assessor alone. A student assessing peers covers
+ * their group minus themselves; the same student assessing the teacher covers
+ * exactly one.
+ */
 function subjectsPerAssessorFor(
-  role: EvaluatorRole,
+  assesseeRole: EvaluationRole,
+  assessorRole: EvaluationRole,
   largestGroup: number,
   groupedTotal: number,
 ): number {
-  switch (role) {
+  // One teacher, one TA per course-semester, so assessing staff is one subject.
+  if (assesseeRole !== "student") return 1;
+
+  switch (assessorRole) {
     // Everyone in your group except you.
     case "student":
       return Math.max(0, largestGroup - 1);
+    // A borrowed student assesses a whole group, itself not among them.
     case "inspector":
       return largestGroup;
     case "teacher":
@@ -253,9 +306,7 @@ function buildDetail(setup: EvaluationSetup): EvaluationSetupDetail | undefined 
       memberCount: group.memberEnrollmentIds.length,
       inspectorSourceGroupName: inspectorSourceName(groups, index),
     })),
-    relations: buildRelations(setup, groups),
-    weights: summariseWeights(setup.roles),
-    rolesMissingQuestions: rolesMissingQuestions(setup),
+    assessees: setup.assessees.map((assessee) => buildAssessee(assessee, groups)),
     memberCount: members.length,
     ungroupedCount: members.filter((member) => !grouped.has(member.id)).length,
   };
@@ -288,27 +339,29 @@ export function updateEvaluationSetup(
     editingLocked: input.editingLocked ?? current.editingLocked,
     scaleMax: input.scaleMax ?? current.scaleMax,
     guidance: input.guidance ?? current.guidance,
-    roles: input.roles ? mergeRoles(current.roles, input.roles) : current.roles,
+    // Replaced wholesale rather than merged. A partial merge would let a client
+    // send one assessee and leave another card unbalanced without the server
+    // ever seeing its total, and the total is the thing worth validating.
+    assessees: input.assessees ? cloneIncoming(input.assessees) : current.assessees,
   };
 
   return buildDetail(next);
 }
 
-/**
- * Keep the stored role order regardless of the order the client sent.
- *
- * The blend is rendered as a list and read as a list, so a client that happens
- * to serialise its roles differently should not reorder the screen.
- */
-function mergeRoles(
-  current: RoleConfig[],
-  incoming: EvaluationSetupUpdateInput["roles"],
-): RoleConfig[] {
-  const byRole = new Map((incoming ?? []).map((role) => [role.role, role]));
-  return current.map((role) => {
-    const update = byRole.get(role.role);
-    return update ? { ...role, ...update, criteria: [...update.criteria] } : role;
-  });
+/** Copy the validated payload into domain shape, arrays included. */
+function cloneIncoming(
+  assessees: NonNullable<EvaluationSetupUpdateInput["assessees"]>,
+): AssesseeConfig[] {
+  return assessees.map((assessee) => ({
+    role: assessee.role,
+    // Never taken from the client. Nobody assesses themselves, whatever a
+    // request claims (direction.md 16).
+    selfEvaluation: false as const,
+    assessors: assessee.assessors.map((assessor) => ({
+      ...assessor,
+      criteria: [...assessor.criteria],
+    })),
+  }));
 }
 
 /** Course options for the Manage Evaluation filter bar. */

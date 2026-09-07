@@ -2,10 +2,11 @@ import { mockCostSheets } from "@/data/mock/costs";
 import { mockCourses } from "@/data/mock/courses";
 import { mockEnrollments } from "@/data/mock/enrollments";
 import {
+  DEFAULT_ASSESSEES,
   DEFAULT_GUIDANCE,
-  DEFAULT_ROLE_CONFIG,
-  NO_TA_CONFIG,
-  THREE_SIXTY_ONLY_CONFIG,
+  NO_TA_ASSESSEES,
+  STUDENT_ONLY_ASSESSEES,
+  cloneAssessees,
   mockEvaluationSetups,
 } from "@/data/mock/evaluation";
 import {
@@ -16,6 +17,7 @@ import {
 import { mockSemesters } from "@/data/mock/semesters";
 import { mockStudents } from "@/data/mock/students";
 import type {
+  AssesseeConfig,
   CostSheet,
   CostSheetStatus,
   Course,
@@ -30,7 +32,6 @@ import type {
   ProgramEnrollment,
   ProgramTerm,
   ProgramTermStatus,
-  RoleConfig,
   Semester,
   SemesterStatus,
   Student,
@@ -652,7 +653,7 @@ function generateEvaluationSetups(
     if (rng.chance(0.18)) continue;
 
     const status = windowStatusFor(rng, semesterStatus.get(semesterCode as Semester["code"]));
-    const roles = pickBlend(rng);
+    const assessees = pickBlend(rng);
 
     const opensDays = rng.int(20, 200);
     setups.push({
@@ -669,7 +670,7 @@ function generateEvaluationSetups(
       reportDate: isoFromEpoch(opensDays + 32),
       scaleMax: 5,
       guidance: DEFAULT_GUIDANCE,
-      roles: roles.map((role) => ({ ...role, criteria: [...role.criteria] })),
+      assessees: cloneAssessees(assessees),
     });
   }
 
@@ -677,16 +678,17 @@ function generateEvaluationSetups(
 }
 
 /**
- * Vary the blend across setups so every readiness state appears in the list.
+ * Vary the configuration across setups so every readiness state appears.
  *
- * A 360-only blend is what produces the "not used" mark on the ranking
- * column, and a blend with no TA is what makes the disabled-role case visible
- * without an administrator having to build it by hand.
+ * A student-only, ordering-free setup produces the "not used" mark on the
+ * ranking column; a cohort with no TA makes the disabled-assessor case visible
+ * without an administrator having to build it by hand. The default carries all
+ * three assessee cards, including upward feedback on the teacher.
  */
-function pickBlend(rng: Random): readonly RoleConfig[] {
-  if (rng.chance(0.2)) return THREE_SIXTY_ONLY_CONFIG;
-  if (rng.chance(0.15)) return NO_TA_CONFIG;
-  return DEFAULT_ROLE_CONFIG;
+function pickBlend(rng: Random): readonly AssesseeConfig[] {
+  if (rng.chance(0.2)) return STUDENT_ONLY_ASSESSEES;
+  if (rng.chance(0.15)) return NO_TA_ASSESSEES;
+  return DEFAULT_ASSESSEES;
 }
 
 /**

@@ -9,25 +9,26 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { HttpError } from "@/lib/api";
 import {
-  setRankingShare,
-  setRoleCriteria,
-  setRoleEnabled,
-  setRoleWeight,
-  summariseWeights,
+  addAssessee,
+  removeAssessee,
+  setAssessorCriteria,
+  setAssessorEnabled,
+  setAssessorRankingShare,
+  setAssessorWeight,
+  unbalancedAssessees,
 } from "@/lib/calculations";
 import { formatDate } from "@/lib/utils";
-import { EVALUATION_CRITERIA } from "@/types";
+import { DEFAULT_ASSESSEE_CONFIG } from "@/config/app";
+import { EVALUATION_CRITERIA, EVALUATION_ROLES } from "@/types";
 import type {
-  EvaluationCriterion,
+  AssesseeConfig,
+  EvaluationRole,
   EvaluationSetupDetail,
   EvaluationWindowStatus,
-  EvaluatorRole,
-  RoleConfig,
 } from "@/types";
-import { EVALUATOR_ROLE_LABEL, WINDOW_STATUS_LABEL, WINDOW_STATUS_TONE } from "../constants";
+import { ASSESSEE_ROLE_LABEL, WINDOW_STATUS_LABEL, WINDOW_STATUS_TONE } from "../constants";
 import { useUpdateEvaluationSetup } from "../hooks/use-evaluation-setups";
-import { RelationsPanel } from "./relations-panel";
-import { WeightBlendPanel } from "./weight-blend-panel";
+import { AssesseesPanel } from "./assessees-panel";
 
 /**
  * One evaluation, configured (direction.md §14-20).
@@ -58,14 +59,16 @@ export function EvaluationSetupScreen({
   const [baseline, setBaseline] = useState(() => JSON.stringify(toDraft(detail)));
   const dirty = JSON.stringify(draft) !== baseline;
 
-  const summary = summariseWeights(draft.roles);
+  // Every assessee's blend has to balance, not just one: a setup with a sound
+  // student card and a broken teacher card is still unsavable.
+  const unbalanced = unbalancedAssessees(draft.assessees);
   const locked = setup.editingLocked;
 
   const fieldErrors =
     mutation.error instanceof HttpError ? mutation.error.fieldErrors : undefined;
 
-  function editRoles(next: RoleConfig[]) {
-    setDraft((current) => ({ ...current, roles: next }));
+  function editAssessees(next: AssesseeConfig[]) {
+    setDraft((current) => ({ ...current, assessees: next }));
   }
 
   function save() {
@@ -76,7 +79,7 @@ export function EvaluationSetupScreen({
         status: draft.status,
         editingLocked: draft.editingLocked,
         guidance: draft.guidance,
-        roles: draft.roles,
+        assessees: draft.assessees,
       },
       {
         onSuccess: (saved) => {
@@ -105,7 +108,7 @@ export function EvaluationSetupScreen({
               onClick={save}
               // An unbalanced blend is refused here as well as on the server.
               // Locking does not block Save, because unlocking is itself a save.
-              disabled={!dirty || !summary.balanced}
+              disabled={!dirty || unbalanced.length > 0}
               loading={mutation.isPending}
             >
               Save changes
@@ -172,55 +175,75 @@ export function EvaluationSetupScreen({
           </p>
         ) : null}
 
-        {fieldErrors?.roles ? (
+        {fieldErrors?.assessees ? (
           <p className="mt-3 text-xs text-error" role="alert">
-            {fieldErrors.roles}
+            {fieldErrors.assessees}
           </p>
         ) : null}
       </Section>
 
-      <WeightBlendPanel
-        roles={draft.roles}
-        disabled={locked}
-        onWeightChange={(role: EvaluatorRole, percent: number) =>
-          editRoles(setRoleWeight(draft.roles, role, percent))
-        }
-        onRankingShareChange={(role: EvaluatorRole, percent: number) =>
-          editRoles(setRankingShare(draft.roles, role, percent))
-        }
-        onEnabledChange={(role: EvaluatorRole, enabled: boolean) =>
-          editRoles(setRoleEnabled(draft.roles, role, enabled))
-        }
-        onCriteriaChange={(role: EvaluatorRole, criteria: EvaluationCriterion[]) =>
-          editRoles(setRoleCriteria(draft.roles, role, criteria, EVALUATION_CRITERIA))
-        }
-      />
-
-      {!summary.balanced ? (
+      {unbalanced.length > 0 ? (
         <p className="text-xs text-error" role="alert">
-          The blend totals {Number(summary.totalPercent.toFixed(2))}%. It has to
-          total 100% before it can be saved, or every score in this course is
-          scaled by the same mistake.
+          {unbalanced.map((role) => ASSESSEE_ROLE_LABEL[role]).join(", ")}
+          {unbalanced.length === 1 ? " has" : " have"} assessor weights that do not
+          total 100%. Each assessee is blended on its own, so a card has to
+          balance before it can be saved.
         </p>
       ) : null}
 
-      {/* Relations read the saved configuration, not the draft: the assessor
-          counts come from the server and would be stale against unsaved edits. */}
-      {detail.rolesMissingQuestions.length > 0 ? (
-        <p className="text-xs text-error" role="alert">
-          {detail.rolesMissingQuestions.map((role) => EVALUATOR_ROLE_LABEL[role]).join(", ")}
-          {detail.rolesMissingQuestions.length === 1 ? " is" : " are"} weighted for
-          the 360 form but asked no criteria, so that share of the score cannot
-          be filled.
-        </p>
-      ) : null}
-
-      <RelationsPanel
-        relations={detail.relations}
-        roles={detail.setup.roles}
+      {/* The cards edit the draft; their counts come from the saved detail,
+          which is why an unsaved new card shows no assessor counts yet. */}
+      <AssesseesPanel
+        assessees={draft.assessees}
+        summaries={detail.assessees}
         groups={detail.groups}
         ungroupedCount={detail.ungroupedCount}
+        disabled={locked}
+        onWeightChange={(assessee, assessor, percent) =>
+          editAssessees(setAssessorWeight(draft.assessees, assessee, assessor, percent))
+        }
+        onRankingShareChange={(assessee, assessor, percent) =>
+          editAssessees(
+            setAssessorRankingShare(draft.assessees, assessee, assessor, percent),
+          )
+        }
+        onEnabledChange={(assessee, assessor, enabled) =>
+          editAssessees(setAssessorEnabled(draft.assessees, assessee, assessor, enabled))
+        }
+        onCriteriaChange={(assessee, assessor, criteria) =>
+          editAssessees(
+            setAssessorCriteria(
+              draft.assessees,
+              assessee,
+              assessor,
+              criteria,
+              EVALUATION_CRITERIA,
+            ),
+          )
+        }
+        onAdd={(role: EvaluationRole) =>
+          editAssessees(addAssessee(draft.assessees, role, EVALUATION_ROLES))
+        }
+        onRemove={(role: EvaluationRole) =>
+          editAssessees(removeAssessee(draft.assessees, role))
+        }
+        // A sound blend without opening a single control. The reference design
+        // had this and the first build dropped it, which is a large part of why
+        // that screen felt like work.
+        onUseDefaults={() =>
+          editAssessees(
+            DEFAULT_ASSESSEE_CONFIG.map((assessee) => ({
+              role: assessee.role,
+              selfEvaluation: false as const,
+              assessors: assessee.assessors.map((assessor) => ({
+                ...assessor,
+                criteria: [...assessor.criteria],
+              })),
+            })),
+          )
+        }
       />
+
     </div>
   );
 }
@@ -231,7 +254,7 @@ interface Draft {
   status: EvaluationWindowStatus;
   editingLocked: boolean;
   guidance: string;
-  roles: RoleConfig[];
+  assessees: AssesseeConfig[];
 }
 
 function toDraft(detail: EvaluationSetupDetail): Draft {
@@ -242,9 +265,12 @@ function toDraft(detail: EvaluationSetupDetail): Draft {
     status: setup.status,
     editingLocked: setup.editingLocked,
     guidance: setup.guidance,
-    // criteria is an array, so a shallow spread would have the draft and the
-    // server response sharing one question-set instance.
-    roles: setup.roles.map((role) => ({ ...role, criteria: [...role.criteria] })),
+    // Two levels of array, so a shallow spread would have the draft and the
+    // server response sharing one assessor list and one question set.
+    assessees: setup.assessees.map((assessee) => ({
+      ...assessee,
+      assessors: assessee.assessors.map((a) => ({ ...a, criteria: [...a.criteria] })),
+    })),
   };
 }
 

@@ -1,9 +1,5 @@
-import type {
-  EvaluationCriterion,
-  EvaluationSetup,
-  EvaluatorRole,
-  RoleConfig,
-} from "@/types";
+import { DEFAULT_ASSESSEE_CONFIG } from "@/config/app";
+import type { AssesseeConfig, EvaluationSetup } from "@/types";
 
 /**
  * Fictional evaluation fixtures (scaffold.md §12).
@@ -14,102 +10,68 @@ import type {
  */
 
 /**
- * The demo default blend (direction.md §20), carrying the split decided on
- * 2026-09-06: each role's weight divides between its criteria ratings and its
- * submitted ordering rather than the ordering being a fifth evaluator.
+ * The demo default: three assessee cards.
  *
- * The per-role splits are not uniform, and that is the point of the default:
+ * The configuration itself lives in `config/app.ts`, because the setup screen
+ * offers it as "Use defaults" and a client cannot import fixtures. Here it is
+ * only cloned into the hand-written setups.
  *
- *   peers      answer and rank - they see each other work every week
- *   inspector  mostly answers; an outsider can compare but knows less context
- *   teacher    answers and ranks, with the heaviest single weight
- *   TA         answers only - a TA sees the work, not the whole cohort
+ * A student carries the blend from direction.md 20 - peer 30, inspector 20,
+ * teacher 35, TA 15 - with per-relation ranking shares, so roughly 71.5% of a
+ * student's score comes from the 360 form and 28.5% from submitted orderings.
  *
- * Effective split works out at roughly 71.5% on the 360 form to 28.5% on the
- * ordering. That figure is derived by `summariseWeights`, never typed in.
+ * A teacher and a TA are assessed too, and neither is ranked: ordering staff
+ * against each other answers no question anyone asked, so their ranking shares
+ * are zero. Their results stop at a feedback report - no rank, no grade.
  */
-/**
- * Which criteria each role is asked on the 360 form - the default question sets.
- *
- * Decided 2026-09-06: one canonical list of seven (direction.md 18), and each
- * role is asked the subset it can actually judge. The alternative, a separately
- * worded set per role, was rejected because a criterion would then mean
- * something slightly different depending on who answered it and the scores
- * would stop being comparable.
- *
- *                     Peer  Insp  Teach  TA
- *   Participation       x     x      x    x
- *   Teamwork            x     x      x    x
- *   Communication       x     x      x    x
- *   Problem solving     x     -      x    x
- *   Responsibility      x     x      x    -
- *   Leadership          x     x      x    -
- *   Technical contrib.  -     -      x    x
- *
- * The gaps are the interesting part. An inspector meets the group once, so it is
- * not asked to judge problem solving. A TA sees the work rather than the whole
- * cohort, so it is not asked about responsibility or leadership. Peers are not
- * asked to grade technical contribution, which is the teacher's and the TA's
- * judgement to make. Only the teacher answers all seven.
- */
-export const DEFAULT_ROLE_CRITERIA: Record<EvaluatorRole, EvaluationCriterion[]> = {
-  student: [
-    "participation",
-    "teamwork",
-    "communication",
-    "problemSolving",
-    "responsibility",
-    "leadership",
-  ],
-  inspector: [
-    "participation",
-    "teamwork",
-    "communication",
-    "responsibility",
-    "leadership",
-  ],
-  teacher: [
-    "participation",
-    "teamwork",
-    "communication",
-    "problemSolving",
-    "responsibility",
-    "leadership",
-    "technicalContribution",
-  ],
-  ta: [
-    "participation",
-    "teamwork",
-    "communication",
-    "problemSolving",
-    "technicalContribution",
-  ],
-};
+export const DEFAULT_ASSESSEES: readonly AssesseeConfig[] =
+  DEFAULT_ASSESSEE_CONFIG.map((assessee) => ({
+    role: assessee.role,
+    selfEvaluation: false,
+    assessors: assessee.assessors.map((assessor) => ({
+      ...assessor,
+      criteria: [...assessor.criteria],
+    })),
+  }));
 
-export const DEFAULT_ROLE_CONFIG: readonly RoleConfig[] = [
-  { role: "student", enabled: true, weightPercent: 30, rankingSharePercent: 40, criteria: DEFAULT_ROLE_CRITERIA.student },
-  { role: "inspector", enabled: true, weightPercent: 20, rankingSharePercent: 30, criteria: DEFAULT_ROLE_CRITERIA.inspector },
-  { role: "teacher", enabled: true, weightPercent: 35, rankingSharePercent: 30, criteria: DEFAULT_ROLE_CRITERIA.teacher },
-  { role: "ta", enabled: true, weightPercent: 15, rankingSharePercent: 0, criteria: DEFAULT_ROLE_CRITERIA.ta },
+/**
+ * Students only, and no ordering anywhere.
+ *
+ * The configuration that produces the "not used" mark on the ranking column,
+ * and the one that shows a single-assessee setup reading correctly.
+ */
+export const STUDENT_ONLY_ASSESSEES: readonly AssesseeConfig[] = [
+  {
+    role: "student",
+    selfEvaluation: false,
+    assessors: DEFAULT_ASSESSEES[0].assessors.map((a) => ({
+      ...a,
+      rankingSharePercent: 0,
+      criteria: [...a.criteria],
+    })),
+  },
 ];
 
-/**
- * A blend that uses the 360 form only.
- *
- * Kept as a named fixture rather than assembled inline because it is the
- * configuration that produces the "not used" mark on the ranking column: a
- * course whose evaluation asks for no ordering at all.
- */
-export const THREE_SIXTY_ONLY_CONFIG: readonly RoleConfig[] = DEFAULT_ROLE_CONFIG.map(
-  (role) => ({ ...role, rankingSharePercent: 0 }),
-);
-
-/** A blend with no teaching assistant, renormalised across the other three. */
-export const NO_TA_CONFIG: readonly RoleConfig[] = [
-  { role: "student", enabled: true, weightPercent: 35.29, rankingSharePercent: 40, criteria: DEFAULT_ROLE_CRITERIA.student },
-  { role: "inspector", enabled: true, weightPercent: 23.53, rankingSharePercent: 30, criteria: DEFAULT_ROLE_CRITERIA.inspector },
-  { role: "teacher", enabled: true, weightPercent: 41.18, rankingSharePercent: 30, criteria: DEFAULT_ROLE_CRITERIA.teacher },
-  { role: "ta", enabled: false, weightPercent: 15, rankingSharePercent: 0, criteria: DEFAULT_ROLE_CRITERIA.ta },
+/** A student cohort with no teaching assistant, renormalised across the rest. */
+export const NO_TA_ASSESSEES: readonly AssesseeConfig[] = [
+  {
+    role: "student",
+    selfEvaluation: false,
+    assessors: DEFAULT_ASSESSEES[0].assessors.map((a) => {
+      const weights: Record<string, number> = {
+        student: 35.29,
+        inspector: 23.53,
+        teacher: 41.18,
+        ta: 15,
+      };
+      return {
+        ...a,
+        enabled: a.role !== "ta",
+        weightPercent: weights[a.role] ?? a.weightPercent,
+        criteria: [...a.criteria],
+      };
+    }),
+  },
 ];
 
 /**
@@ -147,7 +109,7 @@ export const mockEvaluationSetups: EvaluationSetup[] = [
     reportDate: "2026-03-06T00:00:00.000Z",
     scaleMax: 5,
     guidance: DEFAULT_GUIDANCE,
-    roles: cloneRoles(DEFAULT_ROLE_CONFIG),
+    assessees: cloneAssessees(DEFAULT_ASSESSEES),
   },
   {
     id: "evs-it101-202602",
@@ -162,7 +124,7 @@ export const mockEvaluationSetups: EvaluationSetup[] = [
     reportDate: "2026-08-07T00:00:00.000Z",
     scaleMax: 5,
     guidance: DEFAULT_GUIDANCE,
-    roles: cloneRoles(THREE_SIXTY_ONLY_CONFIG),
+    assessees: cloneAssessees(STUDENT_ONLY_ASSESSEES),
   },
   {
     id: "evs-it205-202602",
@@ -177,16 +139,22 @@ export const mockEvaluationSetups: EvaluationSetup[] = [
     reportDate: "2026-08-07T00:00:00.000Z",
     scaleMax: 5,
     guidance: DEFAULT_GUIDANCE,
-    roles: cloneRoles(NO_TA_CONFIG),
+    assessees: cloneAssessees(NO_TA_ASSESSEES),
   },
 ];
 
 /**
- * Deep-copy a role configuration.
+ * Deep-copy an assessee configuration.
  *
- * `criteria` is an array, so a shallow spread would leave every setup sharing
- * one question-set instance and an edit to one would silently change the rest.
+ * Two levels of array, so a shallow spread would leave every setup sharing one
+ * assessor list and one question-set instance - an edit to one would silently
+ * change the rest.
  */
-function cloneRoles(roles: readonly RoleConfig[]): RoleConfig[] {
-  return roles.map((role) => ({ ...role, criteria: [...role.criteria] }));
+export function cloneAssessees(
+  assessees: readonly AssesseeConfig[],
+): AssesseeConfig[] {
+  return assessees.map((assessee) => ({
+    ...assessee,
+    assessors: assessee.assessors.map((a) => ({ ...a, criteria: [...a.criteria] })),
+  }));
 }

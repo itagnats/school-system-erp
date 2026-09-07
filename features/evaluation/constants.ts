@@ -3,14 +3,14 @@ import type {
   EvaluationKind,
   EvaluationStatus,
   EvaluationWindowStatus,
-  EvaluatorRole,
+  EvaluationRole,
   FormReadiness,
   Option,
   RankingScope,
   RatingValue,
   StatusTone,
 } from "@/types";
-import { EVALUATION_CRITERIA, EVALUATOR_ROLES } from "@/types";
+import { EVALUATION_CRITERIA, EVALUATION_ROLES } from "@/types";
 
 /**
  * Evaluation vocabulary: the words and tones this domain uses.
@@ -52,7 +52,13 @@ export const EVALUATION_STATUS_OPTIONS: Option<EvaluationStatus>[] = (
 /* Evaluator roles                                                            */
 /* -------------------------------------------------------------------------- */
 
-export const EVALUATOR_ROLE_LABEL: Record<EvaluatorRole, string> = {
+/**
+ * How a role reads when it is doing the assessing.
+ *
+ * `student` is "Peer" here, which is what the role means from the subject's
+ * point of view - the person beside you in your group.
+ */
+export const EVALUATION_ROLE_LABEL: Record<EvaluationRole, string> = {
   student: "Peer",
   inspector: "Inspector",
   teacher: "Teacher",
@@ -60,21 +66,35 @@ export const EVALUATOR_ROLE_LABEL: Record<EvaluatorRole, string> = {
 };
 
 /**
+ * How a role reads when it is being assessed.
+ *
+ * The same value needs two labels, because "Peer" describes a relationship and
+ * an assessee has no relationship to itself. A card headed "Peer" is nonsense;
+ * the role being assessed is a **Student**. Only `student` differs - the other
+ * three name a position rather than a relationship, so they read the same on
+ * both sides.
+ */
+export const ASSESSEE_ROLE_LABEL: Record<EvaluationRole, string> = {
+  ...EVALUATION_ROLE_LABEL,
+  student: "Student",
+};
+
+/**
  * Shown next to a role wherever the blend is explained. The inspector line is
  * the one people ask about, so it says where the evaluator comes from.
  */
-export const EVALUATOR_ROLE_DESCRIPTION: Record<EvaluatorRole, string> = {
+export const EVALUATION_ROLE_DESCRIPTION: Record<EvaluationRole, string> = {
   student: "Other students in the same evaluation group",
   inspector: "A student from a different evaluation group",
   teacher: "The teacher's authoritative assessment",
   ta: "The teaching assistant's perspective",
 };
 
-export const EVALUATOR_ROLE_OPTIONS: Option<EvaluatorRole>[] = EVALUATOR_ROLES.map(
+export const EVALUATION_ROLE_OPTIONS: Option<EvaluationRole>[] = EVALUATION_ROLES.map(
   (value) => ({
     value,
-    label: EVALUATOR_ROLE_LABEL[value],
-    description: EVALUATOR_ROLE_DESCRIPTION[value],
+    label: EVALUATION_ROLE_LABEL[value],
+    description: EVALUATION_ROLE_DESCRIPTION[value],
   }),
 );
 

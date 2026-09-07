@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { paginatedSchema } from "./list";
-import { EVALUATION_CRITERIA, EVALUATOR_ROLES } from "@/types";
+import { EVALUATION_CRITERIA, EVALUATION_ROLES } from "@/types";
 
 /**
  * Evaluation wire shapes.
@@ -13,7 +13,7 @@ import { EVALUATION_CRITERIA, EVALUATOR_ROLES } from "@/types";
 
 const windowStatus = z.enum(["draft", "open", "closed", "published"]);
 const readiness = z.enum(["ready", "not-configured", "not-applicable"]);
-const evaluatorRole = z.enum(EVALUATOR_ROLES);
+const evaluatorRole = z.enum(EVALUATION_ROLES);
 const criterion = z.enum(EVALUATION_CRITERIA);
 
 export const evaluationSetupSummarySchema = z.object({
@@ -27,9 +27,11 @@ export const evaluationSetupSummarySchema = z.object({
   memberCount: z.number().int().nonnegative(),
   groupCount: z.number().int().nonnegative(),
   ungroupedCount: z.number().int().nonnegative(),
+  assesseeCount: z.number().int().nonnegative(),
+  assesseeRoles: z.array(evaluatorRole),
   threeSixtyForm: readiness,
   rankingForm: readiness,
-  weightRemainingPercent: z.number(),
+  unbalancedAssesseeCount: z.number().int().nonnegative(),
 });
 
 export const evaluationSetupListSchema = paginatedSchema(evaluationSetupSummarySchema);
@@ -37,13 +39,13 @@ export const evaluationSetupListSchema = paginatedSchema(evaluationSetupSummaryS
 export type EvaluationSetupSummaryResponse = z.infer<typeof evaluationSetupSummarySchema>;
 
 /**
- * One role's configuration, as a client may submit it.
+ * One assessor inside one assessee, as a client may submit it.
  *
  * Only the ranking half of the split crosses the wire. The 360 share is always
  * its complement, and sending both would create two numbers that have to agree
  * - so the schema simply does not offer the chance.
  */
-export const roleConfigSchema = z.object({
+export const assessorConfigSchema = z.object({
   role: evaluatorRole,
   enabled: z.boolean(),
   weightPercent: z
@@ -64,51 +66,83 @@ export const roleConfigSchema = z.object({
 });
 
 /**
- * The role configuration, checked as a whole.
+ * One assessee card, checked as a whole.
  *
- * Four rules that a per-field schema cannot express, so they are refinements on
- * the array:
+ * Five rules that a per-field schema cannot express, because none can be
+ * decided by looking at a single assessor:
  *
- *   - the enabled roles must total 100, or every score in the course is scaled
- *     wrongly and nothing downstream can detect it;
- *   - a role may appear once. A duplicate would be silently counted twice by
- *     any reducer over the list;
- *   - at least one role must evaluate;
- *   - a role paid for the 360 form must have questions to ask. This became
- *     possible when question sets went per-role: the blend can total 100 and
- *     still be unable to produce a score, because an empty question set
- *     contributes nothing to the half it is weighted for.
+ *   - the enabled assessors must total 100, or every score for this assessee is
+ *     scaled wrongly and nothing downstream can detect it;
+ *   - an assessor role may appear once. A duplicate would be silently counted
+ *     twice by any reducer over the list;
+ *   - at least one assessor must be enabled, or the assessee is unscoreable;
+ *   - nobody assesses themselves (direction.md 16), so the assessee's own role
+ *     may not appear among its assessors - and an inspector, being a student
+ *     borrowed from another group, may only assess a student;
+ *   - an assessor weighted for the 360 form must be asked at least one
+ *     criterion, since an empty question set contributes nothing to the half it
+ *     is paid for.
  *
- * The weight tolerance is 0.01 rather than exact equality, because these arrive
- * as renormalised percentages rounded to two places.
+ * `selfEvaluation` is deliberately **not** accepted from the client. It is
+ * always false and the server sets it, so a crafted request cannot turn it on.
  */
-export const roleConfigsSchema = z
-  .array(roleConfigSchema)
-  .min(1, "At least one evaluator role is required")
-  .max(EVALUATOR_ROLES.length, "There are only four evaluator roles")
-  .refine(
-    (roles) => new Set(roles.map((role) => role.role)).size === roles.length,
-    "Each evaluator role may appear once",
-  )
-  .refine((roles) => roles.some((role) => role.enabled), {
-    message: "At least one evaluator role must be enabled",
+export const assesseeConfigSchema = z
+  .object({
+    role: evaluatorRole,
+    assessors: z
+      .array(assessorConfigSchema)
+      .min(1, "An assessee needs at least one assessor")
+      .max(EVALUATION_ROLES.length, "There are only four evaluation roles"),
   })
   .refine(
-    (roles) => {
-      const total = roles
-        .filter((role) => role.enabled)
-        .reduce((sum, role) => sum + role.weightPercent, 0);
-      return Math.abs(100 - total) <= 0.01;
+    (assessee) =>
+      new Set(assessee.assessors.map((a) => a.role)).size === assessee.assessors.length,
+    "Each assessor role may appear once per assessee",
+  )
+  .refine((assessee) => assessee.assessors.some((a) => a.enabled), {
+    message: "An assessee needs at least one enabled assessor",
+  })
+  .refine(
+    (assessee) =>
+      assessee.assessors.every((a) => a.role !== assessee.role) ||
+      assessee.role === "student",
+    {
+      // A matching pair is peer assessment, not self-assessment - but only
+      // where the role holds more than one person. There is one teacher and one
+      // TA per course-semester, so a same-role staff pair is the same human.
+      message: "Only students can be assessed by their own role, as peers",
     },
-    { message: "The enabled role weights must total 100%" },
   )
   .refine(
-    (roles) =>
-      roles.every(
-        (role) =>
-          !role.enabled || role.rankingSharePercent >= 100 || role.criteria.length > 0,
+    (assessee) =>
+      assessee.role === "student" ||
+      assessee.assessors.every((a) => a.role !== "inspector"),
+    { message: "An inspector only assesses students" },
+  )
+  .refine(
+    (assessee) => {
+      const total = assessee.assessors
+        .filter((a) => a.enabled)
+        .reduce((sum, a) => sum + a.weightPercent, 0);
+      return Math.abs(100 - total) <= 0.01;
+    },
+    { message: "The enabled assessor weights must total 100%" },
+  )
+  .refine(
+    (assessee) =>
+      assessee.assessors.every(
+        (a) => !a.enabled || a.rankingSharePercent >= 100 || a.criteria.length > 0,
       ),
-    { message: "A role that answers the 360 form must be asked at least one criterion" },
+    { message: "An assessor answering the 360 form must be asked at least one criterion" },
+  );
+
+/** Every assessee card. A role may be assessed at most once. */
+export const assesseesSchema = z
+  .array(assesseeConfigSchema)
+  .max(EVALUATION_ROLES.length, "There are only four evaluation roles")
+  .refine(
+    (assessees) => new Set(assessees.map((a) => a.role)).size === assessees.length,
+    "Each role may be assessed at most once",
   );
 
 export const evaluationSetupUpdateSchema = z.object({
@@ -134,7 +168,7 @@ export const evaluationSetupUpdateSchema = z.object({
     .trim()
     .max(4000, "That guidance is longer than anyone will read")
     .optional(),
-  roles: roleConfigsSchema.optional(),
+  assessees: assesseesSchema.optional(),
 });
 
 export type EvaluationSetupUpdateInput = z.infer<typeof evaluationSetupUpdateSchema>;

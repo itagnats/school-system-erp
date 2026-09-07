@@ -14,8 +14,9 @@ export type * from "./report";
 
 export { ENROLLMENT_STATUSES } from "./enrollment";
 export {
-  EVALUATOR_ROLES,
+  EVALUATION_ROLES,
   EVALUATION_CRITERIA,
   EVALUATION_GROUP_LETTERS,
   evaluationGroupName,
+  isGradedRole,
 } from "./evaluation";

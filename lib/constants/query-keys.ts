@@ -38,6 +38,13 @@ export const queryKeys = {
   },
   evaluation: {
     all: ["evaluation"] as const,
+    /** Demo identities for the evaluator screens. */
+    personas: ["evaluation", "personas"] as const,
+    /** Everything one persona owes. */
+    queue: (personaId?: string) => ["evaluation", "queue", personaId ?? null] as const,
+    /** One assignment, opened as one persona. */
+    assignment: (personaId: string, assignmentId: string) =>
+      ["evaluation", "assignment", personaId, assignmentId] as const,
     /** Manage Evaluation: one row per course-semester setup. */
     list: (filters?: unknown) => ["evaluation", "list", filters ?? null] as const,
     /** One setup, with its groups, relations and weight summary. */

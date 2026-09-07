@@ -1,7 +1,7 @@
 import type {
   EvaluationStatus,
   EvaluationWindowStatus,
-  EvaluatorRole,
+  EvaluationRole,
   ListQuery,
   RankingScope,
   SemesterCode,
@@ -31,7 +31,7 @@ export interface EvaluationListFilters extends ListQuery {
   courseId?: string;
   semesterCode?: SemesterCode;
   groupId?: string;
-  role?: EvaluatorRole;
+  role?: EvaluationRole;
   status?: EvaluationStatus;
 }
 

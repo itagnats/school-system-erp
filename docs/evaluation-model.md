@@ -58,27 +58,69 @@ member.
 
 ---
 
-## The four evaluator roles
+## The four evaluation roles
 
 | Role | Who | Perspective |
 | --- | --- | --- |
-| `STUDENT` | peers inside the subject's own group | how they work with the people beside them |
-| `INSPECTOR` | a student from **another** group | an outside peer view, without the in-group dynamics |
-| `TEACHER` | the teacher | the authoritative assessment |
-| `TA` | the teaching assistant | a second staff perspective |
+| `student` | peers inside the subject's own group | how they work with the people beside them |
+| `inspector` | a student from **another** group | an outside peer view, without the in-group dynamics |
+| `teacher` | the teacher | the authoritative assessment |
+| `ta` | the teaching assistant | a second staff perspective |
 
 An `Evaluator` carries a `sourceGroupId` precisely so an inspector can be traced
 back to the group they came from.
 
+### Both sides of the arrow
+
+Corrected 2026-09-06. These are *evaluation* roles, not evaluator roles: the
+same value names an assessee in one relation and an assessor in another. **An
+assessee is not always a student.**
+
+```
+Assessee: Student   <- Peer, Inspector, Teacher, TA
+Assessee: Teacher   <- Student, TA
+Assessee: TA        <- Student, Teacher
+```
+
+Which roles exist is fixed by the specification. Which of them are *assessed* is
+configuration: a setup holds one `AssesseeConfig` per assessee role, added and
+removed per course-semester, each with its own `assessors[]`.
+
+**The blend is per assessee.** A student's four assessors total 100; a teacher's
+two total 100 separately. That is why the weight meter belongs inside the
+assessee card rather than once at the top of the screen — a detail the reference
+design had right and an earlier build here read as a global blend.
+
+Two relations cannot exist, and `relationIsPossible` is the guard:
+
+- **a same-role pair where the role holds one person.** There is one teacher and
+  one TA per course-semester, so teacher-assesses-teacher could only mean the
+  same human;
+- **an inspector assessing anyone but a student.** An inspector is a student
+  borrowed from another group; there is no second staffroom.
+
 ### The rule that must never break
 
-> **A student must never evaluate themselves.**
+> **No person may assess themselves.**
 
-This is not a UI nicety. Self-evaluation would silently inflate the peer
-component of the score, and it would do so invisibly — the number would still
-look plausible. The constraint belongs in the service layer, enforced when
-evaluator assignments are generated and again when a submission is accepted, not
-only in the form that renders the list of subjects.
+Note what this is *not*: a matching pair of roles. Student assessing student is
+peer assessment and is the centre of the feature. The rule is about people, and
+belongs where people are — enforced when assignments are generated and again
+when a submission is accepted, not in a check on role equality.
+
+Collapsing the two once cost this codebase the peer relation entirely: the
+validator refused `assessee: student, assessor: student`, and the server rejected
+its own seed data. Caught by exercising the endpoint, not by review.
+
+Self-evaluation would silently inflate the peer component of the score, and it
+would do so invisibly — the number would still look plausible. It is refused for
+every assessee role, which diverges from the reference design's per-card toggle,
+and it is never accepted from a client.
+
+### Only students are ranked and graded
+
+§21 and §22 apply to student assessees. A teacher or TA is scored and reported
+but never ranked or graded; `isGradedRole` decides.
 
 ---
 
@@ -100,11 +142,14 @@ Rated 1–5:
 Each `CriterionScore` may carry its own comment, and an evaluation may carry an
 `overallComment`.
 
-### Question sets per role
+### Question sets per relation
 
 Decided 2026-09-06. All four roles take the 360 form, but they are not asked the
-same questions. One canonical list, and each role is asked the subset it can
-actually judge:
+same questions. One canonical list, and each **relation** is asked the subset it
+can actually judge - per pair, not per role, because what a student is asked
+about another student is not what a student is asked about their teacher.
+
+Assessing a student:
 
 ```
                     Peer  Insp  Teach  TA
@@ -122,14 +167,14 @@ asked about problem solving. A TA sees the work rather than the whole cohort, so
 it is not asked about responsibility or leadership. Peers are not asked to grade
 technical contribution. Only the teacher answers all seven.
 
-**A subset, not a separate wording per role.** Wording each role's questions
+**A subset, not a separate wording per relation.** Wording each relation's questions
 independently was rejected: a criterion would then mean something slightly
 different depending on who answered it, and scores would stop being comparable
 across roles. A role's 360 score is normalised over the criteria it was actually
 asked, so a shorter set is not a penalty.
 
-The set lives on `RoleConfig.criteria`, per role, per setup. A role weighted for
-the 360 form with an **empty** set is rejected server-side — the same class of
+The set lives on `AssessorConfig.criteria`, per relation. An assessor weighted
+for the 360 form with an **empty** set is rejected server-side — the same class of
 failure as an unbalanced blend, in that the setup can look complete and still be
 unable to produce a score.
 

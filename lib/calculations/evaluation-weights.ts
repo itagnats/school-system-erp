@@ -1,109 +1,116 @@
 import { clamp, round } from "./number";
-import type { EvaluationCriterion, EvaluatorRole, RoleConfig, WeightSummary } from "@/types";
+import type {
+  AssesseeConfig,
+  AssessorConfig,
+  EvaluationCriterion,
+  EvaluationRole,
+  WeightSummary,
+} from "@/types";
 
 /**
- * The weight blend behind the final score (direction.md §20).
+ * The weight blend behind a score (direction.md §20).
  *
- * Two structures were defensible when the spec was written. The one taken here,
- * decided 2026-09-06, is that a submitted ordering is **not** a fifth evaluator:
- * each role holds one weight, and that weight divides internally between the
- * 360 form it filled in and the ordering it submitted.
+ * **The blend is per assessee.** Corrected 2026-09-06: an assessee is not always
+ * a student, so a setup holds one blend per assessee role rather than one
+ * overall. Students are assessed by peers, an inspector, the teacher and the TA;
+ * a teacher is assessed by students and the TA, at different weights entirely.
  *
- *   final = SUM over enabled roles of
+ * Within one assessee:
+ *
+ *   score = SUM over its enabled assessors of
  *             weight% x ( threeSixtyShare% x threeSixtyScore
  *                       + rankingShare% x rankingScore )
  *
- * A teacher who both rates and ranks therefore counts once, not twice, which is
- * the property the alternative structure gave up.
+ * An ordering is a share of each assessor's own weight rather than a fifth
+ * assessor, so an assessor that both rates and ranks counts once.
  *
  * Everything here is pure arithmetic over the configuration. No score, no
  * submission, no clock - so it can be tested without any of them.
  */
 
 /**
- * The share of a role's weight carried by its 360 form rather than its ordering.
+ * The share of an assessor's weight carried by the 360 form, not the ordering.
  *
  * Only the ranking share is stored; this is its complement. Which of the two is
  * stored is arbitrary, but storing exactly one of them is not - two stored
  * numbers that must total 100 will eventually disagree.
  */
-export function threeSixtySharePercent(role: RoleConfig): number {
-  return 100 - role.rankingSharePercent;
+export function threeSixtySharePercent(assessor: AssessorConfig): number {
+  return 100 - assessor.rankingSharePercent;
 }
 
-export function enabledWeights(weights: readonly RoleConfig[]): RoleConfig[] {
-  return weights.filter((weight) => weight.enabled);
+export function enabledAssessors(assessors: readonly AssessorConfig[]): AssessorConfig[] {
+  return assessors.filter((assessor) => assessor.enabled);
 }
 
 /**
- * What the configuration adds up to, and how it splits across the two kinds.
+ * What one assessee's blend adds up to, and how it splits across the two kinds.
  *
- * The effective split is derived rather than configured. An earlier sketch let
- * an administrator type "criteria 60 / ranking 40" at the top and per-role
- * weights underneath, which gives two sources of truth for the same number and
- * no rule for which one wins. Here the per-role figures are the truth and the
- * headline is computed from them.
+ * The effective split is derived rather than configured. A reference design let
+ * an administrator type "360 form 60 / ordering 40" at the top *and* the
+ * per-assessor weights underneath, which gives two sources of truth for one
+ * number and no rule for which wins. Here the per-assessor figures are the
+ * truth and the headline is computed from them.
  */
-export function summariseWeights(weights: readonly RoleConfig[]): WeightSummary {
-  const active = enabledWeights(weights);
+export function summariseWeights(assessors: readonly AssessorConfig[]): WeightSummary {
+  const active = enabledAssessors(assessors);
 
   const totalPercent = round(
-    active.reduce((sum, weight) => sum + weight.weightPercent, 0),
+    active.reduce((sum, assessor) => sum + assessor.weightPercent, 0),
     2,
   );
 
   const threeSixty = active.reduce(
-    (sum, role) => sum + (role.weightPercent * threeSixtySharePercent(role)) / 100,
+    (sum, a) => sum + (a.weightPercent * threeSixtySharePercent(a)) / 100,
     0,
   );
   const ranking = active.reduce(
-    (sum, role) => sum + (role.weightPercent * role.rankingSharePercent) / 100,
+    (sum, a) => sum + (a.weightPercent * a.rankingSharePercent) / 100,
     0,
   );
 
   return {
     totalPercent,
     remainingPercent: round(100 - totalPercent, 2),
-    // Tolerance rather than equality: the weights are user-entered percentages
-    // and a renormalised set can land on 99.999999999999.
+    // Tolerance rather than equality: these are user-entered percentages and a
+    // renormalised set can land on 99.999999999999.
     balanced: Math.abs(100 - totalPercent) < 0.005,
     effective360Percent: round(threeSixty, 2),
     effectiveRankingPercent: round(ranking, 2),
-    enabledRoleCount: active.length,
+    enabledAssessorCount: active.length,
   };
 }
 
 /**
- * Redistribute weight so the enabled roles total 100.
+ * Redistribute one assessee's weights so its enabled assessors total 100.
  *
- * Called when a role is switched off. The remaining weights keep their
- * proportions to each other, so turning off a 15% TA raises a 35% teacher to
- * about 41% rather than leaving 15% of the score unallocated and every computed
- * score quietly 15% short.
+ * Called when an assessor is switched off. The survivors keep their proportions
+ * to each other, so turning off a 15% TA raises a 35% teacher to about 41%
+ * rather than leaving 15% of that assessee's score unallocated and every
+ * computed score quietly 15% short.
  *
- * A disabled role keeps its stored weight rather than being zeroed, so that
- * switching it back on restores the blend it had. Its weight is simply not
- * counted while it is off.
+ * A disabled assessor keeps its stored weight rather than being zeroed, so
+ * switching it back on restores the blend it had.
  */
-export function normaliseWeights(weights: readonly RoleConfig[]): RoleConfig[] {
-  const active = enabledWeights(weights);
-  const total = active.reduce((sum, weight) => sum + weight.weightPercent, 0);
+export function normaliseWeights(assessors: readonly AssessorConfig[]): AssessorConfig[] {
+  const active = enabledAssessors(assessors);
+  const total = active.reduce((sum, assessor) => sum + assessor.weightPercent, 0);
 
-  // Nothing to scale from: an all-off configuration, or every enabled role at
-  // zero. Spreading 100 evenly is the only non-arbitrary answer, and it is
-  // better than dividing by zero and writing NaN into the blend.
-  if (active.length === 0) return weights.map((weight) => ({ ...weight }));
+  // Nothing to scale from: an all-off card, or every enabled assessor at zero.
+  // Spreading 100 evenly is the only non-arbitrary answer, and it beats
+  // dividing by zero and writing NaN into the blend.
+  if (active.length === 0) return assessors.map((a) => ({ ...a }));
   if (total <= 0) {
     const even = round(100 / active.length, 2);
-    return weights.map((weight) => ({
-      ...weight,
-      weightPercent: weight.enabled ? even : weight.weightPercent,
+    return assessors.map((a) => ({
+      ...a,
+      weightPercent: a.enabled ? even : a.weightPercent,
     }));
   }
 
-  const scaled = weights.map((weight) => ({
-    ...weight,
-    weightPercent: weight.enabled ? round((weight.weightPercent / total) * 100, 2) : weight.weightPercent,
+  const scaled = assessors.map((a) => ({
+    ...a,
+    weightPercent: a.enabled ? round((a.weightPercent / total) * 100, 2) : a.weightPercent,
   }));
 
   return settleRounding(scaled);
@@ -112,106 +119,220 @@ export function normaliseWeights(weights: readonly RoleConfig[]): RoleConfig[] {
 /**
  * Push the rounding residue onto the largest enabled weight.
  *
- * Four weights rounded to two places can total 99.99 or 100.01, and a screen
- * that renders "Weight remaining 0.01%" beside a blend the administrator just
- * balanced reads as a bug. The largest weight absorbs the residue because it is
- * where a hundredth of a percent is least visible.
+ * Four weights rounded to two places can total 99.99 or 100.01, and a card that
+ * says "0.01% remaining" beside a blend the administrator just balanced reads
+ * as a bug. The largest weight absorbs it because that is where a hundredth of
+ * a percent is least visible.
  */
-function settleRounding(weights: RoleConfig[]): RoleConfig[] {
-  const active = weights.filter((weight) => weight.enabled);
-  if (active.length === 0) return weights;
+function settleRounding(assessors: AssessorConfig[]): AssessorConfig[] {
+  const active = assessors.filter((a) => a.enabled);
+  if (active.length === 0) return assessors;
 
-  const total = active.reduce((sum, weight) => sum + weight.weightPercent, 0);
+  const total = active.reduce((sum, a) => sum + a.weightPercent, 0);
   const residue = round(100 - total, 2);
-  if (residue === 0) return weights;
+  if (residue === 0) return assessors;
 
-  const largest = active.reduce((best, weight) =>
-    weight.weightPercent > best.weightPercent ? weight : best,
+  const largest = active.reduce((best, a) =>
+    a.weightPercent > best.weightPercent ? a : best,
   );
 
-  return weights.map((weight) =>
-    weight.role === largest.role
-      ? { ...weight, weightPercent: round(weight.weightPercent + residue, 2) }
-      : weight,
+  return assessors.map((a) =>
+    a.role === largest.role
+      ? { ...a, weightPercent: round(a.weightPercent + residue, 2) }
+      : a,
   );
 }
 
-/** Set one role's weight, leaving the others alone so the shortfall stays visible. */
-export function setRoleWeight(
-  roles: readonly RoleConfig[],
-  role: EvaluatorRole,
+/* -------------------------------------------------------------------------- */
+/* Editing one assessee's assessors                                           */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Apply a change to one assessor inside one assessee.
+ *
+ * Every mutator below goes through this, so an edit is always addressed by the
+ * **pair** of roles. Addressing an assessor by role alone was the shape before
+ * assessees existed, and it would now silently edit the wrong card.
+ */
+function updateAssessor(
+  assessees: readonly AssesseeConfig[],
+  assesseeRole: EvaluationRole,
+  assessorRole: EvaluationRole,
+  change: (assessor: AssessorConfig) => AssessorConfig,
+): AssesseeConfig[] {
+  return assessees.map((assessee) =>
+    assessee.role === assesseeRole
+      ? {
+          ...assessee,
+          assessors: assessee.assessors.map((assessor) =>
+            assessor.role === assessorRole ? change(assessor) : assessor,
+          ),
+        }
+      : assessee,
+  );
+}
+
+/** Set one assessor's weight, leaving the others so the shortfall stays visible. */
+export function setAssessorWeight(
+  assessees: readonly AssesseeConfig[],
+  assesseeRole: EvaluationRole,
+  assessorRole: EvaluationRole,
   weightPercent: number,
-): RoleConfig[] {
-  return roles.map((entry) =>
-    entry.role === role ? { ...entry, weightPercent: clampPercent(weightPercent) } : entry,
-  );
+): AssesseeConfig[] {
+  return updateAssessor(assessees, assesseeRole, assessorRole, (a) => ({
+    ...a,
+    weightPercent: clampPercent(weightPercent),
+  }));
 }
 
-/** Set one role's internal 360-to-ranking split, by its ranking half. */
-export function setRankingShare(
-  roles: readonly RoleConfig[],
-  role: EvaluatorRole,
+/** Set one assessor's internal 360-to-ranking split, by its ranking half. */
+export function setAssessorRankingShare(
+  assessees: readonly AssesseeConfig[],
+  assesseeRole: EvaluationRole,
+  assessorRole: EvaluationRole,
   rankingSharePercent: number,
-): RoleConfig[] {
-  return roles.map((entry) =>
-    entry.role === role
-      ? { ...entry, rankingSharePercent: clampPercent(rankingSharePercent) }
-      : entry,
-  );
+): AssesseeConfig[] {
+  return updateAssessor(assessees, assesseeRole, assessorRole, (a) => ({
+    ...a,
+    rankingSharePercent: clampPercent(rankingSharePercent),
+  }));
 }
 
 /**
- * Replace one role's question set.
+ * Replace one relation's question set.
  *
  * Order follows the canonical criteria list rather than the order they were
  * clicked, so two setups asking the same questions serialise identically and a
  * diff between them is readable.
  */
-export function setRoleCriteria(
-  roles: readonly RoleConfig[],
-  role: EvaluatorRole,
+export function setAssessorCriteria(
+  assessees: readonly AssesseeConfig[],
+  assesseeRole: EvaluationRole,
+  assessorRole: EvaluationRole,
   criteria: readonly EvaluationCriterion[],
   canonicalOrder: readonly EvaluationCriterion[],
-): RoleConfig[] {
+): AssesseeConfig[] {
   const chosen = new Set(criteria);
   const ordered = canonicalOrder.filter((criterion) => chosen.has(criterion));
-  return roles.map((entry) =>
-    entry.role === role ? { ...entry, criteria: [...ordered] } : entry,
-  );
+  return updateAssessor(assessees, assesseeRole, assessorRole, (a) => ({
+    ...a,
+    criteria: [...ordered],
+  }));
 }
 
 /**
- * Roles that carry weight on the 360 form but have no questions to ask.
- *
- * A new way to be misconfigured, introduced when question sets became per-role:
- * the blend can total 100 and still be unable to produce a score, because a
- * role with an empty question set contributes nothing to the half it is paid
- * for. Reported rather than auto-corrected - which questions a role should ask
- * is a judgement, not something to guess.
- */
-export function rolesWithoutQuestions(roles: readonly RoleConfig[]): RoleConfig[] {
-  return roles.filter(
-    (role) =>
-      role.enabled && threeSixtySharePercent(role) > 0 && role.criteria.length === 0,
-  );
-}
-
-/**
- * Toggle a role, then renormalise.
+ * Toggle one assessor, then renormalise that assessee's blend.
  *
  * Renormalising here rather than leaving it to the caller is deliberate: a
- * toggle that silently unbalances the blend is the failure this whole module
- * exists to prevent.
+ * toggle that silently unbalances a card is the failure this module exists to
+ * prevent.
  */
-export function setRoleEnabled(
-  weights: readonly RoleConfig[],
-  role: EvaluatorRole,
+export function setAssessorEnabled(
+  assessees: readonly AssesseeConfig[],
+  assesseeRole: EvaluationRole,
+  assessorRole: EvaluationRole,
   enabled: boolean,
-): RoleConfig[] {
-  const toggled = weights.map((weight) =>
-    weight.role === role ? { ...weight, enabled } : weight,
-  );
-  return normaliseWeights(toggled);
+): AssesseeConfig[] {
+  return assessees.map((assessee) => {
+    if (assessee.role !== assesseeRole) return assessee;
+    const toggled = assessee.assessors.map((assessor) =>
+      assessor.role === assessorRole ? { ...assessor, enabled } : assessor,
+    );
+    return { ...assessee, assessors: normaliseWeights(toggled) };
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Adding and removing assessees                                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Add an assessee card, with every possible assessor present but switched off.
+ *
+ * Every candidate role appears rather than only the enabled ones, so the card
+ * is filled in by toggling rather than by choosing from a menu - which is what
+ * the reference design does. Self-assessment is refused structurally: the
+ * assessee's own role is never among its assessors.
+ */
+export function addAssessee(
+  assessees: readonly AssesseeConfig[],
+  role: EvaluationRole,
+  allRoles: readonly EvaluationRole[],
+): AssesseeConfig[] {
+  if (assessees.some((assessee) => assessee.role === role)) return [...assessees];
+
+  const assessors: AssessorConfig[] = allRoles
+    .filter((candidate) => relationIsPossible(role, candidate))
+    .map((candidate) => ({
+      role: candidate,
+      enabled: false,
+      weightPercent: 0,
+      rankingSharePercent: 0,
+      criteria: [],
+    }));
+
+  return [...assessees, { role, selfEvaluation: false, assessors }];
+}
+
+export function removeAssessee(
+  assessees: readonly AssesseeConfig[],
+  role: EvaluationRole,
+): AssesseeConfig[] {
+  return assessees.filter((assessee) => assessee.role !== role);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Setup-level checks                                                         */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Assessors weighted for the 360 form that have no questions to ask.
+ *
+ * Per assessee, because the same assessor role can be correctly configured for
+ * one assessee and empty for another. Reported rather than auto-corrected -
+ * which questions to ask is a judgement, not something to guess mid-keystroke.
+ */
+export function relationsWithoutQuestions(assessee: AssesseeConfig): EvaluationRole[] {
+  return assessee.assessors
+    .filter((a) => a.enabled && threeSixtySharePercent(a) > 0 && a.criteria.length === 0)
+    .map((a) => a.role);
+}
+
+/** Assessees whose enabled assessor weights do not total 100. */
+export function unbalancedAssessees(
+  assessees: readonly AssesseeConfig[],
+): EvaluationRole[] {
+  return assessees
+    .filter((assessee) => !summariseWeights(assessee.assessors).balanced)
+    .map((assessee) => assessee.role);
+}
+
+/**
+ * Whether an assessor role could ever assess an assessee role.
+ *
+ * **A matching pair of roles is not self-assessment.** Student assessing
+ * student is peer assessment - the centre of the whole feature (direction.md
+ * §16). "Nobody assesses themselves" is a rule about *people*, and it is
+ * enforced where people are: an evaluator never appears among their own
+ * subjects. Confusing the two rules once cost this module the peer relation
+ * entirely, and the server rejected its own seed data.
+ *
+ * A same-role pair is impossible only where the role holds one person. There is
+ * exactly one teacher and one TA per course-semester, so teacher-assesses-
+ * teacher could only ever mean the same human.
+ *
+ * An inspector is a student borrowed from another evaluation group, so the role
+ * only makes sense pointed at a student. There is no second staffroom to borrow
+ * a teacher from.
+ */
+export function relationIsPossible(
+  assesseeRole: EvaluationRole,
+  assessorRole: EvaluationRole,
+): boolean {
+  if (assessorRole === "inspector") return assesseeRole === "student";
+  // Many students, one teacher, one TA.
+  if (assesseeRole === assessorRole) return assesseeRole === "student";
+  return true;
 }
 
 function clampPercent(value: number): number {

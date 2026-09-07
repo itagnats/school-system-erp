@@ -580,7 +580,7 @@ Students evaluate other students within an evaluation group, while additional ev
 The evaluation system should demonstrate:
 
 - Evaluation groups
-- Multiple evaluator roles
+- Multiple evaluation roles, on both sides of an assessment
 - Peer evaluation
 - External/inspector evaluation
 - Teacher evaluation
@@ -661,9 +661,11 @@ wrong results instead of errors:
 
 ---
 
-# 16. Evaluator Roles
+# 16. Evaluation Roles
 
-The system supports four evaluator roles.
+The system supports four evaluation roles. They were called *evaluator* roles
+until 2026-09-06; see "Assessee and assessor" at the end of this section for why
+that name was wrong.
 
 ## Student
 
@@ -705,6 +707,63 @@ The teacher evaluates students and provides an authoritative assessment.
 
 The teaching assistant provides an additional evaluation perspective.
 
+## Assessee and assessor (added 2026-09-06)
+
+The four roles above sit on **both sides** of an evaluation. An assessee is not
+always a student:
+
+```text
+Assessee: Student   <- assessed by  Peer, Inspector, Teacher, TA
+Assessee: Teacher   <- assessed by  Student, TA
+Assessee: TA        <- assessed by  Student, Teacher
+```
+
+So they are **evaluation roles**, not evaluator roles. The same value names an
+assessee in one relation and an assessor in another, and calling them evaluator
+roles was what made an earlier build hard-code the assessee as a student.
+
+**Which roles exist is fixed. Which are assessed is configuration.** An
+evaluation setup holds one entry per assessee role, added and removed per
+course-semester, so a course can run a student-only evaluation or add upward
+feedback on its teacher without either affecting the other.
+
+**The blend is per assessee.** Each assessee's enabled assessors total 100 on
+their own. A student's four assessors and a teacher's two are separate
+allocations, which is why the weight meter belongs inside the assessee card
+rather than once at the top of the screen.
+
+### Two relations that cannot exist
+
+**A same-role pair is peer assessment, not self-assessment.** Student assessing
+student is the centre of this feature (§16, Student). "Nobody assesses
+themselves" is a rule about *people* and is enforced where people are: an
+evaluator never appears among their own subjects.
+
+A same-role pair is impossible only where the role holds one person. There is
+exactly one teacher and one TA per course-semester, so teacher-assesses-teacher
+could only ever mean the same human.
+
+**An inspector only assesses students.** An inspector is a student borrowed from
+another evaluation group (§16, Inspector); there is no second staffroom to borrow
+a teacher from.
+
+### Self-assessment is never permitted
+
+Decided 2026-09-06, for every assessee role. This is a deliberate divergence
+from the reference design the decision was taken against, which offered a
+Self Evaluation yes/no toggle per assessee card. Do not reintroduce it: a
+self-score folded into a result that carries a grade is a fairness problem, and
+keeping the rule absolute keeps every score comparable.
+
+The field is still rendered, as a locked control with its reason, so the rule is
+visible rather than merely obeyed. It is never accepted from a client.
+
+### Only students are ranked and graded
+
+§21 and §22 apply to student assessees only. A teacher or TA assessee stops at
+the score and its feedback report - ordering staff against a cohort of students
+and handing them a letter answers no question anyone asked.
+
 ---
 
 # 17. 360° Evaluation Flow
@@ -716,25 +775,29 @@ Course + Semester
         ↓
 Evaluation Group
         ↓
-Assign Evaluators
+Configure assessees, and who assesses each  (§16)
         ↓
 ┌─────────────────────────────┐
-│ Student                     │
-│ Inspector                   │
-│ Teacher                     │
-│ TA                          │
+│ Assessee: Student           │  <- Peer, Inspector, Teacher, TA
+│ Assessee: Teacher           │  <- Student, TA
+│ Assessee: TA                │  <- Student, Teacher
 └──────────────┬──────────────┘
                ↓
-        Evaluation Forms
+        Evaluation Forms          360 form, and an ordering  (§19)
                ↓
-         Score Calculation
+         Score Calculation        per assessee, its own blend  (§20)
                ↓
-             Ranking
-               ↓
-          Grade Calculation
-               ↓
-       Individual Student Report
+        ┌──────┴───────┐
+   student assessee    staff assessee
+        ↓                    ↓
+     Ranking  (§21)          ↓
+        ↓                    ↓
+  Grade Calculation (§22)    ↓
+        ↓                    ↓
+ Individual Student Report   Feedback Report
 ```
+
+The fork after the score is the point: ranking and grading are student-only.
 
 ---
 
@@ -764,11 +827,14 @@ Use a simple rating scale:
 
 Criteria can be adjusted during implementation if a better evaluation model is needed.
 
-## Question sets per role (added 2026-09-06)
+## Question sets per relation (added 2026-09-06)
 
 All four roles take the 360 form - a teacher assesses a student, and students
 assess each other - but they are not asked the same questions. **One canonical
-list of criteria, and each role is asked the subset it can actually judge:**
+list of criteria, and each relation is asked the subset it can actually judge.**
+
+Per *relation*, not per role: what a student is asked about another student is
+not what a student is asked about their teacher. Assessing a student:
 
 ```text
                     Peer  Insp  Teach  TA
@@ -787,15 +853,20 @@ so it is not asked about responsibility or leadership. Peers are not asked to
 grade technical contribution, which is the teacher's and the TA's judgement to
 make. Only the teacher answers all seven.
 
-**A subset, not a separately worded set per role.** Wording each role's
+**A subset, not a separately worded set per relation.** Wording each relation's
 questions independently was the alternative and was rejected: a criterion would
 then mean something slightly different depending on who answered it, and the
 scores would stop being comparable across roles. A role's 360 score is
 normalised over the criteria it was actually asked, so a shorter question set is
 not a penalty.
 
-The question set is configuration, held per role on the evaluation setup
-(§15a), so a course can adjust it without changing the canonical list.
+Upward feedback asks a narrower and different set. Students can speak to how a
+teacher communicates and leads; they are not asked to grade a teacher's
+technical contribution or responsibility, neither of which a student is placed
+to observe.
+
+The question set is configuration, held per assessor inside each assessee
+(§16), so a course can adjust it without changing the canonical list.
 
 **A role weighted for the 360 form must be asked at least one criterion.** This
 is validated server-side alongside the weight total, because it is the same
@@ -982,6 +1053,10 @@ Final Score               91.55
 
 # 21. Ranking
 
+**Student assessees only** (see §16). A teacher or TA assessee is scored and
+reported but never ranked: ordering staff against a cohort of students answers
+no question anyone asked.
+
 Students should be ranked based on their final evaluation score.
 
 Example:
@@ -1019,6 +1094,10 @@ Avoid ambiguous rankings.
 ---
 
 # 22. Grade Calculation
+
+**Student assessees only** (see §16). A staff assessee's score stops at its
+feedback report; a letter grade for a teacher would be a number wearing a
+meaning it does not have.
 
 Convert the final score into a grade.
 
