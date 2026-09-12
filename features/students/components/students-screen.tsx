@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { DataTable, DataTableColumnHeader, type PrimeColumnDef } from "@/components/data-table";
+import {
+  DataTable,
+  DataTableColumnHeader,
+  DataTableViewOptions,
+  type HideableColumn,
+  type PrimeColumnDef,
+} from "@/components/data-table";
 import { EmptyState } from "@/components/feedback";
 import { FilterBar, FilterSelect, SearchInput } from "@/components/shared";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -36,7 +42,17 @@ export function StudentsScreen({ programOptions }: { programOptions: string[] })
 
   return (
     <>
-      <FilterBar activeCount={table.activeCount} onClear={table.clearAll}>
+      <FilterBar
+        activeCount={table.activeCount}
+        onClear={table.clearAll}
+        actions={
+          <DataTableViewOptions
+            columns={OPTIONAL_COLUMNS}
+            visibility={table.columnVisibility}
+            onVisibilityChange={table.setColumnVisibility}
+          />
+        }
+      >
         <SearchInput
           value={table.search}
           onValueChange={table.setSearch}
@@ -61,6 +77,7 @@ export function StudentsScreen({ programOptions }: { programOptions: string[] })
       <DataTable
         columns={columns}
         isLoading={query.isPending}
+        isFetching={query.isFetching}
         error={query.error}
         onRetry={() => query.refetch()}
         getRowId={(row) => row.id}
@@ -76,6 +93,18 @@ export function StudentsScreen({ programOptions }: { programOptions: string[] })
     </>
   );
 }
+
+/**
+ * The columns this screen is willing to let a user switch off.
+ *
+ * The identity column and the status are not on the list: hiding the link that
+ * is the point of the row leaves a table nobody can navigate.
+ */
+const OPTIONAL_COLUMNS: HideableColumn[] = [
+  { id: "program", label: "Program" },
+  { id: "major", label: "Major" },
+  { id: "yearLevel", label: "Year" },
+];
 
 const columns: PrimeColumnDef<StudentSummary>[] = [
   {

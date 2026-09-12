@@ -11,5 +11,7 @@ export * from "./semester";
 export * from "./student";
 export * from "./enrollment";
 export * from "./cost";
+export * from "./catalogue";
+export * from "./invoice";
 export * from "./program";
 export * from "./evaluation";

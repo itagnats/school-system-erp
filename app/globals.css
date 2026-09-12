@@ -595,6 +595,15 @@
         background: #ffffff;
     }
 
+    /* The shell owns the viewport on screen so the sidebar and the content
+       scroll separately. Paper has no viewport: leave the height and the
+       overflow alone here or a long page prints as a single clipped sheet. */
+    [data-print="app"],
+    [data-app-scroll] {
+        height: auto !important;
+        overflow: visible !important;
+    }
+
     /* Printing a report.
        
        When a report dialog is open, the sheet should carry the document and
@@ -677,5 +686,48 @@
        beside it. */
     [data-print="report"] [data-print-break="page"] {
         break-before: page;
+    }
+
+    /* Printing a document that *is* the page, rather than one in a dialog.
+
+       The invoice sheet (direction.md §13b) lives on its own route, so there is
+       no overlay to strip and no application to hide wholesale: the sidebar,
+       the header, the back button and the page header all carry
+       data-print="hide" and disappear with the rule at the top of this block.
+       What is left is <main>, still holding the screen padding the shell gave
+       it through an inline style — which is why this needs !important to undo.
+       Without it the sheet is sized to the page box less two gutters that only
+       ever made sense next to a sidebar. */
+    body:has([data-print="document"]) main {
+        padding: 0 !important;
+    }
+
+    [data-print="document"] {
+        /* On screen the sheet is a card. On paper the page is the card, so the
+           border, the shadow and the rounding are all describing an edge the
+           reader can already see. */
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+
+        /* Keep the tinted payment block and the status badge. Both carry
+           structure rather than decoration — a payment panel that prints as
+           bare text stops reading as the thing to take to a counter. */
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+
+    /* Same pagination rules as the report: a split row or a header stranded at
+       the foot of a sheet is the most common way a printed document looks
+       broken. The barcode is one <svg> and cannot be split by anything. */
+    [data-print="document"] section,
+    [data-print="document"] header,
+    [data-print="document"] tr {
+        break-inside: avoid;
+    }
+    [data-print="document"] table {
+        break-inside: auto;
     }
 }

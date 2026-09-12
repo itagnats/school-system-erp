@@ -56,6 +56,10 @@ const eslintConfig = defineConfig([
     // Generated output, not source.
     "coverage/**",
     ".vitest/**",
+    // Project memory, skills and reference material dropped in for comparison.
+    // Gitignored, and not application source; ESLint does not read .gitignore,
+    // so a single .tsx left in there would otherwise fail `npm run verify`.
+    ".claude/**",
   ]),
 ]);
 

@@ -9,8 +9,10 @@ export type * from "./semester";
 export type * from "./student";
 export type * from "./enrollment";
 export type * from "./cost";
+export type * from "./invoice";
 export type * from "./evaluation";
 export type * from "./report";
+export type * from "./dashboard";
 
 export { ENROLLMENT_STATUSES } from "./enrollment";
 export {

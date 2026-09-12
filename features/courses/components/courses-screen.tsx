@@ -6,6 +6,8 @@ import { useState } from "react";
 import {
   DataTable,
   DataTableColumnHeader,
+  DataTableViewOptions,
+  type HideableColumn,
   DataTableRowActions,
   type PrimeColumnDef,
 } from "@/components/data-table";
@@ -67,10 +69,17 @@ export function CoursesScreen({ semesterOptions }: { semesterOptions: SemesterCo
         activeCount={table.activeCount}
         onClear={table.clearAll}
         actions={
-          <Button size="sm" onClick={openCreate} className="gap-1.5">
-            <Plus className="size-3.5" aria-hidden />
-            New course
-          </Button>
+          <>
+            <DataTableViewOptions
+              columns={OPTIONAL_COLUMNS}
+              visibility={table.columnVisibility}
+              onVisibilityChange={table.setColumnVisibility}
+            />
+            <Button size="sm" onClick={openCreate} className="gap-1.5">
+              <Plus className="size-3.5" aria-hidden />
+              New course
+            </Button>
+          </>
         }
       >
         <SearchInput
@@ -104,6 +113,7 @@ export function CoursesScreen({ semesterOptions }: { semesterOptions: SemesterCo
             }),
         })}
         isLoading={query.isPending}
+        isFetching={query.isFetching}
         error={query.error}
         onRetry={() => query.refetch()}
         getRowId={(row) => row.id}
@@ -125,6 +135,17 @@ export function CoursesScreen({ semesterOptions }: { semesterOptions: SemesterCo
     </>
   );
 }
+
+/**
+ * The columns this screen is willing to let a user switch off.
+ *
+ * The identity column and the status are not on the list: hiding the link that
+ * is the point of the row leaves a table nobody can navigate.
+ */
+const OPTIONAL_COLUMNS: HideableColumn[] = [
+  { id: "credits", label: "Credits" },
+  { id: "offerings", label: "Semesters" },
+];
 
 function buildColumns({
   onEdit,

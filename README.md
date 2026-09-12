@@ -23,6 +23,7 @@ The reasoning behind the code, not just the shape of it:
 | [docs/architecture.md](docs/architecture.md) | The layering rule, folder map, routing, where state lives, the domain model, and an honest inventory of what is built |
 | [docs/design-system.md](docs/design-system.md) | Sakura — the six rules, the token contract, motion, contrast, accessibility |
 | [docs/data-flow.md](docs/data-flow.md) | Seed → repository → service → BFF → hook → component; the list and error contracts |
+| [docs/process-flow.md](docs/process-flow.md) | The three business chains and where they join, module by module — and an audit of where a flow dead-ends |
 | [docs/evaluation-model.md](docs/evaluation-model.md) | The 360° chain: four roles, the weighted score, ranking scope, derived grades |
 | [docs/decisions/](docs/decisions/) | Why feature-first architecture · why shadcn · why a BFF with no backend |
 

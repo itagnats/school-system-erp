@@ -1,3 +1,4 @@
+import { mockCatalogueGroups } from "@/data/mock/cost-catalog";
 import { mockCostSheets } from "@/data/mock/costs";
 import { mockCourses } from "@/data/mock/courses";
 import { mockEnrollments } from "@/data/mock/enrollments";
@@ -10,6 +11,13 @@ import {
   mockEvaluationSetups,
 } from "@/data/mock/evaluation";
 import {
+  DRAFT_ONLY_TERM_STATUS,
+  INVOICE_STATUS_BY_MEMBERSHIP,
+  ISSUE_LEAD_DAYS,
+  PAYMENT_TERM_DAYS,
+  PROGRAMME_FEE_LABEL,
+} from "@/data/mock/invoices";
+import {
   PROGRAM_BY_ACADEMIC_NAME,
   PROGRAM_COURSE_PREFIX,
   mockPrograms,
@@ -18,6 +26,10 @@ import { mockSemesters } from "@/data/mock/semesters";
 import { mockStudents } from "@/data/mock/students";
 import type {
   AssesseeConfig,
+  CatalogueGroup,
+  CatalogueItem,
+  CostGroup,
+  CostItem,
   CostSheet,
   CostSheetStatus,
   Course,
@@ -28,6 +40,9 @@ import type {
   EvaluationGroup,
   EvaluationSetup,
   EvaluationWindowStatus,
+  Invoice,
+  InvoiceLine,
+  InvoiceStatus,
   Program,
   ProgramEnrollment,
   ProgramTerm,
@@ -37,6 +52,14 @@ import type {
   Student,
 } from "@/types";
 import { EVALUATION_GROUP_LETTERS, evaluationGroupName } from "@/types";
+import {
+  CREDIT_PERCENT,
+  CREDIT_RATE,
+  courseLineAmount,
+  creditLineAmount,
+  creditReasonFor,
+  programmeFeeAmount,
+} from "@/lib/calculations/invoice";
 import { createRandom, isoFromEpoch, type Random } from "./random";
 
 /**
@@ -327,15 +350,90 @@ function generateEnrollments(
 
 const SHEET_STATUSES: CostSheetStatus[] = ["draft", "review", "approved", "approved"];
 
+/**
+ * How often a sheet's copy is nudged away from the catalogue default.
+ *
+ * Not variety for its own sake: §12a says a sheet owns its copy and the
+ * catalogue does not reach back into it, so the dataset has to contain items
+ * that genuinely differ or the drift states can never be seen on screen.
+ */
+const PRICE_DRIFT_CHANCE = 0.18;
+
+/** Copy one catalogue item onto a sheet, taking its defaults (§12a). */
+function copyFromCatalogue(
+  rng: Random,
+  source: CatalogueItem,
+  suffix: string,
+): CostItem {
+  const drifted = rng.chance(PRICE_DRIFT_CHANCE);
+
+  return {
+    id: `${source.id}-${suffix}`,
+    name: source.name,
+    kind: source.kind,
+    // A sheet that has moved its own price is the case the drift report exists
+    // for. The rest sit exactly on the catalogue.
+    unitPrice: drifted
+      ? Math.round((source.defaultUnitPrice * (0.85 + rng.next() * 0.4)) / 50) * 50
+      : source.defaultUnitPrice,
+    quantity: Math.max(1, Math.round(source.defaultQuantity * (0.7 + rng.next() * 0.6))),
+    allocationPercent:
+      source.kind === "direct" ? 100 : rng.pick([15, 20, 25, 35, 50]),
+    options: source.options.map((option) => ({
+      ...option,
+      id: `${option.id}-${suffix}`,
+    })),
+    selectedOptionId:
+      source.options.length > 0
+        ? `${rng.pick(source.options).id}-${suffix}`
+        : undefined,
+    note: source.note,
+    catalogueItemId: source.id,
+    copiedAt: isoFromEpoch(-rng.int(40, 300)),
+  };
+}
+
+/**
+ * The groups one sheet is built from.
+ *
+ * Two to three of the catalogue's active groups, each contributing most of its
+ * active items. Not all of them: a sheet that always contains everything makes
+ * the "add from catalogue" action look like it has nothing left to add.
+ */
+function sheetGroupsFrom(
+  rng: Random,
+  catalogue: CatalogueGroup[],
+  suffix: string,
+): CostGroup[] {
+  const usable = catalogue.filter((group) => group.status === "active");
+  const chosen = rng.sample(usable, Math.min(usable.length, rng.int(2, 3)));
+
+  return chosen
+    .map((group) => {
+      const available = group.items.filter((entry) => entry.status === "active");
+      const items = rng
+        .sample(available, Math.max(1, available.length - rng.int(0, 1)))
+        .map((entry) => copyFromCatalogue(rng, entry, suffix));
+
+      return {
+        id: `${group.id}-${suffix}`,
+        name: group.name,
+        catalogueGroupId: group.id,
+        items,
+      };
+    })
+    .filter((group) => group.items.length > 0);
+}
+
 function generateCostSheets(
   rng: Random,
   courses: Course[],
   enrollments: Enrollment[],
   terms: ProgramTerm[],
+  catalogue: CatalogueGroup[],
 ): CostSheet[] {
   const sheets: CostSheet[] = [...mockCostSheets];
   const existing = new Set(sheets.map((s) => `${s.courseId}:${s.semesterCode}`));
-  const template = mockCostSheets[0];
 
   const headCount = new Map<string, number>();
   for (const e of enrollments) {
@@ -360,6 +458,8 @@ function generateCostSheets(
       existing.add(key);
 
       const createdDays = -rng.int(40, 300);
+      const suffix = `${course.code.toLowerCase()}-${semesterCode}`;
+
       sheets.push({
         id: `cst-${course.code.toLowerCase()}-${semesterCode}`,
         courseId: course.id,
@@ -368,24 +468,9 @@ function generateCostSheets(
         markupPercent: rng.pick([0, 0, 5, 8, 10]),
         studentCount: headCount.get(key) ?? rng.int(15, 40),
         currency: "THB",
-        groups: template.groups.map((group) => ({
-          ...group,
-          id: `${group.id}-${semesterCode}`,
-          items: group.items.map((item) => ({
-            ...item,
-            id: `${item.id}-${semesterCode}`,
-            quantity: Math.max(1, Math.round(item.quantity * (0.7 + rng.next() * 0.6))),
-            allocationPercent:
-              item.kind === "direct" ? 100 : rng.pick([15, 20, 25, 35, 50]),
-            options: item.options.map((option) => ({
-              ...option,
-              id: `${option.id}-${semesterCode}`,
-            })),
-            selectedOptionId: item.selectedOptionId
-              ? `${item.selectedOptionId}-${semesterCode}`
-              : undefined,
-          })),
-        })),
+        // Built from the catalogue rather than cloned from a template sheet, so
+        // every generated item knows where its rate came from (§12a).
+        groups: sheetGroupsFrom(rng, catalogue, suffix),
         createdAt: isoFromEpoch(createdDays),
         updatedAt: isoFromEpoch(createdDays + rng.int(5, 60)),
       });
@@ -435,8 +520,11 @@ function generateProgramTerms(
         programId: program.id,
         semesterCode: semester.code,
         courseIds: curriculum.map((course) => course.id),
-        // Roughly 4,200 a credit, nudged per term so margins are not identical.
-        packagePrice: (credits * 4200 + rng.int(0, 8) * 500),
+        // The credit rate plus a per-term fee, so margins are not identical.
+        // The rate is imported rather than written here: an invoice re-derives
+        // the first half of this sum line by line (§13b), and a second copy of
+        // the number would let a bill disagree with the price it bills.
+        packagePrice: credits * CREDIT_RATE + rng.int(0, 8) * 500,
         currency: "THB",
         status: TERM_STATUS_BY_SEMESTER[semester.status] ?? "planning",
       });
@@ -709,6 +797,274 @@ function windowStatusFor(rng: Random, semesterStatus?: SemesterStatus): Evaluati
   return "draft";
 }
 
+/* -------------------------------------------------------------------------- */
+/* Invoices (direction.md §13b)                                               */
+/* -------------------------------------------------------------------------- */
+
+/** ISO date `days` from a fixed calendar date. Never reads the clock. */
+function isoDateFrom(date: string, days: number): string {
+  return new Date(new Date(`${date}T00:00:00.000Z`).getTime() + days * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+}
+
+/** Hands out line ids for one invoice, in the order the lines are built. */
+function lineIds(invoiceId: string): () => string {
+  let n = 0;
+  return () => {
+    n += 1;
+    return `${invoiceId}-l${String(n).padStart(2, "0")}`;
+  };
+}
+
+/** Everything the line builders need to look a course or an enrollment up. */
+interface InvoiceContext {
+  courseById: Map<string, Course>;
+  statusByKey: Map<string, EnrollmentStatus>;
+}
+
+/**
+ * The charges for one programme term: a line per curriculum course, then the
+ * fee that reconciles them with the package price.
+ */
+function chargeLinesFor(
+  term: ProgramTerm,
+  context: InvoiceContext,
+  nextId: () => string,
+): InvoiceLine[] {
+  const lines: InvoiceLine[] = [];
+  let courseTotal = 0;
+
+  for (const courseId of term.courseIds) {
+    const course = context.courseById.get(courseId);
+    if (!course) continue;
+
+    const amount = courseLineAmount(course.credits);
+    courseTotal += amount;
+    lines.push({
+      id: nextId(),
+      kind: "course",
+      description: `${course.code} ${course.name}`,
+      courseId,
+      courseCode: course.code,
+      credits: course.credits,
+      creditRate: CREDIT_RATE,
+      amount,
+    });
+  }
+
+  // Omitted when it is zero rather than printed as a zero line.
+  const fee = programmeFeeAmount(term.packagePrice, courseTotal);
+  if (fee !== 0) {
+    lines.push({
+      id: nextId(),
+      kind: "fee",
+      description: PROGRAMME_FEE_LABEL,
+      amount: fee,
+    });
+  }
+
+  return lines;
+}
+
+/**
+ * What comes back for courses that did not run for this student.
+ *
+ * Built after the charges, in the order a reader expects them. A course with no
+ * enrollment row at all earns nothing: choosing not to attend what was bought
+ * is not a billing event (direction.md §13b).
+ */
+function creditLinesFor(
+  studentId: string,
+  term: ProgramTerm,
+  context: InvoiceContext,
+  nextId: () => string,
+): InvoiceLine[] {
+  const lines: InvoiceLine[] = [];
+
+  for (const courseId of term.courseIds) {
+    const course = context.courseById.get(courseId);
+    if (!course) continue;
+
+    const reason = creditReasonFor(
+      context.statusByKey.get(`${studentId}:${courseId}:${term.semesterCode}`),
+    );
+    if (!reason) continue;
+
+    lines.push({
+      id: nextId(),
+      kind: "credit",
+      description: `Credit - ${course.code} ${reason}`,
+      courseId,
+      courseCode: course.code,
+      creditReason: reason,
+      creditPercent: CREDIT_PERCENT[reason],
+      amount: creditLineAmount(courseLineAmount(course.credits), reason),
+    });
+  }
+
+  return lines;
+}
+
+/**
+ * Gather memberships by student and semester.
+ *
+ * The grain is the student-semester (direction.md §13b), so this runs before
+ * any invoice is built: a student in two programmes gets one document with
+ * lines from both, rather than two documents.
+ */
+function membershipsByStudentSemester(
+  programEnrollments: ProgramEnrollment[],
+  studentIds: Set<string>,
+): Map<string, ProgramEnrollment[]> {
+  const byKey = new Map<string, ProgramEnrollment[]>();
+
+  for (const membership of programEnrollments) {
+    if (!studentIds.has(membership.studentId)) continue;
+    const key = `${membership.studentId}:${membership.semesterCode}`;
+    const list = byKey.get(key);
+    if (list) list.push(membership);
+    else byKey.set(key, [membership]);
+  }
+
+  return byKey;
+}
+
+/**
+ * One invoice per student per semester (direction.md §13b).
+ *
+ * Derived from programme enrollments, never generated beside them. Generated
+ * independently, an invoice would bill a student for a term they never joined -
+ * the same failure the programme layer produced when course enrollments were
+ * generated apart from their parent.
+ *
+ * The lines are the **curriculum**, not the student's own enrollments: a
+ * package is a package, so a course they skipped is still billed. What their
+ * enrollment decides is the credit, and only a course that stopped early earns
+ * one.
+ */
+function generateInvoices(
+  rng: Random,
+  programEnrollments: ProgramEnrollment[],
+  terms: ProgramTerm[],
+  enrollments: Enrollment[],
+  courses: Course[],
+  students: Student[],
+  semesters: Semester[],
+): Invoice[] {
+  const termByKey = new Map(
+    terms.map((term) => [`${term.programId}:${term.semesterCode}`, term]),
+  );
+  const semesterByCode = new Map(semesters.map((semester) => [semester.code, semester]));
+  const context: InvoiceContext = {
+    courseById: new Map(courses.map((course) => [course.id, course])),
+    // Enrollment status by student:course:semester, for the credit rule.
+    statusByKey: new Map(
+      enrollments.map((enrollment) => [
+        `${enrollment.studentId}:${enrollment.courseId}:${enrollment.semesterCode}`,
+        enrollment.status,
+      ]),
+    ),
+  };
+
+  const byStudentSemester = membershipsByStudentSemester(
+    programEnrollments,
+    new Set(students.map((student) => student.id)),
+  );
+
+  const invoices: Invoice[] = [];
+  let serial = 0;
+
+  // Sorted, so the dataset does not depend on Map insertion order.
+  for (const key of [...byStudentSemester.keys()].sort()) {
+    const memberships = byStudentSemester.get(key) ?? [];
+    const [studentId, semesterCode] = key.split(":");
+    const semester = semesterByCode.get(semesterCode);
+    if (!semester) continue;
+
+    serial += 1;
+    const id = `inv-${String(serial).padStart(4, "0")}`;
+    const nextId = lineIds(id);
+
+    const lines: InvoiceLine[] = [];
+    const programTermIds: string[] = [];
+
+    for (const membership of memberships) {
+      const term = termByKey.get(`${membership.programId}:${membership.semesterCode}`);
+      if (!term) continue;
+
+      programTermIds.push(term.id);
+      lines.push(
+        ...chargeLinesFor(term, context, nextId),
+        ...creditLinesFor(studentId, term, context, nextId),
+      );
+    }
+
+    if (lines.length === 0) continue;
+
+    const issuedOn = isoDateFrom(semester.startDate, -ISSUE_LEAD_DAYS);
+    const dueOn = isoDateFrom(issuedOn, PAYMENT_TERM_DAYS);
+    const status = invoiceStatusFor(rng, memberships, termByKey);
+
+    invoices.push({
+      id,
+      number: `INV-${semesterCode.slice(0, 4)}-${String(serial).padStart(4, "0")}`,
+      studentId,
+      semesterCode,
+      programTermIds,
+      status,
+      issuedOn,
+      dueOn,
+      // Paid a little before or after the due date, so an ageing view has a
+      // spread rather than one date repeated.
+      paidOn: status === "paid" ? isoDateFrom(dueOn, rng.int(-20, 5)) : undefined,
+      currency: "THB",
+      lines,
+      createdAt: `${issuedOn}T00:00:00.000Z`,
+      updatedAt: `${dueOn}T00:00:00.000Z`,
+    });
+  }
+
+  return invoices;
+}
+
+/**
+ * What state one invoice is in.
+ *
+ * Driven by the membership rather than the term, because what a student owes
+ * follows their own standing. Two exceptions, both about honesty rather than
+ * variety: a term that has not opened can only hold drafts, since its cohort is
+ * not confirmed; and an invoice is cancelled only when *every* membership on it
+ * was withdrawn, because a student who withdrew from one of two programmes
+ * still owes for the other.
+ */
+function invoiceStatusFor(
+  rng: Random,
+  memberships: ProgramEnrollment[],
+  termByKey: Map<string, ProgramTerm>,
+): InvoiceStatus {
+  const live = memberships.filter((m) => m.status !== "withdrawn");
+  if (live.length === 0) return "cancelled";
+
+  const planning = live.every(
+    (m) =>
+      termByKey.get(`${m.programId}:${m.semesterCode}`)?.status ===
+      DRAFT_ONLY_TERM_STATUS,
+  );
+  if (planning) return "draft";
+
+  // The furthest-along membership decides, so a completed programme is not
+  // reported as pending because a second one has not started.
+  const rank: Record<ProgramEnrollment["status"], number> = {
+    withdrawn: 0,
+    pending: 1,
+    active: 2,
+    completed: 3,
+  };
+  const leading = live.reduce((best, m) => (rank[m.status] > rank[best.status] ? m : best));
+  return rng.pick(INVOICE_STATUS_BY_MEMBERSHIP[leading.status]);
+}
+
 export interface Dataset {
   semesters: Semester[];
   courses: Course[];
@@ -720,6 +1076,8 @@ export interface Dataset {
   programEnrollments: ProgramEnrollment[];
   evaluationGroups: EvaluationGroup[];
   evaluationSetups: EvaluationSetup[];
+  invoices: Invoice[];
+  catalogueGroups: CatalogueGroup[];
 }
 
 /** Fixed seed. Changing it changes every generated row. */
@@ -742,7 +1100,25 @@ export function generateDataset(): Dataset {
   const enrollments = grouped.enrollments;
   const evaluationGroups = grouped.groups;
   const evaluationSetups = generateEvaluationSetups(rng, evaluationGroups, courses, semesters);
-  const costSheets = generateCostSheets(rng, courses, enrollments, programTerms);
+  const catalogueGroups = [...mockCatalogueGroups];
+  const costSheets = generateCostSheets(
+    rng,
+    courses,
+    enrollments,
+    programTerms,
+    catalogueGroups,
+  );
+  // Last: an invoice needs the curriculum for its lines and the course
+  // enrollments for its credits, so both have to exist first.
+  const invoices = generateInvoices(
+    rng,
+    programEnrollments,
+    programTerms,
+    enrollments,
+    courses,
+    students,
+    semesters,
+  );
 
   return {
     semesters,
@@ -755,5 +1131,7 @@ export function generateDataset(): Dataset {
     programEnrollments,
     evaluationGroups,
     evaluationSetups,
+    invoices,
+    catalogueGroups,
   };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { EvaluationSetupUpdateInput } from "@/lib/api/contracts";
 import { queryKeys } from "@/lib/constants";
@@ -15,6 +15,9 @@ export function useEvaluationSetups(filters: EvaluationSetupFilters) {
   return useQuery({
     queryKey: queryKeys.evaluation.list(filters),
     queryFn: () => fetchEvaluationSetups(filters),
+    // Keep the current page on screen while the next one loads; DataTable
+    // dims it rather than replacing it. See its isFetching prop.
+    placeholderData: keepPreviousData,
   });
 }
 

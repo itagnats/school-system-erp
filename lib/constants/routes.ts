@@ -17,6 +17,9 @@ export const routes = {
   student: (studentId: string) => `/students/${enc(studentId)}`,
   costs: () => "/costs",
   costSheet: (costSheetId: string) => `/costs/${enc(costSheetId)}`,
+  costCatalogue: () => "/costs/catalogue",
+  invoices: () => "/invoices",
+  invoice: (invoiceId: string) => `/invoices/${enc(invoiceId)}`,
   /**
    * The evaluator's queue. `as` carries the demo persona.
    *

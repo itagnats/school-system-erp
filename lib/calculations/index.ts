@@ -10,5 +10,6 @@ export * from "./grade";
 export * from "./ranking";
 export * from "./cost";
 export * from "./profit";
+export * from "./invoice";
 export * from "./evaluation-weights";
 export * from "./score";

@@ -55,6 +55,15 @@ export const tableFeaturesConfig = tableFeatures({
 
 export type PrimeTableFeatures = typeof tableFeaturesConfig;
 
+/**
+ * Which columns are hidden, keyed by column id.
+ *
+ * Declared here rather than imported: v9 keeps the equivalent type internal to
+ * the visibility feature and does not re-export it, and the shape is a plain
+ * record either way. A column absent from the map is visible.
+ */
+export type ColumnVisibility = Record<string, boolean>;
+
 /** Column definition for a PRIME table. Use this instead of raw ColumnDef. */
 export type PrimeColumnDef<TData extends RowData, TValue = unknown> = ColumnDef<
   PrimeTableFeatures,

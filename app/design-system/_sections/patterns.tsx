@@ -9,6 +9,9 @@ import {
   DataTableColumnHeader,
   DataTablePagination,
   DataTableRowActions,
+  DataTableViewOptions,
+  type ColumnVisibility,
+  type HideableColumn,
 } from "@/components/data-table";
 import {
   DetailSkeleton,
@@ -87,6 +90,12 @@ const STATUS_TONE = {
   dropped: { tone: "error", label: "Dropped" },
 } as const;
 
+/** The demo table's optional columns. Identity and status stay put. */
+const DEMO_OPTIONAL_COLUMNS: HideableColumn[] = [
+  { id: "group", label: "Group" },
+  { id: "score", label: "Final score" },
+];
+
 export function PatternsSection() {
   const [search, setSearch] = useState("");
   const [group, setGroup] = useState<string>("all");
@@ -94,9 +103,11 @@ export function PatternsSection() {
   const [confirmPending, setConfirmPending] = useState(false);
   const [demoPage, setDemoPage] = useState(1);
   const [demoPageSize, setDemoPageSize] = useState(20);
+  const [demoFetching, setDemoFetching] = useState(false);
+  const [demoVisibility, setDemoVisibility] = useState<ColumnVisibility>({});
   const [boundaryState, setBoundaryState] = useState<BoundaryState>("success");
 
-  const columns: PrimeColumnDef<DemoRow>[] = [
+const columns: PrimeColumnDef<DemoRow>[] = [
     {
       accessorKey: "studentId",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Student ID" />,
@@ -285,7 +296,7 @@ export function PatternsSection() {
 
       <Section id="filter-data-table"
         title="Filter bar and data table"
-        description="The single table implementation. It owns sorting, pagination, the scroll container and all four data states."
+        description="The single table implementation. It owns sorting, pagination, the scroll container and all four data states. Paging is not a first load: toggle Fetching to see it hold the current rows and dim them instead of collapsing to a skeleton."
         flush
       >
         <div className="p-3.5">
@@ -296,10 +307,25 @@ export function PatternsSection() {
               setGroup("all");
             }}
             actions={
-              <Button size="sm" className="gap-1.5">
-                <Plus className="size-3.5" aria-hidden />
-                Add
-              </Button>
+              <>
+                <DataTableViewOptions
+                  columns={DEMO_OPTIONAL_COLUMNS}
+                  visibility={demoVisibility}
+                  onVisibilityChange={setDemoVisibility}
+                />
+                <Button
+                  size="sm"
+                  variant={demoFetching ? "secondary" : "outline"}
+                  aria-pressed={demoFetching}
+                  onClick={() => setDemoFetching((on) => !on)}
+                >
+                  Fetching
+                </Button>
+                <Button size="sm" className="gap-1.5">
+                  <Plus className="size-3.5" aria-hidden />
+                  Add
+                </Button>
+              </>
             }
           >
             <SearchInput
@@ -323,6 +349,9 @@ export function PatternsSection() {
           <DataTable
             columns={columns}
             data={filtered}
+            isFetching={demoFetching}
+            columnVisibility={demoVisibility}
+            onColumnVisibilityChange={setDemoVisibility}
             getRowId={(row) => row.id}
             page={1}
             pageSize={20}

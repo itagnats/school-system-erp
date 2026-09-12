@@ -1,12 +1,24 @@
-import type { ProgramCourseCost, ProgramProfit } from "@/types";
+import type { InvoicedRevenue, ProgramCourseCost, ProgramProfit } from "@/types";
 import { percentOf, roundMoney } from "./number";
 
 /**
- * Programme profitability (direction.md §13a).
+ * Programme profitability (direction.md §13a, revised 2026-09-12).
  *
- *   Package price x enrolled students = Revenue
+ *   Package price x enrolled students = List revenue
+ *   Sum of billed invoice totals       = Revenue
+ *     of which paid                    = Collected
+ *     of which unpaid                  = Outstanding
  *   Sum of attributed course costs     = Total cost
- *   Revenue - Total cost               = Net profit
+ *   Collected - Total cost             = Net profit
+ *
+ * **Revenue is invoiced, not implied.** It used to be the first line — package
+ * price times head count — which counted a pending student who had never paid
+ * as earned money, and could not see a credit for a course somebody dropped.
+ * Both figures are kept, because the gap between them is the story.
+ *
+ * **Net profit is stated on a basis, and the basis is collected.** A figure
+ * labelled only "net profit" over a term with a quarter of its invoices unpaid
+ * makes a claim it cannot support.
  *
  * The interesting part is *attributed*. A course cost sheet covers everyone on
  * that course, and a course can be taught into several programmes at once, so a
@@ -28,6 +40,14 @@ export interface ProgramProfitInput {
   currency: string;
   packagePrice: number;
   enrolledCount: number;
+  /**
+   * What this term's invoices say, from the invoice service.
+   *
+   * Passed in rather than computed here: this module does arithmetic over
+   * figures it is given, and reaching into an invoice table would make it
+   * untestable without one.
+   */
+  invoiced: InvoicedRevenue;
   courses: {
     courseId: string;
     courseCode: string;
@@ -52,26 +72,35 @@ export function calculateProgramProfit(input: ProgramProfitInput): ProgramProfit
         : roundMoney(course.costPerStudent * course.headCount),
   }));
 
-  const revenue = roundMoney(input.packagePrice * input.enrolledCount);
+  const listRevenue = roundMoney(input.packagePrice * input.enrolledCount);
+  const collected = roundMoney(input.invoiced.collected);
   const totalCost = roundMoney(
     courses.reduce((sum, course) => sum + (course.attributedCost ?? 0), 0),
   );
-  const netProfit = roundMoney(revenue - totalCost);
+  const netProfit = roundMoney(collected - totalCost);
 
   return {
     programTermId: input.programTermId,
     currency: input.currency,
     packagePrice: input.packagePrice,
     enrolledCount: input.enrolledCount,
-    revenue,
+    listRevenue,
+    revenue: roundMoney(input.invoiced.revenue),
+    collected,
+    outstanding: roundMoney(input.invoiced.outstanding),
     totalCost,
     netProfit,
-    marginPercent: revenue > 0 ? percentOf(netProfit, revenue) : null,
+    // Against collected, not revenue: dividing by money that has not arrived
+    // reports a margin on a term nobody has paid for.
+    marginPercent: collected > 0 ? percentOf(netProfit, collected) : null,
     profitPerStudent:
       input.enrolledCount > 0 ? roundMoney(netProfit / input.enrolledCount) : null,
     courses,
     coursesMissingCostSheet: courses.filter((course) => course.costPerStudent === null)
       .length,
+    invoiceCount: input.invoiced.invoiceCount,
+    paidCount: input.invoiced.paidCount,
+    overdueCount: input.invoiced.overdueCount,
   };
 }
 

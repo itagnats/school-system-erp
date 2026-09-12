@@ -10,12 +10,17 @@ Reply in English even when the user writes in another language.
 
 ## Current state
 
-**Eight modules built; Reports remains.** The token layer, theme,
-application shell, shared components, routing, domain types, API layer and test harness are
-in place. Curriculum, Course, Semester, Enrollment, Student, Cost and **Manage Evaluation**
-render real data from the BFF under `app/api/`. **Your Evaluation** is scaffolded —
-the queue and both form kinds work; its layout is deliberately plain, pending the
-user's design pass. Reports still renders `ScaffoldPlaceholder`.
+**Eleven modules built.** The token layer, theme, application shell, shared
+components, routing, domain types, API layer and test harness are in place.
+Dashboard, Curriculum, Course, Semester, Enrollment, Student, Cost, **Cost
+Catalogue**, **Invoices** and **Manage Evaluation** render real data from the BFF
+under `app/api/`. **Your Evaluation** is scaffolded — the queue and both form
+kinds work; its layout is deliberately plain, pending the user's design pass.
+`/reports/students/[studentId]` is still a placeholder (`AUD-002`) — the live
+report is under Student Reports.
+
+**Nothing has been seen in a browser** (`AUD-009`, open since 2026-09-07). Four
+screens have landed since. Do not describe how anything looks.
 
 **Reports are built**: Manage Evaluation → a setup → **Results** tab → a row's
 Report button opens a dialog printed with `window.print()`. Still unbuilt:
@@ -98,7 +103,7 @@ Design Tokens → Theme → components/ui → components/decor → components/da
 - `features/<domain>/` — self-contained: `components/`, `hooks/`, `services/`, `validations/`, `calculations/`, `types.ts`, `constants.ts`. Business rules live here.
 
 Domains: `programs`, `courses`, `semesters`, `enrollment`, `students`, `costs`,
-`evaluation`, `reports`.
+`cost-catalogue`, `invoices`, `evaluation`, `reports`, `dashboard`.
 
 ### Data flow
 
@@ -124,14 +129,61 @@ Two hierarchies hang off Course → Semester:
 Program → Program Term → Courses + Package price → Program Enrollment → Student
 Course → Semester → Enrollment → Student → Evaluation Group → 360° Evaluation → Score → Grade → Report
 Course → Semester → Cost Sheet → Cost Group → Cost Item → Cost Option → Cost per Student
+Program Term → Program Enrollment → Invoice → Invoice Line → Collected / Outstanding
+Catalogue Group → Catalogue Item ⇢ (copied onto) Cost Group → Cost Item
 ```
 
 A **programme term** is what a student enrols in: a curriculum for one semester
 plus a package price. Enrolment is entered at the programme level and the course
-enrollments follow from the curriculum (`direction.md` §4a, §7a). Revenue is
-`package price × head count`; cost is each course charged at its own cost per
-student for the programme members who took it; the difference is net profit
+enrollments follow from the curriculum (`direction.md` §4a, §7a). Cost is each
+course charged at its own cost per student for the programme members who took it
 (§13a). A course with no cost sheet contributes **unknown**, never zero.
+
+**Revenue is invoiced, not implied** (§13a, revised 2026-09-12). `package price ×
+head count` is *list revenue* — what the price implies. Revenue is the sum of the
+billed invoice totals, which is lower by any credits given, and it splits into
+**collected** (paid) and **outstanding** (issued or overdue). Net profit and
+margin are stated on the **collected** basis, because a student who has been
+billed and has not paid is owed money rather than earned money. A draft or
+cancelled invoice contributes nothing at all.
+
+### Invoicing (`direction.md` §13b)
+
+One invoice **per student per semester** — not per course, because a student
+enrols in a programme; not per programme, because one person receives one
+document. Lines are the **curriculum**, not the student's own enrolments: a
+package is a package, so a course they skipped is still billed.
+
+```
+one line per curriculum course     credits × CREDIT_RATE
+one programme fee line             package price − the course lines
+one credit line per unfinished     cancelled 100% · dropped 50% · never enrolled nothing
+```
+
+`CREDIT_RATE` lives in `lib/calculations/invoice.ts` and the **seed imports it**
+to build the package price. Two copies of that number would let a document
+disagree with the contract it bills, and nothing would catch it. The fee line is
+what makes the course lines and the package price reconcile exactly — it is a
+labelled charge, not a rounding plug.
+
+Status is `draft → issued → paid | overdue | cancelled`, **stored rather than
+computed against a clock**, so `overdue` cannot change because a month passed.
+One transition is offered in the UI (issued → paid) and the server validates it
+against `INVOICE_TRANSITIONS` — a status is exactly the field where a
+well-formed request can still be nonsense.
+
+**The detail route is the document.** It renders `InvoiceSheet` and prints
+itself through `window.print()`, the same choice §23 makes for the student
+report; the chrome around it carries `data-print="hide"` and the print rule
+keys off `data-print="document"`. There is no export path and no PDF library,
+so the preview and the PDF cannot diverge.
+
+The sheet carries a **Code 128 counter-payment barcode** — encoder in
+`lib/barcode/`, payload in `lib/calculations/invoice.ts` — over a placeholder
+biller, the student reference, the invoice reference and the amount in satang,
+with the same four fields printed in words beneath it. Only an **outstanding**
+invoice prints one, and payable is `isOutstanding` rather than a second list of
+statuses. It is a rendering, not an integration, and the sheet says so.
 
 Semester codes are `YYYYNN` (`202601`, `202602`). A course can be offered in many semesters.
 
@@ -230,6 +282,29 @@ queue of zeros would demonstrate none of its states.
 
 Final score is a configurable weighted blend — the demo default is Peer 30% / Inspector 20% / Teacher 35% / TA 15%, with per-role rating/ordering splits of 60/40, 70/30, 70/30 and 100/0 — and the UI should show the arithmetic rather than hide it. Grade is **derived** from the final score (90+ A, 80+ B, 70+ C, 60+ D, else F) and must not be stored as an independent source of truth. Ranking must always state its scope (group vs. course/semester).
 
+### The cost catalogue (`direction.md` §12a)
+
+Master cost groups and items, maintained on their own screen and drawn on by
+every sheet. **A sheet takes a copy, never a reference.** Adding a catalogue item
+snapshots its name, kind, price, quantity, allocation and options onto the sheet;
+only the id survives, for provenance.
+
+A reference would mean raising a master price silently rewrote every sheet that
+used it, approved sheets from closed semesters included — a signed-off total
+changing because someone edited a lookup table. A cost sheet is a record of what
+something cost, not a live query.
+
+`copyCatalogueItem` is the **only** implementation of that copy. Drift is
+**computed on read** (`catalogueDriftFor`) and never stored, and only the unit
+price is compared — quantity and allocation are expected to differ per sheet,
+because the catalogue carries defaults rather than truths. Deleting a catalogue
+item that sheets have copied returns **409**: archive it instead, or their
+provenance points at nothing.
+
+The general form, worth applying to any future lookup table: **evidence of a past
+decision copies; a current setting references.** A cost sheet is evidence; the
+evaluation blend on a setup is a setting.
+
 ### Cost rules (`direction.md` §13)
 
 `Direct + Shared = Total Course Cost`, then `Total ÷ student count = Cost per Student`, with allocation and optional markup. Keep the calculation visible in the UI.
@@ -291,6 +366,15 @@ When uncertain, pick the smallest implementation that demonstrates the intended 
 Project memory lives in `.claude/worklog/`, indexed newest-first in `.claude/worklog/INDEX.md`.
 Read the latest entries before starting non-trivial work, and record a new entry when a feature
 or scaffold step is finished.
+
+## Audit log
+
+`.claude/audit/AUDIT-LOG.md` records what was *found*, where the worklog records
+what was *built*. Findings carry stable `AUD-nnn` ids and stay open until closed
+by evidence, and the file opens with the commands to re-run every check. **Read
+the open findings before starting work in an area** — `AUD-009` (nothing has
+been seen in a browser) is the one that shapes what to do next, and it now
+covers four screens that landed after it was raised.
 
 ## Design system
 

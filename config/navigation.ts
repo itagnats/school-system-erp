@@ -2,10 +2,12 @@ import {
   BookOpen,
   CalendarRange,
   ClipboardCheck,
+  FileSpreadsheet,
   FileText,
   GraduationCap,
   LayoutDashboard,
   Layers,
+  Library,
   Receipt,
   Settings2,
   UserPlus,
@@ -55,7 +57,13 @@ export const NAVIGATION: NavSection[] = [
   },
   {
     label: "Cost Management",
-    items: [{ label: "Cost Sheets", href: "/costs", icon: Receipt }],
+    // Cost and billing are the two sides of the money: a sheet says what
+    // delivery cost, an invoice says who owes for it (direction.md §13a, §13b).
+    items: [
+      { label: "Cost Sheets", href: "/costs", icon: Receipt },
+      { label: "Cost Catalogue", href: "/costs/catalogue", icon: Library },
+      { label: "Invoices", href: "/invoices", icon: FileSpreadsheet },
+    ],
   },
   {
     label: "Evaluation",

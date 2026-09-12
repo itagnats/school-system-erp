@@ -2,6 +2,8 @@ export { AppShell } from "./app-shell";
 export { AppHeader } from "./app-header";
 export { AppSidebar } from "./app-sidebar";
 export { AppBreadcrumbs } from "./app-breadcrumbs";
+export { BackButton } from "./back-button";
+export { useBreadcrumbTrail } from "./use-breadcrumb-trail";
 export { SidebarNav } from "./sidebar-nav";
 export { MobileNav } from "./mobile-nav";
 export { ThemeToggle } from "./theme-toggle";

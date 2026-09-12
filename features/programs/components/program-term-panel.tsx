@@ -20,6 +20,7 @@ import { routes } from "@/lib/constants";
 import { formatCurrency, formatPercent } from "@/lib/utils";
 import { TERM_STATUS_LABEL, TERM_STATUS_TONE, profitToneClass } from "../constants";
 import { useUpdateProgramTerm } from "../hooks/use-program-terms";
+import type { ProgramProfit } from "@/types";
 import type { ProgramTermDetailResponse } from "../services/program-service";
 
 /**
@@ -41,44 +42,16 @@ export function ProgramTermPanel({
 
   const fieldErrors =
     mutation.error instanceof HttpError ? mutation.error.fieldErrors : undefined;
-  const breakEven = breakEvenPrice(profit);
-
   return (
     <>
       <Section
         title="Revenue against cost"
-        description="Package price times head count is revenue. Cost is each course charged at its own cost per student, for the students from this programme who actually took it."
+        description="Revenue is what the invoices say, not what the price implies. Cost is each course charged at its own cost per student, for the students from this programme who actually took it."
         actions={
           <StatusBadge tone={TERM_STATUS_TONE[term.status]} label={TERM_STATUS_LABEL[term.status]} />
         }
       >
-        <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Figure label="Package price" value={money(profit.packagePrice)} />
-          <Figure label="Students enrolled" value={String(profit.enrolledCount)} />
-          <Figure label="Revenue" value={money(profit.revenue)} />
-          <Figure label="Attributed cost" value={money(profit.totalCost)} />
-        </dl>
-
-        <div className="mt-4 grid gap-3 rounded-lg border border-hairline bg-surface-sunken p-4 sm:grid-cols-3">
-          <Figure
-            label="Net profit"
-            value={money(profit.netProfit)}
-            strong
-            className={profitToneClass(profit.netProfit)}
-          />
-          <Figure
-            label="Margin"
-            value={profit.marginPercent === null ? "No revenue" : formatPercent(profit.marginPercent, 1)}
-            strong
-            className={
-              profit.marginPercent === null ? undefined : profitToneClass(profit.marginPercent)
-            }
-          />
-          <Figure
-            label="Break-even package price"
-            value={breakEven === null ? "Nobody enrolled" : money(breakEven)}
-          />
-        </div>
+        <MoneySummary profit={profit} currency={term.currency} />
 
         {profit.coursesMissingCostSheet > 0 ? (
           // An incomplete total is a different claim from a complete one, and
@@ -221,16 +194,125 @@ export function ProgramTermPanel({
   );
 }
 
+/**
+ * The money, in three bands (direction.md §13a).
+ *
+ * What the price implies, what was billed, and what arrived — then the result
+ * that follows from the third. Kept as its own component because the panel
+ * around it is about editing the price, and one function doing both was where
+ * this file stopped being readable.
+ */
+function MoneySummary({
+  profit,
+  currency,
+}: Readonly<{ profit: ProgramProfit; currency: string }>) {
+  const money = (value: number) => formatCurrency(value, currency);
+  const breakEven = breakEvenPrice(profit);
+
+  return (
+    <>
+      <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Figure label="Package price" value={money(profit.packagePrice)} />
+        <Figure label="Students enrolled" value={String(profit.enrolledCount)} />
+        <Figure
+          label="List revenue"
+          value={money(profit.listRevenue)}
+          hint="Package price x head count"
+        />
+        <Figure
+          label="Invoiced"
+          value={money(profit.revenue)}
+          hint={`${profit.invoiceCount} invoice${profit.invoiceCount === 1 ? "" : "s"}`}
+        />
+      </dl>
+
+      <dl className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Figure
+          label="Collected"
+          value={money(profit.collected)}
+          hint={`${profit.paidCount} paid`}
+        />
+        <Figure
+          label="Outstanding"
+          value={money(profit.outstanding)}
+          hint={profit.overdueCount > 0 ? `${profit.overdueCount} overdue` : "None overdue"}
+          className={profit.overdueCount > 0 ? "text-warning-soft-foreground" : undefined}
+        />
+        <Figure label="Attributed cost" value={money(profit.totalCost)} />
+        <Figure
+          label="Break-even package price"
+          value={breakEven === null ? "Nobody enrolled" : money(breakEven)}
+        />
+      </dl>
+
+      <dl className="mt-4 grid gap-3 rounded-lg border border-hairline bg-surface-sunken p-4 sm:grid-cols-2">
+        <Figure
+          label="Net profit, on collected"
+          value={money(profit.netProfit)}
+          strong
+          className={profitToneClass(profit.netProfit)}
+        />
+        <Figure
+          label="Margin, on collected"
+          value={
+            profit.marginPercent === null
+              ? "Nothing collected"
+              : formatPercent(profit.marginPercent, 1)
+          }
+          strong
+          className={
+            profit.marginPercent === null ? undefined : profitToneClass(profit.marginPercent)
+          }
+        />
+      </dl>
+
+      <BillingNote profit={profit} />
+    </>
+  );
+}
+
+/**
+ * Why a figure above is not the claim it looks like.
+ *
+ * A term whose invoices are still drafts has billed nothing, and one that has
+ * billed but collected nothing is not loss-making — it is early. Both read as
+ * failure without a sentence saying otherwise.
+ */
+function BillingNote({ profit }: Readonly<{ profit: ProgramProfit }>) {
+  if (profit.invoiceCount > 0 && profit.revenue === 0) {
+    return (
+      <p className="mt-3 text-xs text-muted-foreground">
+        This term&apos;s invoices are still drafts, so nothing has been billed.
+        List revenue is what it would come to.
+      </p>
+    );
+  }
+
+  if (profit.collected === 0 && profit.revenue > 0) {
+    return (
+      <p className="mt-3 text-xs text-muted-foreground">
+        Nothing has been collected on this term yet, so net profit is the cost
+        carried so far rather than a result.
+      </p>
+    );
+  }
+
+  return null;
+}
+
 function Figure({
   label,
   value,
   strong = false,
   className,
+  hint,
 }: Readonly<{
   label: string;
   value: string;
   strong?: boolean;
   className?: string;
+  /** How the figure was reached, or what it counts. Shown under the value. */
+  hint?: string;
 }>) {
   return (
     <div className="min-w-0">
@@ -244,6 +326,7 @@ function Figure({
       >
         {value}
       </dd>
+      {hint ? <dd className="text-xs text-muted-foreground">{hint}</dd> : null}
     </div>
   );
 }

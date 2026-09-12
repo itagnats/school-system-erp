@@ -12,6 +12,11 @@ import { SidebarNav } from "./sidebar-nav";
 export function AppSidebar() {
   return (
     <aside
+      // Navigation is never part of a printed page. It costs nothing on the
+      // report route, where the whole application is hidden anyway, and it is
+      // what lets a document printed from its own route (the invoice sheet)
+      // drop the sidebar without a rule of its own.
+      data-print="hide"
       className="hidden shrink-0 flex-col bg-sidebar text-sidebar-foreground hairline-r lg:flex"
       style={{ width: "var(--sidebar-w)" }}
     >
@@ -24,7 +29,10 @@ export function AppSidebar() {
         </Link>
       </div>
 
-      <ScrollArea className="flex-1">
+      {/* min-h-0 is load-bearing: a flex item defaults to min-height:auto, which
+          lets the nav push the track past the sidebar and take the scroll with
+          it. The ScrollArea viewport needs a bounded height to scroll at all. */}
+      <ScrollArea className="min-h-0 flex-1">
         <SidebarNav />
       </ScrollArea>
 

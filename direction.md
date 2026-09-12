@@ -51,6 +51,18 @@ Cost Structure
   ↓
 Cost per Student
 
+Billing runs from the other side, and meets it at profitability (§13a, §13b):
+
+Programme Term
+  ↓
+Programme Enrollment
+  ↓
+Invoice
+  ↓
+Invoice Line
+  ↓
+Collected / Outstanding
+
 ---
 
 # 3. Product Navigation
@@ -81,7 +93,9 @@ Students
 └── Student Profiles
 
 Cost Management
-└── Cost Sheets
+├── Cost Sheets
+├── Cost Catalogue
+└── Invoices
 
 Evaluation
 ├── Evaluation Groups
@@ -489,6 +503,66 @@ Student Activities
 
 ---
 
+# 12a. Cost Catalogue
+
+*Added 2026-09-12. §12 describes the shape of a sheet; this describes where its
+contents come from.*
+
+Every sheet was previously built from nothing, which is not how a school costs a
+course. The same lecturer rate, the same classroom, the same materials recur
+across thirty courses, and typing them again per sheet is both tedious and the
+reason two sheets disagree about what a lab costs.
+
+So there is a **catalogue**: master cost groups, each holding master cost items,
+maintained once and drawn on by every sheet.
+
+```text
+Catalogue Group            Cost Sheet
+├── Catalogue Item   ──►   └── Cost Group
+│     default price               └── Cost Item   (a copy, not a link)
+│     default quantity
+│     options
+└── Catalogue Item
+```
+
+## A sheet takes a copy, never a reference
+
+**This is the decision the whole feature turns on.** Adding a catalogue item to a
+sheet **snapshots** its name, kind, price, quantity, allocation and options onto
+that sheet. The sheet then owns them.
+
+The alternative — a sheet holding a reference and reading today's catalogue price
+— is wrong for costing, and quietly so. Raising the price of `Classroom` would
+silently rewrite every sheet that ever used it, including approved sheets from
+closed semesters, and a total that was reviewed and signed off would change
+without anyone touching it. A cost sheet is a record of what something cost,
+not a live query.
+
+The cost of snapshotting is that a catalogue correction does **not** reach the
+sheets already using it. That is handled openly rather than avoided:
+
+- an item copied from the catalogue keeps the id it came from, so its origin is
+  known;
+- a sheet shows which of its items now **differ from the catalogue**, and by how
+  much;
+- updating one is a deliberate act on that sheet, never a background effect.
+
+An item may also be added to a sheet **without** the catalogue, for a one-off
+cost. It simply has no origin, and is never reported as out of date.
+
+## Maintaining it
+
+Groups and items are created, edited and archived on their own screen. Two rules
+worth stating because neither is obvious:
+
+- **archive, do not delete, anything a sheet has used.** The sheets hold copies
+  and would survive a delete, but their provenance would point at nothing, and
+  "where did this rate come from" is the question the catalogue exists to answer;
+- **a catalogue item carries defaults, not truths.** Quantity especially: forty
+  five contact hours is the usual case and the sheet is free to say otherwise.
+
+---
+
 # 13. Cost Calculation
 
 The system should demonstrate meaningful financial calculations.
@@ -528,12 +602,29 @@ Do not reproduce every production cost-management workflow.
 
 *Added 2026-09-06. This is what makes §13 a decision rather than bookkeeping.*
 
+*Revised 2026-09-12, when §13b introduced invoices. Revenue used to be the
+product below; it is now what was actually invoiced.*
+
 ```text
-Package price x Enrolled students = Revenue
+Package price x Enrolled students = List revenue    (what the price implies)
+Sum of invoice totals              = Revenue        (what was billed)
+  of which paid                    = Collected
+  of which issued but unpaid       = Outstanding
 Sum of attributed course costs     = Total cost
-Revenue - Total cost               = Net profit
-Net profit / Revenue               = Margin
+Collected - Total cost             = Net profit
+Net profit / Collected             = Margin
 ```
+
+**Revenue is invoiced, not implied.** The two figures differ by the credits on
+§13b's invoices, so a term that lost students to withdrawal shows it here
+instead of carrying their full package price for ever. List revenue stays on
+screen beside it, because the gap between the two *is* the story.
+
+**Net profit is stated on a basis, and the basis is collected.** A pending
+student who has been billed and has not paid is outstanding, not earned;
+counting them as profit was the defect this rule replaces. The basis travels
+with the number — a figure labelled only "net profit" makes a claim it cannot
+support.
 
 **Attributed** is the load-bearing word. A course cost sheet covers everyone on
 that course, and a course can be taught into several programmes at once, so a
@@ -555,6 +646,113 @@ Three things must not be hidden:
 
 The break-even package price should be shown beside the margin: it answers
 "what would this have to cost" rather than only "what did we make".
+
+---
+
+# 13b. Invoicing
+
+*Added 2026-09-12. §33 previously excluded this outright; that exclusion is now
+narrowed to payment gateway integration and accounting, which stay out.*
+
+An invoice is what turns a package price into a claim on a particular student.
+It is the last piece of the money chain: cost says what delivery cost, revenue
+says what the programme was worth, and an invoice says who owes it.
+
+## Grain
+
+**One invoice per student per semester.** Not per course — a student enrols in a
+programme (§7a), so a bill per course would contradict the thing being sold. Not
+per programme either: a student taking two programmes in one term receives one
+document, because that is what a person receives.
+
+## Lines
+
+The lines are the **curriculum**, not the enrolments. A package is a package,
+and the invoice shows what the package buys:
+
+```text
+one line per course in the programme term's curriculum
+    amount = course credits x credit rate
+one programme fee line
+    amount = package price - sum of the course lines
+one credit line per course the student did not complete
+    cancelled  100% of that course line
+    dropped     50% of that course line
+    never enrolled   no credit
+─────────────────────────────────────────────────
+total = sum of the lines
+```
+
+The credit rate is the **same constant the package price is built from**. The
+two must not be able to drift: a package price derived from one rate and an
+invoice from another produces a document that disagrees with the contract it
+bills, and nothing would catch it.
+
+The programme fee line exists so the course lines and the package price
+reconcile exactly. It is a real line, not a rounding plug, and it is labelled.
+
+A course the student simply never enrolled in earns nothing back. Choosing not
+to attend what was bought is not a billing event.
+
+## Status
+
+```text
+draft → issued → paid
+              ↘ overdue
+              ↘ cancelled
+```
+
+Five states, one transition offered in the UI: **issued → paid**. Status is
+stored rather than computed against a clock — `overdue` on a fixed dataset must
+not change because a month passed, for the same reason every other date in the
+system is derived from a fixed epoch.
+
+A cancelled invoice contributes nothing to revenue. An overdue one is still
+outstanding: unpaid and late are the same claim on the money, and only one of
+them is a comment on the payer.
+
+## The document
+
+*Added 2026-09-12.* An invoice is a thing a student is sent, so the detail route
+is the document rather than a screen about the document: the page renders the
+sheet and prints itself, and the PDF is the browser's own
+(`window.print()`) — the same choice §23 makes for the student report, for the
+same reason. A PDF library would be a large dependency producing a worse
+result, and a separate export path would be a second rendering of the same
+invoice, free to disagree with the one on screen.
+
+The sheet carries a letterhead, the party billed, the lines, the totals, and a
+**counter-payment barcode**. Everything else on the route — the status control,
+the demo note, the page header — is chrome and is hidden on paper.
+
+## The payment code
+
+A Code 128 symbol over four fields: biller, a student reference, an invoice
+reference, and the amount in satang. The bars are for a scanner; the same four
+fields are printed underneath in words, because a barcode with no human-readable
+fallback is a single point of failure printed on paper.
+
+**Only an outstanding invoice carries one.** A scannable code on a settled bill
+invites a second payment and one on a draft invites payment against a document
+that was never sent, so `issued` and `overdue` print the barcode and the other
+three print a sentence saying which they are. Payable is not a second list: it
+is `isOutstanding`, the same predicate the revenue split already uses.
+
+The biller is a **placeholder**, the payload separates its fields with `|` where
+the Thai banking format uses carriage returns, and the sheet says on its face
+that it is a demonstration. A convincing bill that does not admit what it is
+would be the wrong thing to have built.
+
+## What stays out
+
+No payment records, no partial payment, no ledger, no receipts, no gateway. An
+invoice is paid or it is not. The moment a balance needs more than one number,
+this has become the accounting system §33 rules out.
+
+The barcode is a **rendering**, not an integration: nothing validates it, no
+bank has ever seen the biller, and scanning it settles nothing.
+
+---
 
 # 14. Evaluation
 
@@ -1532,7 +1730,7 @@ Not required:
 - Online classes
 - Assignment submission
 - Examination system
-- Tuition/payment processing
+- Payment gateway integration (invoicing itself is in scope — §13b)
 - Dormitory management
 - Library management
 - Full attendance system

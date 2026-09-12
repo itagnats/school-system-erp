@@ -36,6 +36,16 @@ export const queryKeys = {
     list: (filters?: unknown) => ["costs", "list", filters ?? null] as const,
     detail: (id: string) => ["costs", "detail", id] as const,
   },
+  catalogue: {
+    all: ["catalogue"] as const,
+    list: (filters?: unknown) => ["catalogue", "list", filters ?? null] as const,
+    group: (id: string) => ["catalogue", "group", id] as const,
+  },
+  invoices: {
+    all: ["invoices"] as const,
+    list: (filters?: unknown) => ["invoices", "list", filters ?? null] as const,
+    detail: (id: string) => ["invoices", "detail", id] as const,
+  },
   evaluation: {
     all: ["evaluation"] as const,
     /** Demo identities for the evaluator screens. */

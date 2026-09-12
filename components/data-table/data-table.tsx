@@ -21,6 +21,7 @@ import { DataTablePagination } from "./data-table-pagination";
 import {
   tableFeaturesConfig,
   type ColumnMetaHints,
+  type ColumnVisibility,
   type PrimeColumnDef,
   type PrimeTableFeatures,
 } from "./table-features";
@@ -47,6 +48,17 @@ export interface DataTableProps<TData extends RowData> {
   data: TData[] | undefined;
 
   isLoading?: boolean;
+  /**
+   * A request is in flight while rows are already on screen — a page change, a
+   * new filter, a refetch after a mutation.
+   *
+   * Distinct from `isLoading`, which means there is nothing to show yet. Paging
+   * forward is not a first load: replacing the rows with a skeleton throws away
+   * the only context the user has and collapses the panel to the skeleton's
+   * height, so the footer jumps out from under the cursor that just clicked it.
+   * Keep the stale rows, mark them stale, and let the footer stay put.
+   */
+  isFetching?: boolean;
   error?: unknown;
   onRetry?: () => void;
 
@@ -64,6 +76,17 @@ export interface DataTableProps<TData extends RowData> {
   /** Provide with onSortingChange to sort on the server. */
   sorting?: SortingState;
   onSortingChange?: (sorting: SortingState) => void;
+
+  /**
+   * Provide with onColumnVisibilityChange to control which columns render.
+   *
+   * Controlled rather than internal because the menu that drives it sits in the
+   * filter bar, outside this panel. Handing a feature module the table instance
+   * so it could call `column.toggleVisibility()` would put TanStack's API back
+   * in feature code, which is the thing `PrimeColumnDef` exists to prevent.
+   */
+  columnVisibility?: ColumnVisibility;
+  onColumnVisibilityChange?: (visibility: ColumnVisibility) => void;
 
   onRowClick?: (row: TData) => void;
 
@@ -98,6 +121,124 @@ function ariaSortFor(
   return canSort ? "none" : undefined;
 }
 
+/**
+ * Whether the rows on screen no longer match the request in flight.
+ *
+ * Kept out of the component so the condition reads as one idea: marking rows
+ * stale only means anything when there are rows worth keeping. With nothing
+ * rendered yet, or an error showing, the skeleton and the error panel are still
+ * the right answer.
+ */
+function showsStaleRows(state: {
+  isFetching: boolean;
+  isLoading: boolean;
+  hasError: boolean;
+  hasData: boolean;
+  rowCount: number;
+}): boolean {
+  const { isFetching, isLoading, hasError, hasData, rowCount } = state;
+  return isFetching && !isLoading && !hasError && hasData && rowCount > 0;
+}
+
+/**
+ * The marker shown over stale rows.
+ *
+ * A label rather than a spinner, deliberately. Reduced motion collapses every
+ * animation in the application to 0.01ms and the one carve-out is the spinner
+ * inside a pending Button; a second spinner here would simply sit frozen for
+ * the people who asked for less motion. Static text says the same thing to
+ * everyone. The overlay is inert, so the pagination footer underneath it stays
+ * clickable and paging forward twice in a row still works.
+ */
+function BusyOverlay({ show }: { show: boolean }) {
+  if (!show) return null;
+
+  return (
+    <div
+      aria-hidden
+      data-print="hide"
+      className="pointer-events-none absolute inset-0 grid place-items-center"
+    >
+      <span className="rounded-full border border-hairline bg-surface-raised px-2.5 py-1 text-xs font-medium text-muted-foreground shadow-xs">
+        Updating…
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Builds the table instance from the caller's props.
+ *
+ * Server-driven and client-driven tables differ only in which slices of state
+ * the caller controls, and every one of those decisions is a branch. Making them
+ * here keeps them in one place and leaves the component below about rendering,
+ * which is the only reason it stays readable as the option list grows.
+ *
+ * A slice is handed over only when the caller supplies both the value and the
+ * setter. Passing a value with no setter would freeze that state: the table
+ * would render what it was given and have no way to ask for anything else.
+ */
+function usePrimeTable<TData extends RowData>(options: {
+  columns: PrimeColumnDef<TData>[];
+  data: TData[] | undefined;
+  getRowId?: (row: TData) => string;
+  total?: number;
+  page: number;
+  pageSize: number;
+  sorting?: SortingState;
+  onSortingChange?: (sorting: SortingState) => void;
+  columnVisibility?: ColumnVisibility;
+  onColumnVisibilityChange?: (visibility: ColumnVisibility) => void;
+}) {
+  const {
+    columns,
+    data,
+    getRowId,
+    total,
+    page,
+    pageSize,
+    sorting,
+    onSortingChange,
+    columnVisibility,
+    onColumnVisibilityChange,
+  } = options;
+
+  const isServerSorted = sorting !== undefined && onSortingChange !== undefined;
+  const isControlledVisibility =
+    columnVisibility !== undefined && onColumnVisibilityChange !== undefined;
+
+  return useTable<PrimeTableFeatures, TData>({
+    features: tableFeaturesConfig,
+    data: data ?? [],
+    columns,
+    getRowId: getRowId ? (row) => getRowId(row) : undefined,
+    manualPagination: total !== undefined,
+    manualSorting: isServerSorted,
+    rowCount: total,
+    state: {
+      // Sorting is only handed over when the caller controls it; otherwise the
+      // table keeps its own so a simple list needs no state plumbing.
+      ...(isServerSorted ? { sorting } : {}),
+      ...(isControlledVisibility ? { columnVisibility } : {}),
+      pagination: { pageIndex: page - 1, pageSize },
+    },
+    onSortingChange: onSortingChange
+      ? (updater) => {
+          const next =
+            typeof updater === "function" ? updater(sorting ?? []) : updater;
+          onSortingChange(next);
+        }
+      : undefined,
+    onColumnVisibilityChange: onColumnVisibilityChange
+      ? (updater) => {
+          const next =
+            typeof updater === "function" ? updater(columnVisibility ?? {}) : updater;
+          onColumnVisibilityChange(next);
+        }
+      : undefined,
+  });
+}
+
 const ALIGN_CLASS = {
   left: "text-left",
   center: "text-center",
@@ -108,6 +249,7 @@ export function DataTable<TData extends RowData>({
   columns,
   data,
   isLoading = false,
+  isFetching = false,
   error,
   onRetry,
   getRowId,
@@ -118,6 +260,8 @@ export function DataTable<TData extends RowData>({
   onPageSizeChange,
   sorting,
   onSortingChange,
+  columnVisibility,
+  onColumnVisibilityChange,
   onRowClick,
   emptyState,
   loadingState,
@@ -126,34 +270,29 @@ export function DataTable<TData extends RowData>({
   className,
   maxBodyHeight,
 }: DataTableProps<TData>) {
-  const isServerPaged = total !== undefined;
-  const isServerSorted = sorting !== undefined && onSortingChange !== undefined;
-
-  const table = useTable<PrimeTableFeatures, TData>({
-    features: tableFeaturesConfig,
-    data: data ?? [],
+  const table = usePrimeTable({
     columns,
-    getRowId: getRowId ? (row) => getRowId(row) : undefined,
-    manualPagination: isServerPaged,
-    manualSorting: isServerSorted,
-    rowCount: total,
-    state: {
-      // Sorting is only handed over when the caller controls it; otherwise the
-      // table keeps its own so a simple list needs no state plumbing.
-      ...(isServerSorted ? { sorting } : {}),
-      pagination: { pageIndex: page - 1, pageSize },
-    },
-    onSortingChange: onSortingChange
-      ? (updater) => {
-          const next =
-            typeof updater === "function" ? updater(sorting ?? []) : updater;
-          onSortingChange(next);
-        }
-      : undefined,
+    data,
+    getRowId,
+    total,
+    page,
+    pageSize,
+    sorting,
+    onSortingChange,
+    columnVisibility,
+    onColumnVisibilityChange,
   });
 
   const rows = table.getRowModel().rows;
   const columnCount = table.getAllLeafColumns().length;
+
+  const isBusy = showsStaleRows({
+    isFetching,
+    isLoading,
+    hasError: Boolean(error),
+    hasData: data !== undefined,
+    rowCount: rows.length,
+  });
 
   const renderBody = () => {
     if (error) return <ErrorState error={error} onRetry={onRetry} />;
@@ -178,7 +317,15 @@ export function DataTable<TData extends RowData>({
 
     return (
       <div
-        className={cn("w-full overflow-x-auto", maxBodyHeight && "overflow-y-auto")}
+        aria-busy={isBusy}
+        className={cn(
+          "w-full overflow-x-auto transition-opacity duration-normal ease-standard",
+          maxBodyHeight && "overflow-y-auto",
+          // Stale rows are still readable rows, but they must not be mistaken
+          // for current ones, and a row click mid-fetch would open whatever the
+          // old page happened to have in that position.
+          isBusy && "pointer-events-none opacity-60",
+        )}
         style={maxBodyHeight ? { maxHeight: maxBodyHeight } : undefined}
       >
         <Table>
@@ -274,13 +421,15 @@ export function DataTable<TData extends RowData>({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-md border border-hairline bg-card shadow-xs",
+        "relative overflow-hidden rounded-md border border-hairline bg-card shadow-xs",
         className,
       )}
     >
       {toolbar ? <div className="px-3.5 py-2.5 hairline-b">{toolbar}</div> : null}
 
       {renderBody()}
+
+      <BusyOverlay show={isBusy} />
 
       {footer ??
         (showPagination ? (

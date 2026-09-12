@@ -2,11 +2,13 @@ import "server-only";
 
 import { seed } from "@/data/seed";
 import type {
+  CatalogueGroup,
   CostSheet,
   Course,
   Enrollment,
   EvaluationGroup,
   EvaluationSetup,
+  Invoice,
   Program,
   ProgramEnrollment,
   ProgramTerm,
@@ -33,8 +35,10 @@ export const semesterTable: Semester[] = [...seed.semesters];
 export const studentTable: Student[] = [...seed.students];
 export const enrollmentTable: Enrollment[] = [...seed.enrollments];
 export const costSheetTable: CostSheet[] = [...seed.costSheets];
+export const catalogueGroupTable: CatalogueGroup[] = [...seed.catalogueGroups];
 export const programTable: Program[] = [...seed.programs];
 export const programTermTable: ProgramTerm[] = [...seed.programTerms];
 export const programEnrollmentTable: ProgramEnrollment[] = [...seed.programEnrollments];
 export const evaluationGroupTable: EvaluationGroup[] = [...seed.evaluationGroups];
 export const evaluationSetupTable: EvaluationSetup[] = [...seed.evaluationSetups];
+export const invoiceTable: Invoice[] = [...seed.invoices];

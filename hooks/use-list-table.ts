@@ -1,7 +1,8 @@
 "use client";
 
 import type { SortingState } from "@tanstack/react-table";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
+import type { ColumnVisibility } from "@/components/data-table";
 import { useListQueryParams, type ListQueryState } from "./use-list-query-params";
 import type { PaginatedResult } from "@/types";
 
@@ -27,6 +28,13 @@ export function useListTable(defaults?: Partial<ListQueryState>) {
     [sort, direction],
   );
 
+  // Not URL state, deliberately. The rule in CLAUDE.md puts search, filters,
+  // sort and paging in the address bar so a view is shareable, and those all
+  // describe *which records* are on screen. Which columns someone chose to look
+  // at is a personal preference, not part of the view being shared, and five
+  // column ids would make every shared link unreadable.
+  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({});
+
   const onSortingChange = useCallback(
     (next: SortingState) => {
       const first = next[0];
@@ -46,9 +54,26 @@ export function useListTable(defaults?: Partial<ListQueryState>) {
       onPageSizeChange: params.setPageSize,
       sorting,
       onSortingChange,
+      columnVisibility,
+      onColumnVisibilityChange: setColumnVisibility,
     }),
-    [params.page, params.pageSize, params.setPage, params.setPageSize, sorting, onSortingChange],
+    [
+      params.page,
+      params.pageSize,
+      params.setPage,
+      params.setPageSize,
+      sorting,
+      onSortingChange,
+      columnVisibility,
+    ],
   );
 
-  return { ...params, sorting, onSortingChange, tableProps };
+  return {
+    ...params,
+    sorting,
+    onSortingChange,
+    columnVisibility,
+    setColumnVisibility,
+    tableProps,
+  };
 }

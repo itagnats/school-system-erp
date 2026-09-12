@@ -22,6 +22,7 @@ export const mockCostSheets: CostSheet[] = [
       {
         id: "grp-teaching",
         name: "Teaching",
+        catalogueGroupId: "cat-teaching",
         items: [
           {
             id: "itm-lecturer",
@@ -32,21 +33,28 @@ export const mockCostSheets: CostSheet[] = [
             allocationPercent: 100,
             options: [],
             note: "45 contact hours across the term.",
+            catalogueItemId: "cat-lecturer",
+            copiedAt: "2025-12-02T09:00:00.000Z",
           },
           {
             id: "itm-ta",
             name: "Teaching assistant",
             kind: "direct",
-            unitPrice: 600,
+            // Deliberately above the catalogue default of 600, so this sheet
+            // demonstrates the "differs from the catalogue" state (§12a).
+            unitPrice: 750,
             quantity: 30,
             allocationPercent: 100,
             options: [],
+            catalogueItemId: "cat-ta",
+            copiedAt: "2025-12-02T09:00:00.000Z",
           },
         ],
       },
       {
         id: "grp-facilities",
         name: "Facilities",
+        catalogueGroupId: "cat-facilities",
         items: [
           {
             id: "itm-room",
@@ -55,6 +63,8 @@ export const mockCostSheets: CostSheet[] = [
             unitPrice: 0,
             quantity: 45,
             allocationPercent: 35,
+            catalogueItemId: "cat-room",
+            copiedAt: "2025-12-02T09:00:00.000Z",
             selectedOptionId: "opt-lab",
             options: [
               { id: "opt-standard", name: "Standard room", unitPrice: 400 },
@@ -74,12 +84,15 @@ export const mockCostSheets: CostSheet[] = [
             quantity: 1,
             allocationPercent: 20,
             options: [],
+            catalogueItemId: "cat-utilities",
+            copiedAt: "2025-12-02T09:00:00.000Z",
           },
         ],
       },
       {
         id: "grp-activities",
         name: "Student activities",
+        catalogueGroupId: "cat-activities",
         items: [
           {
             id: "itm-materials",
@@ -89,6 +102,8 @@ export const mockCostSheets: CostSheet[] = [
             quantity: 42,
             allocationPercent: 100,
             options: [],
+            catalogueItemId: "cat-materials",
+            copiedAt: "2025-12-02T09:00:00.000Z",
           },
           {
             id: "itm-field",
@@ -99,6 +114,20 @@ export const mockCostSheets: CostSheet[] = [
             allocationPercent: 50,
             options: [],
             note: "Coach shared with DS220.",
+            catalogueItemId: "cat-field",
+            copiedAt: "2025-12-02T09:00:00.000Z",
+          },
+          {
+            // No catalogue origin: a one-off cost typed straight onto the
+            // sheet, which §12a allows and never reports as out of date.
+            id: "itm-invigilation",
+            name: "External invigilator",
+            kind: "direct",
+            unitPrice: 2400,
+            quantity: 2,
+            allocationPercent: 100,
+            options: [],
+            note: "Required for the practical assessment only.",
           },
         ],
       },

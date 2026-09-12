@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { DataTable, DataTableColumnHeader, type PrimeColumnDef } from "@/components/data-table";
+import {
+  DataTable,
+  DataTableColumnHeader,
+  DataTableViewOptions,
+  type HideableColumn,
+  type PrimeColumnDef,
+} from "@/components/data-table";
 import { EmptyState } from "@/components/feedback";
 import { FilterBar, FilterSelect, SearchInput, StatusBadge } from "@/components/shared";
 import { useListTable } from "@/hooks";
@@ -46,7 +52,17 @@ export function ProgramsScreen({ semesterOptions }: { semesterOptions: SemesterC
 
   return (
     <>
-      <FilterBar activeCount={table.activeCount} onClear={table.clearAll}>
+      <FilterBar
+        activeCount={table.activeCount}
+        onClear={table.clearAll}
+        actions={
+          <DataTableViewOptions
+            columns={OPTIONAL_COLUMNS}
+            visibility={table.columnVisibility}
+            onVisibilityChange={table.setColumnVisibility}
+          />
+        }
+      >
         <SearchInput
           value={table.search}
           onValueChange={table.setSearch}
@@ -71,6 +87,7 @@ export function ProgramsScreen({ semesterOptions }: { semesterOptions: SemesterC
       <DataTable
         columns={columns}
         isLoading={query.isPending}
+        isFetching={query.isFetching}
         error={query.error}
         onRetry={() => query.refetch()}
         getRowId={(row) => row.id}
@@ -86,6 +103,22 @@ export function ProgramsScreen({ semesterOptions }: { semesterOptions: SemesterC
     </>
   );
 }
+
+/**
+ * The columns this screen is willing to let a user switch off.
+ *
+ * The identity column and the status are not on the list: hiding the link that
+ * is the point of the row leaves a table nobody can navigate.
+ */
+const OPTIONAL_COLUMNS: HideableColumn[] = [
+  { id: "courseCount", label: "Courses" },
+  { id: "enrolledCount", label: "Students" },
+  { id: "packagePrice", label: "Package" },
+  { id: "revenue", label: "Invoiced" },
+  { id: "collected", label: "Collected" },
+  { id: "totalCost", label: "Cost" },
+  { id: "marginPercent", label: "Margin" },
+];
 
 const columns: PrimeColumnDef<ProgramTermSummary>[] = [
   {
@@ -140,11 +173,25 @@ const columns: PrimeColumnDef<ProgramTermSummary>[] = [
   {
     accessorKey: "revenue",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Revenue" align="right" />
+      <DataTableColumnHeader column={column} title="Invoiced" align="right" />
     ),
     cell: ({ row }) => (
       <span className="text-muted-foreground" data-numeric>
         {formatCurrency(row.original.revenue, row.original.currency)}
+      </span>
+    ),
+    meta: { align: "right", width: "10rem" },
+  },
+  {
+    accessorKey: "collected",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Collected" align="right" />
+    ),
+    cell: ({ row }) => (
+      // The figure net profit is measured against, so it sits beside the
+      // invoiced total rather than only on the detail page.
+      <span data-numeric>
+        {formatCurrency(row.original.collected, row.original.currency)}
       </span>
     ),
     meta: { align: "right", width: "10rem" },
@@ -166,13 +213,24 @@ const columns: PrimeColumnDef<ProgramTermSummary>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Net profit" align="right" />
     ),
-    cell: ({ row }) => (
+    cell: ({ row }) => {
+      // A term whose invoices are all drafts has billed nothing, so its "net
+      // profit" is the cost carried and not a result. Showing the negative
+      // figure without saying so makes a planning term read as a failing one.
+      if (row.original.revenue === 0) {
+        return <span className="text-muted-foreground">Not billed</span>;
+      }
       // The sign is in the number as well as in the colour, so the figure still
       // reads for someone who cannot tell the two tones apart.
-      <span className={`font-medium ${profitToneClass(row.original.netProfit)}`} data-numeric>
-        {formatCurrency(row.original.netProfit, row.original.currency)}
-      </span>
-    ),
+      return (
+        <span
+          className={`font-medium ${profitToneClass(row.original.netProfit)}`}
+          data-numeric
+        >
+          {formatCurrency(row.original.netProfit, row.original.currency)}
+        </span>
+      );
+    },
     meta: { align: "right", width: "11rem" },
   },
   {
@@ -183,7 +241,11 @@ const columns: PrimeColumnDef<ProgramTermSummary>[] = [
     cell: ({ row }) => {
       const { marginPercent: margin, coursesMissingCostSheet } = row.original;
       if (margin === null) {
-        return <span className="text-muted-foreground">No revenue</span>;
+        return (
+          <span className="text-muted-foreground">
+            {row.original.revenue === 0 ? "Not billed" : "Nothing collected"}
+          </span>
+        );
       }
       return (
         <span className="inline-flex items-center gap-1.5">

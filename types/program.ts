@@ -96,19 +96,33 @@ export interface ProgramProfit {
   currency: string;
   packagePrice: number;
   enrolledCount: number;
-  /** packagePrice x enrolledCount. */
+  /** packagePrice x enrolledCount — what the price implies, before invoicing. */
+  listRevenue: number;
+  /** Sum of the billed invoice totals (direction.md §13b). */
   revenue: number;
+  /** Invoiced and paid. */
+  collected: number;
+  /** Invoiced and unpaid, overdue included. */
+  outstanding: number;
   /** Sum of the attributed course costs below. */
   totalCost: number;
-  /** revenue - totalCost. Negative is a real answer, not an error. */
+  /**
+   * collected - totalCost. Negative is a real answer, not an error.
+   *
+   * The basis is collected rather than revenue, per §13a: a student who has
+   * been billed and has not paid is owed money, not earned money.
+   */
   netProfit: number;
-  /** netProfit / revenue as a percentage, or null when revenue is zero. */
+  /** netProfit / collected as a percentage, or null when nothing is collected. */
   marginPercent: number | null;
-  /** Revenue per head minus cost per head, or null with nobody enrolled. */
+  /** Net profit per head, or null with nobody enrolled. */
   profitPerStudent: number | null;
   courses: ProgramCourseCost[];
   /** Courses in the curriculum with no cost sheet, so the total is incomplete. */
   coursesMissingCostSheet: number;
+  invoiceCount: number;
+  paidCount: number;
+  overdueCount: number;
 }
 
 export interface ProgramTermSummary {
@@ -122,8 +136,14 @@ export interface ProgramTermSummary {
   enrolledCount: number;
   currency: string;
   packagePrice: number;
+  /** packagePrice x enrolledCount, kept beside the invoiced figure. */
+  listRevenue: number;
+  /** Invoiced, per §13b. Lower than listRevenue by the credits given. */
   revenue: number;
+  collected: number;
+  outstanding: number;
   totalCost: number;
+  /** collected - totalCost. */
   netProfit: number;
   marginPercent: number | null;
   /** Courses with no cost sheet, so the cost above is lower than the real one. */

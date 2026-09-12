@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { DataTable, DataTableColumnHeader, type PrimeColumnDef } from "@/components/data-table";
+import {
+  DataTable,
+  DataTableColumnHeader,
+  DataTableViewOptions,
+  type HideableColumn,
+  type PrimeColumnDef,
+} from "@/components/data-table";
 import { EmptyState } from "@/components/feedback";
 import { FilterBar, FilterSelect, SearchInput, StatusBadge } from "@/components/shared";
 import { useListTable } from "@/hooks";
@@ -61,7 +67,17 @@ export function ManageEvaluationScreen({
 
   return (
     <>
-      <FilterBar activeCount={table.activeCount} onClear={table.clearAll}>
+      <FilterBar
+        activeCount={table.activeCount}
+        onClear={table.clearAll}
+        actions={
+          <DataTableViewOptions
+            columns={OPTIONAL_COLUMNS}
+            visibility={table.columnVisibility}
+            onVisibilityChange={table.setColumnVisibility}
+          />
+        }
+      >
         <SearchInput
           value={table.search}
           onValueChange={table.setSearch}
@@ -92,6 +108,7 @@ export function ManageEvaluationScreen({
       <DataTable
         columns={columns}
         isLoading={query.isPending}
+        isFetching={query.isFetching}
         error={query.error}
         onRetry={() => query.refetch()}
         getRowId={(row) => row.id}
@@ -107,6 +124,21 @@ export function ManageEvaluationScreen({
     </>
   );
 }
+
+/**
+ * The columns this screen is willing to let a user switch off.
+ *
+ * The identity column and the status are not on the list: hiding the link that
+ * is the point of the row leaves a table nobody can navigate.
+ */
+const OPTIONAL_COLUMNS: HideableColumn[] = [
+  { id: "shortName", label: "Reference" },
+  { id: "memberCount", label: "Students" },
+  { id: "groupCount", label: "Groups" },
+  { id: "threeSixtyForm", label: "360" },
+  { id: "rankingForm", label: "Ranking" },
+  { id: "assessees", label: "Assessees" },
+];
 
 const columns: PrimeColumnDef<EvaluationSetupSummary>[] = [
   {

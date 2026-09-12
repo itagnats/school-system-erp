@@ -1,4 +1,11 @@
-import type { CostBreakdown, CostSheet, CostSheetStatus, ListQuery, SemesterCode } from "@/types";
+import type {
+  CatalogueComparison,
+  CostBreakdown,
+  CostSheet,
+  CostSheetStatus,
+  ListQuery,
+  SemesterCode,
+} from "@/types";
 
 export interface CostQueryParams extends ListQuery {
   courseId?: string;
@@ -33,4 +40,6 @@ export interface CostSheetDetailResponse {
   courseCode: string;
   courseName: string;
   breakdown: CostBreakdown;
+  /** How each line now compares with the catalogue it was copied from (§12a). */
+  drift: CatalogueComparison[];
 }

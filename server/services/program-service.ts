@@ -11,6 +11,7 @@ import {
   studentTable,
 } from "@/server/repositories";
 import { matchesSearch, paginate, sortRows, type ListQueryInput } from "@/server/query";
+import { invoicedRevenueForTerm } from "./invoice-service";
 import { toSummary } from "./student-service";
 import type { ProgramTermUpdateInput } from "@/lib/api/contracts";
 import type {
@@ -43,7 +44,10 @@ const SORTABLE: Record<string, (row: ProgramTermSummary) => string | number> = {
   courseCount: (p) => p.courseCount,
   enrolledCount: (p) => p.enrolledCount,
   packagePrice: (p) => p.packagePrice,
+  listRevenue: (p) => p.listRevenue,
   revenue: (p) => p.revenue,
+  collected: (p) => p.collected,
+  outstanding: (p) => p.outstanding,
   netProfit: (p) => p.netProfit,
   marginPercent: (p) => p.marginPercent ?? Number.NEGATIVE_INFINITY,
 };
@@ -104,6 +108,9 @@ export function programTermProfit(term: ProgramTerm): ProgramProfit {
     currency: term.currency,
     packagePrice: term.packagePrice,
     enrolledCount: memberIds.size,
+    // Revenue comes from what was billed, not from what the price implies
+    // (direction.md §13a, revised 2026-09-12).
+    invoiced: invoicedRevenueForTerm(term.id),
     courses,
   });
 }
@@ -128,7 +135,10 @@ function buildSummaries(): ProgramTermSummary[] {
       enrolledCount: profit.enrolledCount,
       currency: term.currency,
       packagePrice: term.packagePrice,
+      listRevenue: profit.listRevenue,
       revenue: profit.revenue,
+      collected: profit.collected,
+      outstanding: profit.outstanding,
       totalCost: profit.totalCost,
       netProfit: profit.netProfit,
       marginPercent: profit.marginPercent,

@@ -5,18 +5,12 @@ import { Section, StatusBadge } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { HttpError } from "@/lib/api";
 import { formatCurrency, formatPercent } from "@/lib/utils";
-import { COST_KIND_LABEL, COST_STATUS_LABEL, COST_STATUS_TONE } from "../constants";
+import { COST_STATUS_LABEL, COST_STATUS_TONE } from "../constants";
 import { useUpdateCostSheet } from "../hooks/use-cost-sheet-mutations";
+import { useCostSheet } from "../hooks/use-cost-sheets";
+import { SheetGroupsPanel } from "./sheet-groups-panel";
 import type { CostSheetDetailResponse } from "../types";
 
 /**
@@ -30,7 +24,10 @@ import type { CostSheetDetailResponse } from "../types";
  */
 export function CostBreakdownPanel({ initial }: Readonly<{ initial: CostSheetDetailResponse }>) {
   const mutation = useUpdateCostSheet(initial.sheet.id);
-  const detail = mutation.data ?? initial;
+  // Read through the cache rather than from this mutation's own result: the
+  // line tables below are edited by a different mutation, and two local copies
+  // of the sheet would disagree about what it contains.
+  const { data: detail } = useCostSheet(initial.sheet.id, initial);
   const { sheet, breakdown } = detail;
 
   const money = (value: number) => formatCurrency(value, sheet.currency);
@@ -115,54 +112,7 @@ export function CostBreakdownPanel({ initial }: Readonly<{ initial: CostSheetDet
         </form>
       </Section>
 
-      {breakdown.groups.map((group) => (
-        <Section
-          key={group.groupId}
-          title={group.groupName}
-          description={`${money(group.total)} - ${formatPercent(group.sharePercent)} of the total course cost`}
-          flush
-          className="mt-4"
-        >
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-surface-sunken hover:bg-surface-sunken">
-                <TableHead>Item</TableHead>
-                <TableHead>Kind</TableHead>
-                <TableHead className="text-right">Unit price</TableHead>
-                <TableHead className="text-right">Qty</TableHead>
-                <TableHead className="text-right">Gross</TableHead>
-                <TableHead className="text-right">Allocation</TableHead>
-                <TableHead className="text-right">Charged</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {group.items.map((item) => (
-                <TableRow key={item.itemId}>
-                  <TableCell>{item.itemName}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {COST_KIND_LABEL[item.kind]}
-                  </TableCell>
-                  <TableCell className="text-right" data-numeric>
-                    {money(item.unitPrice)}
-                  </TableCell>
-                  <TableCell className="text-right" data-numeric>
-                    {item.quantity}
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground" data-numeric>
-                    {money(item.gross)}
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground" data-numeric>
-                    {formatPercent(item.allocationPercent)}
-                  </TableCell>
-                  <TableCell className="text-right font-medium" data-numeric>
-                    {money(item.allocated)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Section>
-      ))}
+      <SheetGroupsPanel detail={detail} />
     </>
   );
 }

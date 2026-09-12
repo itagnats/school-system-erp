@@ -20,7 +20,12 @@ export const programTermSummarySchema = z.object({
   enrolledCount: z.number().int().nonnegative(),
   currency: z.string(),
   packagePrice: z.number(),
+  /** Package price x head count — what the price implies (direction.md §13a). */
+  listRevenue: z.number(),
+  /** What the invoices say. Lower than listRevenue by the credits given. */
   revenue: z.number(),
+  collected: z.number(),
+  outstanding: z.number(),
   totalCost: z.number(),
   netProfit: z.number(),
   marginPercent: z.number().nullable(),
