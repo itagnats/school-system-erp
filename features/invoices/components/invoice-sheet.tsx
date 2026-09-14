@@ -11,6 +11,7 @@ import {
   INVOICE_NOT_PAYABLE_NOTE,
   INVOICE_PAY_INSTRUCTION,
   INVOICE_SHEET_DISCLAIMER,
+  INVOICE_STAMP,
   INVOICE_STATUS_LABEL,
   INVOICE_STATUS_TONE,
 } from "../constants";
@@ -153,7 +154,11 @@ export function InvoiceSheet({
             value={totals.creditTotal === 0 ? "—" : `−${money(totals.creditTotal)}`}
           />
           <div className="mt-1 flex items-baseline justify-between gap-4 border-t border-hairline pt-2">
-            <dt className="text-sm font-medium">Total due</dt>
+            {/* "Due" is a claim, and it is false on a settled, cancelled or
+                unsent invoice. The figure is the same either way. */}
+            <dt className="text-sm font-medium">
+              {payable ? "Total due" : "Total"}
+            </dt>
             <dd className="text-base font-semibold" data-numeric>
               {money(totals.total)}
             </dd>
@@ -163,25 +168,25 @@ export function InvoiceSheet({
 
       <section className="rounded-lg border border-hairline bg-surface-sunken p-4">
         <Caption>Payment</Caption>
-        {payable ? (
-          <>
-            <p className="mt-1 mb-3 text-xs text-muted-foreground">
-              {INVOICE_PAY_INSTRUCTION}
-            </p>
-            <PaymentBarcode
-              code={buildPaymentCode({
-                studentCode: detail.studentCode,
-                invoiceNumber: invoice.number,
-                total: totals.total,
-              })}
-              amountLabel={money(totals.total)}
-            />
-          </>
-        ) : (
-          <p className="mt-1.5 text-xs text-muted-foreground">
-            {INVOICE_NOT_PAYABLE_NOTE[invoice.status]}
-          </p>
-        )}
+        <p className="mt-1 mb-3 text-xs text-muted-foreground">
+          {payable
+            ? INVOICE_PAY_INSTRUCTION
+            : INVOICE_NOT_PAYABLE_NOTE[invoice.status]}
+        </p>
+
+        {/* Printed whatever the status. The document is a record of what was
+            billed, and a payment block that disappears on a settled invoice
+            leaves a reader unsure whether there ever was one. What changes is
+            that it is stamped and faded, so nothing about it invites a scan. */}
+        <PaymentBarcode
+          code={buildPaymentCode({
+            studentCode: detail.studentCode,
+            invoiceNumber: invoice.number,
+            total: totals.total,
+          })}
+          amountLabel={money(totals.total)}
+          stamp={payable ? undefined : INVOICE_STAMP[invoice.status]}
+        />
       </section>
 
       <p className="mt-4 border-t border-hairline pt-3 text-[10px] text-muted-foreground">

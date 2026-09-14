@@ -728,15 +728,22 @@ the demo note, the page header — is chrome and is hidden on paper.
 ## The payment code
 
 A Code 128 symbol over four fields: biller, a student reference, an invoice
-reference, and the amount in satang. The bars are for a scanner; the same four
-fields are printed underneath in words, because a barcode with no human-readable
-fallback is a single point of failure printed on paper.
+reference, and the amount in satang. The symbol takes **half the width**, with
+the same four fields in words beside it — a barcode with no human-readable
+fallback is a single point of failure printed on paper, and a symbol stretched
+across a whole sheet is not more scannable, only more prominent than the total.
 
-**Only an outstanding invoice carries one.** A scannable code on a settled bill
-invites a second payment and one on a draft invites payment against a document
-that was never sent, so `issued` and `overdue` print the barcode and the other
-three print a sentence saying which they are. Payable is not a second list: it
-is `isOutstanding`, the same predicate the revenue split already uses.
+**Every invoice carries one; a non-payable one is stamped**
+*(revised 2026-09-12, by the user, from hiding it)*. The document is a record of
+what was billed, so the code that was issued stays on it — but `draft`, `paid`
+and `cancelled` fade the symbol and strike it with a rubber stamp reading their
+own status, which is what a real ledger does to a settled bill and what stops a
+second payment being made against it.
+
+The stamp is visual, so the sentence above the block states the same thing in
+words: colour and a rotated label are lost to a screen reader and to a
+monochrome print. Which statuses are payable is not a second list — it is
+`isOutstanding`, the same predicate the revenue split already uses.
 
 The biller is a **placeholder**, the payload separates its fields with `|` where
 the Thai banking format uses carriage returns, and the sheet says on its face

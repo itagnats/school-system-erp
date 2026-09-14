@@ -181,9 +181,16 @@ so the preview and the PDF cannot diverge.
 The sheet carries a **Code 128 counter-payment barcode** — encoder in
 `lib/barcode/`, payload in `lib/calculations/invoice.ts` — over a placeholder
 biller, the student reference, the invoice reference and the amount in satang,
-with the same four fields printed in words beneath it. Only an **outstanding**
-invoice prints one, and payable is `isOutstanding` rather than a second list of
-statuses. It is a rendering, not an integration, and the sheet says so.
+with the same four fields in words beside it. The symbol takes **half the
+width**; stretching it wider makes it more prominent than the total, not more
+scannable.
+
+**Every invoice prints one, and a non-payable one is stamped** — `draft`,
+`paid` and `cancelled` fade the symbol and strike it with their own status. The
+sentence above the block says the same thing in words, because a stamp is lost
+to a screen reader and to a monochrome print. Payable is `isOutstanding`, never
+a second list of statuses. It is a rendering, not an integration, and the sheet
+says so.
 
 Semester codes are `YYYYNN` (`202601`, `202602`). A course can be offered in many semesters.
 

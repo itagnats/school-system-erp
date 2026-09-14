@@ -62,25 +62,53 @@ export const INVOICE_ISSUER = {
 } as const;
 
 /**
- * Why an invoice carries no payment barcode.
+ * Why an invoice's payment block is not to be acted on.
  *
- * Only `issued` and `overdue` invoices can be paid, so only those print a
- * scannable code — a barcode on a settled bill invites a second payment, and
- * one on a draft invites a payment against a document that was never sent.
- * Each of the other three states says which it is, because a blank space where
- * a payment block belongs reads as a rendering fault.
+ * Only `issued` and `overdue` invoices can be paid. The other three still print
+ * the barcode — the document is a record of what was billed, and a payment
+ * block that vanishes leaves a reader unsure whether the invoice ever had one —
+ * but it is stamped and faded, and this sentence says in words what the stamp
+ * says in a glance. Colour and a rubber stamp are both visual; the sentence is
+ * what a screen reader and a monochrome printer get.
  *
  * **This map is copy, not the rule.** Which statuses are payable is
  * `isOutstanding` in `lib/calculations/invoice.ts`, which the revenue figures
  * already use and the tests already pin; a second list here would be a second
- * definition, free to drift, and the only symptom would be a barcode on the
- * wrong document. Hence `Partial` — the payable states are absent by
- * construction rather than present holding `null`.
+ * definition, free to drift, and the only symptom would be a live-looking
+ * barcode on the wrong document. Hence `Partial` — the payable states are
+ * absent by construction rather than present holding `null`.
  */
 export const INVOICE_NOT_PAYABLE_NOTE: Partial<Record<InvoiceStatus, string>> = {
-  draft: "Not yet issued. This document carries no payment code until it is.",
+  draft: "Not yet issued. Do not pay against this document.",
   paid: "Settled. No payment is due.",
   cancelled: "Cancelled. Nothing is payable against this document.",
+};
+
+export type InvoiceStampTone = "neutral" | "success" | "error";
+
+export interface InvoiceStamp {
+  label: string;
+  tone: InvoiceStampTone;
+}
+
+/**
+ * The stamp across a non-payable barcode.
+ *
+ * One record per status rather than a label map beside a tone map: two tables
+ * keyed the same way are two tables that can disagree about which keys exist,
+ * and a status present in one and missing from the other would render an
+ * unstyled stamp or a styled blank.
+ *
+ * The tones are deliberately **not** `INVOICE_STATUS_TONE`. The badge calls a
+ * cancelled invoice neutral, which is right in a table where a column of red
+ * would stop meaning anything. A stamp voiding a payment instruction is the
+ * opposite case: it has one job, and it is the one place on the sheet where
+ * "this cannot be paid" has to be unmissable.
+ */
+export const INVOICE_STAMP: Partial<Record<InvoiceStatus, InvoiceStamp>> = {
+  draft: { label: "Draft", tone: "neutral" },
+  paid: { label: "Paid", tone: "success" },
+  cancelled: { label: "Cancelled", tone: "error" },
 };
 
 /** What the payment block tells the payer to do. */
