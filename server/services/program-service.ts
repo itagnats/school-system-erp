@@ -1,8 +1,7 @@
 import "server-only";
 
-import { calculateCostBreakdown, calculateProgramProfit } from "@/lib/calculations";
+import { calculateProgramProfit } from "@/lib/calculations";
 import {
-  costSheetTable,
   courseTable,
   enrollmentTable,
   programEnrollmentTable,
@@ -11,13 +10,16 @@ import {
   studentTable,
 } from "@/server/repositories";
 import { matchesSearch, paginate, sortRows, type ListQueryInput } from "@/server/query";
+import { programCostBreakdownFor } from "./cost-service";
 import { invoicedRevenueForTerm } from "./invoice-service";
 import { toSummary } from "./student-service";
 import type { ProgramTermUpdateInput } from "@/lib/api/contracts";
 import type {
+  EnrolmentTermOption,
   PaginatedResult,
   Program,
   ProgramProfit,
+  ProgramTermStatus,
   ProgramRosterEntry,
   ProgramTerm,
   ProgramTermSummary,
@@ -50,15 +52,46 @@ const SORTABLE: Record<string, (row: ProgramTermSummary) => string | number> = {
   outstanding: (p) => p.outstanding,
   netProfit: (p) => p.netProfit,
   marginPercent: (p) => p.marginPercent ?? Number.NEGATIVE_INFINITY,
+  /**
+   * Enrolment usefulness: open terms, then the ones that will open, then
+   * history - and the newest semester first inside each band.
+   *
+   * The enrolment screen needs this and the curriculum screen does not, which
+   * is why it is a separate key rather than a redefinition of `status`.
+   * Sorting by status alphabetically puts `closed` first, which buries every
+   * term a student can actually be enrolled into beneath ten that are over.
+   */
+  enrolment: (p) => `${ENROLMENT_RANK[p.status]}:${invertSemester(p.semesterCode)}`,
 };
 
-/** Cost per student for a course in a semester, or null when it has no sheet. */
-function costPerStudentFor(courseId: string, semesterCode: string): number | null {
-  const sheet = costSheetTable.find(
-    (s) => s.courseId === courseId && s.semesterCode === semesterCode,
+const ENROLMENT_RANK: Record<ProgramTermStatus, number> = {
+  open: 0,
+  planning: 1,
+  closed: 2,
+};
+
+/** Newest first inside a band, using a string sort that stays ascending. */
+function invertSemester(code: string): string {
+  return String(999999 - Number(code)).padStart(6, "0");
+}
+
+/**
+ * Cost per student for each course of a term, from the programme's own costing.
+ *
+ * Read through `programCostBreakdownFor` rather than off a course sheet
+ * directly (revised 2026-09-15). A course's cost is its direct costs **plus**
+ * its derived share of the programme's indirect pool, and taking the direct
+ * half alone here would understate every course by the share — which is the
+ * under-recovery this revision exists to remove.
+ *
+ * A course with no direct sheet still appears, with a null cost per student.
+ * Unknown, never zero (§13a).
+ */
+function costPerStudentByCourse(term: ProgramTerm): Map<string, number | null> {
+  const costing = programCostBreakdownFor(term);
+  return new Map(
+    (costing?.courses ?? []).map((course) => [course.courseId, course.costPerStudent]),
   );
-  if (!sheet) return null;
-  return calculateCostBreakdown(sheet).costPerStudent;
 }
 
 /** Enrolment ids of students taking a programme term, active or completed. */
@@ -84,6 +117,7 @@ function studentIdsInTerm(term: ProgramTerm): string[] {
 export function programTermProfit(term: ProgramTerm): ProgramProfit {
   const memberIds = new Set(studentIdsInTerm(term));
   const coursesById = new Map(courseTable.map((course) => [course.id, course]));
+  const costPerStudent = costPerStudentByCourse(term);
 
   const courses = term.courseIds.map((courseId) => {
     const course = coursesById.get(courseId);
@@ -98,7 +132,7 @@ export function programTermProfit(term: ProgramTerm): ProgramProfit {
       courseId,
       courseCode: course?.code ?? courseId,
       courseName: course?.name ?? "Unknown course",
-      costPerStudent: costPerStudentFor(courseId, term.semesterCode),
+      costPerStudent: costPerStudent.get(courseId) ?? null,
       headCount,
     };
   });
@@ -247,4 +281,39 @@ export function updateProgramTerm(
     profit: programTermProfit(next),
     roster: current.roster,
   };
+}
+
+/**
+ * The terms a student can be enrolled into right now (direction.md 7a).
+ *
+ * Only `open` ones. A planning term has no roster yet and a closed one is
+ * history, so putting either in the picker would be an invitation the server
+ * then has to refuse.
+ */
+export function openProgramTermOptions(): EnrolmentTermOption[] {
+  const programsById = new Map(programTable.map((program) => [program.id, program]));
+
+  return programTermTable
+    .filter((term) => term.status === "open")
+    .flatMap((term) => {
+      const program = programsById.get(term.programId);
+      if (!program) return [];
+      return [
+        {
+          id: term.id,
+          programId: program.id,
+          programCode: program.code,
+          programName: program.name,
+          semesterCode: term.semesterCode,
+          courseCount: term.courseIds.length,
+          packagePrice: term.packagePrice,
+          currency: term.currency,
+        },
+      ];
+    })
+    .sort((a, b) =>
+      a.semesterCode === b.semesterCode
+        ? a.programCode.localeCompare(b.programCode)
+        : a.semesterCode.localeCompare(b.semesterCode),
+    );
 }

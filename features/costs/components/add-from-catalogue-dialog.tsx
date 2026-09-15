@@ -16,7 +16,7 @@ import { LoadingState } from "@/components/feedback";
 import { useCatalogue } from "@/features/cost-catalogue/hooks/use-catalogue";
 import { HttpError } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
-import type { CostGroup } from "@/types";
+import type { CostGroup, CostKind } from "@/types";
 import { useSheetContents } from "../hooks/use-cost-sheet-mutations";
 
 /**
@@ -33,16 +33,28 @@ import { useSheetContents } from "../hooks/use-cost-sheet-mutations";
 export function AddFromCatalogueDialog({
   sheetId,
   group,
+  kind,
+  detailKey,
   open,
   onOpenChange,
 }: Readonly<{
   sheetId: string;
   group: CostGroup;
+  /**
+   * What this sheet may hold (direction.md 12).
+   *
+   * The picker is filtered by it rather than letting the server refuse the
+   * choice afterwards: an option that is always rejected is not a choice, and
+   * offering the classroom on a course sheet is exactly the confusion the two
+   * sheets exist to remove.
+   */
+  kind: CostKind;
+  detailKey: readonly unknown[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }>) {
   const catalogue = useCatalogue({ status: "active" });
-  const mutation = useSheetContents(sheetId);
+  const mutation = useSheetContents(sheetId, detailKey);
 
   const [selected, setSelected] = useState<string | null>(null);
   const [quantity, setQuantity] = useState("");
@@ -51,7 +63,7 @@ export function AddFromCatalogueDialog({
   // A sheet group with no catalogue origin still needs somewhere to draw from,
   // so fall back to everything rather than showing an empty picker.
   const available = (source ? [source] : (catalogue.data ?? [])).flatMap((entry) =>
-    entry.items.filter((item) => item.status === "active"),
+    entry.items.filter((item) => item.status === "active" && item.kind === kind),
   );
 
   const fieldErrors =

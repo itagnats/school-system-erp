@@ -1,13 +1,21 @@
 import { api, apiPath } from "@/lib/api";
-import { costSheetListSchema } from "@/lib/api/contracts";
+import { costSheetListSchema, programCostListSchema } from "@/lib/api/contracts";
 import type { PaginatedResult } from "@/types";
 import type {
   CostSheetUpdateInput,
+  ProgramCostSheetUpdateInput,
   SheetGroupAddInput,
   SheetItemAddInput,
   SheetItemUpdateInput,
 } from "@/lib/api/contracts";
-import type { CostQueryParams, CostSheetDetailResponse, CostSheetRow } from "../types";
+import type {
+  CostQueryParams,
+  CostSheetDetailResponse,
+  CostSheetRow,
+  ProgramCostQueryParams,
+  ProgramCostRow,
+  ProgramCostSheetDetailResponse,
+} from "../types";
 
 export async function fetchCostSheets(
   params: CostQueryParams,
@@ -94,4 +102,43 @@ export async function removeSheetItem(
   return api.delete<CostSheetDetailResponse>(
     apiPath("costs", costSheetId, "items", itemId),
   );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Programme cost sheets (direction.md §11, §13)                              */
+/* -------------------------------------------------------------------------- */
+
+export async function fetchProgramCostSheet(
+  programTermId: string,
+): Promise<ProgramCostSheetDetailResponse> {
+  return api.get<ProgramCostSheetDetailResponse>(
+    apiPath("program-costs", programTermId),
+  );
+}
+
+/**
+ * Change the markup, the rounding step, the driver or the status.
+ *
+ * All four are programme-level (§13). The response carries the whole costing
+ * recomputed — every course's share, every total — because all of them move
+ * when the markup does, and re-deriving them here would be the cost formula
+ * written a second time in the browser.
+ */
+export async function updateProgramCostSheet(
+  programTermId: string,
+  input: ProgramCostSheetUpdateInput,
+): Promise<ProgramCostSheetDetailResponse> {
+  return api.patch<ProgramCostSheetDetailResponse>(
+    apiPath("program-costs", programTermId),
+    { body: input },
+  );
+}
+
+export async function fetchProgramCostSheets(
+  params: ProgramCostQueryParams,
+): Promise<PaginatedResult<ProgramCostRow>> {
+  const raw = await api.get<unknown>("program-costs", { query: { ...params } });
+  // Validated on the way in as well as on the way out: not trusting either
+  // direction is the demonstration (scaffold.md 10).
+  return programCostListSchema.parse(raw);
 }

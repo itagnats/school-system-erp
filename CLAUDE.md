@@ -22,6 +22,20 @@ report is under Student Reports.
 **Nothing has been seen in a browser** (`AUD-009`, open since 2026-09-07). Four
 screens have landed since. Do not describe how anything looks.
 
+**Enrollment is programme-first** (2026-09-16): `/enrollment` lists programme
+terms, `/enrollment/[programTermId]` shows that term's students and, below
+them, the same term at course grain. A student is added from the term page or
+from the programme term page under Curriculum — never from a flat list, because
+a term is what a student joins.
+
+**Enrolment writes are built** (2026-09-15): Add Student covers all three paths
+in `direction.md` §7 - an existing profile, a
+student from a previous semester, or a new profile created on the way in. All
+three send one `POST /api/enrollment` discriminated on `source`, and one
+enrolment produces a programme membership plus a course enrollment per
+curriculum course. Expansion and the conflict rules live in
+`lib/calculations/enrollment.ts` so they are testable; `server/` is not.
+
 **Reports are built**: Manage Evaluation → a setup → **Results** tab → a row's
 Report button opens a dialog printed with `window.print()`. Still unbuilt:
 submission contracts, and the computed leaderboard.
@@ -100,7 +114,20 @@ Design Tokens → Theme → components/ui → components/decor → components/da
 - `components/decor/` — the petal layer. All `aria-hidden`, `pointer-events-none` and tagged `data-decor`, which the print rule strips.
 - `components/data-viz/` — the only place `recharts` is imported. Four chart components that take `{ label, value }[]`; every prop must be serializable, because charts are client components rendered from server pages. A formatter function across that boundary fails at prerender, not at typecheck.
 - `components/shared/` — app-level reusable patterns (page header, data table, filter bar, status badge, empty/error/loading states, form section, stat card). Still no business logic.
-- `features/<domain>/` — self-contained: `components/`, `hooks/`, `services/`, `validations/`, `calculations/`, `types.ts`, `constants.ts`. Business rules live here.
+- `features/<domain>/` — self-contained: `components/`, `hooks/`, `services/`, `validations/`, `calculations/`, `types.ts`, `constants.ts`. Business rules live here. A feature composing another feature is `app/*`'s job, not a feature's.
+
+**Self-containment is currently broken in two places** (`AUD-012`, open):
+`features/costs/components/add-from-catalogue-dialog.tsx` imports a hook and
+`sheet-groups-panel.tsx` imports constants, both from `features/cost-catalogue/`.
+The rule above still stands and this is recorded as a violation, not an
+exception — it awaits a decision between a shared module and an explicit
+carve-out. Until then **do not add a third edge**: duplicate the strings, as
+`features/dashboard/constants.ts` already does deliberately, or raise the
+question. Check with:
+
+```bash
+grep -rn 'from "@/features/' features/    # expect exactly the two above
+```
 
 Domains: `programs`, `courses`, `semesters`, `enrollment`, `students`, `costs`,
 `cost-catalogue`, `invoices`, `evaluation`, `reports`, `dashboard`.
@@ -128,10 +155,24 @@ Two hierarchies hang off Course → Semester:
 ```
 Program → Program Term → Courses + Package price → Program Enrollment → Student
 Course → Semester → Enrollment → Student → Evaluation Group → 360° Evaluation → Score → Grade → Report
-Course → Semester → Cost Sheet → Cost Group → Cost Item → Cost Option → Cost per Student
+Course → Semester → Course Cost Sheet → DIRECT costs only
+Program Term → Programme Cost Sheet → INDIRECT costs → shared out by credits
 Program Term → Program Enrollment → Invoice → Invoice Line → Collected / Outstanding
 Catalogue Group → Catalogue Item ⇢ (copied onto) Cost Group → Cost Item
 ```
+
+**A student holds one programme, and one programme term per semester** (§7a,
+added 2026-09-15). Enforced server-side: a second term in the same semester is
+409, a term on another programme is 422. It was already true of all 635 seeded
+memberships and is what makes one invoice per student per semester
+representable. A withdrawn membership does not count - re-enrolling someone who
+left is a real act.
+
+**Status is progress; outcome is derived** (§8, added 2026-09-15). A programme
+enrolment is `pending | active | completed | withdrawn` - where the student is,
+never how they did. Pass and fail come from the grades, are never stored beside
+the status, and derive to **unknown** where a term carries no evaluation. The
+derivation itself is not built yet.
 
 A **programme term** is what a student enrols in: a curriculum for one semester
 plus a package price. Enrolment is entered at the programme level and the course
@@ -312,9 +353,56 @@ The general form, worth applying to any future lookup table: **evidence of a pas
 decision copies; a current setting references.** A cost sheet is evidence; the
 evaluation blend on a setup is a setting.
 
-### Cost rules (`direction.md` §13)
+### Cost rules (`direction.md` §11-13, revised 2026-09-15)
 
-`Direct + Shared = Total Course Cost`, then `Total ÷ student count = Cost per Student`, with allocation and optional markup. Keep the calculation visible in the UI.
+**Two sheets, because there are two kinds of cost.** A `CourseCostSheet` holds
+**direct** costs only — lecturer, TA, materials — and travels with the course
+into any programme. A `ProgramCostSheet` holds **indirect** costs only —
+classroom, utilities, workshop, industry visit — borne once by the programme
+term and shared across its curriculum.
+
+```
+per course      Direct                                     (its own sheet)
+per term        Indirect, distributed by the DRIVER        (its own sheet)
+per course      Direct + Share = Subtotal, + markup = Total Course Cost
+                Total ÷ its students        = Cost per Student
+per term        Σ Total Course Cost         = Total Programme Cost
+                ÷ programme enrolment       = Cost per Student, programme basis
+                rounded up                  = Preferred Price
+```
+
+**The kind decides the sheet, and the server enforces it.** Adding an indirect
+item to a course sheet is a 422, and vice versa. That is what makes
+double-counting unrepresentable rather than merely detectable.
+
+**`allocationPercent` is gone.** It used to be typed onto each course and had
+nothing to be a percentage *of*: measured across the seed, 82 of 92 programme
+pools recovered **less** than the cost (median 50%) and 7 recovered more. A
+share is now **derived** from the driver, so the shares cannot fail to total
+100 — the same move as "an assignment is derived, never stored".
+
+**The driver is `credits`.** Contact hours were the obvious alternative and are
+unusable: the lecturer-hours quantity has medians of 40/43/43 for 2/3/4-credit
+courses, so it is jitter. `CostDriver` is a union with one member; adding one
+means first making hours mean something in the data.
+
+**`distribute()` uses largest remainder**, so the parts sum to the pool to the
+satang. Rounding each share independently leaks, and a cost that leaks is the
+failure this revision exists to remove.
+
+**Markup and the price rounding step are per programme term**, not per course —
+several per-course markups would leave a programme total that no screen adds up.
+
+A course-semester in no programme term (7 of 57) keeps its direct sheet, takes
+no share and no markup, and reports `sharePercent: null` — not zero. Keep the
+calculation visible in the UI.
+
+**Cost Management leads with the programme** (revised 2026-09-16): `/costs` is
+the programme cost list, `/costs/courses` the course list (the only place the 7
+unaffiliated sheets can be found), `/costs/catalogue` the catalogue. Details are
+`/costs/programmes/<programTermId>` and `/costs/courses/<costSheetId>`. Costing
+did **not** move into the Programme module: those 7 sheets would have no route,
+and the catalogue belongs to neither programme.
 
 ## Conventions
 
@@ -428,3 +516,13 @@ them by hand. The raw `--sakura-*` / `--hai-*` ramps and hex values stay inside
 `globals.css`. A new token must be added in all three places — `@theme inline`, `:root`
 and `.dark` — or dark mode breaks silently. Text pairs must clear 4.5:1 against the
 *tinted* grounds, not just white.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

@@ -3,6 +3,11 @@ import type { CatalogueGroup, CatalogueItem, CostKind, CostOption } from "@/type
 /**
  * The master cost catalogue (direction.md §12a).
  *
+ * An item's **kind decides which sheet it can reach** (§12, revised
+ * 2026-09-15): a `direct` item goes onto a course's sheet, an `indirect` one
+ * onto a programme term's. Nothing here carries an allocation percentage any
+ * more — a share of the indirect pool is derived from the driver (§13).
+ *
  * Hand-written rather than generated, and deliberately small: this is the file
  * a reviewer should be able to read in one sitting to learn what a school
  * charges for. The groups and items are the ones §12 uses as its own example.
@@ -23,7 +28,6 @@ function item(
   defaultUnitPrice: number,
   defaultQuantity: number,
   extra: {
-    allocation?: number;
     options?: CostOption[];
     note?: string;
     status?: CatalogueItem["status"];
@@ -36,9 +40,6 @@ function item(
     kind,
     defaultUnitPrice,
     defaultQuantity,
-    // A direct cost belongs wholly to the course, so it always allocates 100.
-    // Only a shared cost can carry anything else (§12).
-    defaultAllocationPercent: kind === "direct" ? 100 : (extra.allocation ?? 25),
     options: extra.options ?? [],
     status: extra.status ?? "active",
     note: extra.note,
@@ -73,8 +74,7 @@ export const mockCatalogueGroups: CatalogueGroup[] = [
     createdAt: CREATED,
     updatedAt: UPDATED,
     items: [
-      item("cat-facilities", "cat-room", "Classroom", "shared", 0, 45, {
-        allocation: 35,
+      item("cat-facilities", "cat-room", "Classroom", "indirect", 0, 45, {
         // The option is what makes the unit price zero: an item with options
         // prices itself from the selected one (§12).
         options: [
@@ -93,14 +93,11 @@ export const mockCatalogueGroups: CatalogueGroup[] = [
           },
         ],
       }),
-      item("cat-facilities", "cat-equipment", "Equipment hire", "shared", 8000, 1, {
-        allocation: 20,
+      item("cat-facilities", "cat-equipment", "Equipment hire", "indirect", 8000, 1, {
       }),
-      item("cat-facilities", "cat-utilities", "Utilities", "shared", 12000, 1, {
-        allocation: 20,
+      item("cat-facilities", "cat-utilities", "Utilities", "indirect", 12000, 1, {
       }),
-      item("cat-facilities", "cat-overhead", "Projector maintenance", "shared", 3000, 1, {
-        allocation: 15,
+      item("cat-facilities", "cat-overhead", "Projector maintenance", "indirect", 3000, 1, {
         // Kept as the worked example of the archive rule: sheets that used it
         // still show where the rate came from (§12a).
         status: "archived",
@@ -117,11 +114,9 @@ export const mockCatalogueGroups: CatalogueGroup[] = [
     updatedAt: UPDATED,
     items: [
       item("cat-activities", "cat-materials", "Course materials", "direct", 350, 40),
-      item("cat-activities", "cat-workshop", "Workshop", "shared", 15000, 1, {
-        allocation: 50,
+      item("cat-activities", "cat-workshop", "Workshop", "indirect", 15000, 1, {
       }),
-      item("cat-activities", "cat-field", "Industry visit", "shared", 18000, 1, {
-        allocation: 50,
+      item("cat-activities", "cat-field", "Industry visit", "indirect", 18000, 1, {
         note: "Coach shared between courses running the same week.",
       }),
     ],

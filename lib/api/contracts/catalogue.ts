@@ -10,7 +10,7 @@ import { z } from "zod";
  */
 
 const catalogueStatus = z.enum(["active", "archived"]);
-const costKind = z.enum(["direct", "shared"]);
+const costKind = z.enum(["direct", "indirect"]);
 
 const name = z
   .string({ message: "A name is required" })
@@ -27,11 +27,6 @@ const quantity = z
   .number({ message: "A quantity must be a number" })
   .min(0.5, "A quantity below a half is almost certainly a typo")
   .max(10_000, "That is larger than any quantity in this demo");
-
-const allocation = z
-  .number({ message: "Allocation must be a number" })
-  .min(0, "Allocation cannot be negative")
-  .max(100, "A shared cost cannot allocate more than all of itself");
 
 /* -------------------------------------------------------------------------- */
 /* Responses                                                                  */
@@ -51,7 +46,6 @@ export const catalogueItemSchema = z.object({
   kind: costKind,
   defaultUnitPrice: z.number(),
   defaultQuantity: z.number(),
-  defaultAllocationPercent: z.number(),
   options: z.array(costOptionSchema),
   status: catalogueStatus,
   note: z.string().optional(),
@@ -113,14 +107,6 @@ export const catalogueItemCreateSchema = z.object({
   kind: costKind,
   defaultUnitPrice: money,
   defaultQuantity: quantity,
-  /**
-   * Only meaningful on a shared cost.
-   *
-   * A direct cost belongs wholly to its course, so the server forces 100 rather
-   * than trusting this (§12). Left optional so a client need not send a number
-   * it has no business choosing.
-   */
-  defaultAllocationPercent: allocation.optional(),
   note: z.string().trim().max(200).optional(),
 });
 
@@ -131,7 +117,6 @@ export const catalogueItemUpdateSchema = z.object({
   kind: costKind.optional(),
   defaultUnitPrice: money.optional(),
   defaultQuantity: quantity.optional(),
-  defaultAllocationPercent: allocation.optional(),
   status: catalogueStatus.optional(),
   note: z.string().trim().max(200).optional(),
 });
@@ -153,7 +138,6 @@ export const sheetItemAddSchema = z.object({
   groupId: z.string().min(1, "Pick a cost group"),
   catalogueItemId: z.string().min(1, "Pick a catalogue item"),
   quantity: quantity.optional(),
-  allocationPercent: allocation.optional(),
 });
 
 export type SheetItemAddInput = z.infer<typeof sheetItemAddSchema>;
@@ -162,7 +146,6 @@ export type SheetItemAddInput = z.infer<typeof sheetItemAddSchema>;
 export const sheetItemUpdateSchema = z.object({
   unitPrice: money.optional(),
   quantity: quantity.optional(),
-  allocationPercent: allocation.optional(),
   selectedOptionId: z.string().optional(),
 });
 

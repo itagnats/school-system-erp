@@ -52,3 +52,59 @@ export interface EnrollmentListFilters {
   status?: EnrollmentStatus | "all";
   evaluationGroupId?: string | "all";
 }
+
+/**
+ * What one enrolment produced (direction.md 7a).
+ *
+ * A student joins a programme term and receives a course enrollment per
+ * curriculum course, so the answer to "what did that do" is a list rather than
+ * a record. Shaped as roster rows because that is where the client puts them.
+ */
+export interface EnrolmentResult {
+  student: StudentSummary;
+  programTermId: string;
+  programId: string;
+  programName: string;
+  semesterCode: SemesterCode;
+  source: EnrollmentSource;
+  enrollments: EnrollmentListItem[];
+}
+
+/**
+ * A programme term that is currently taking enrolments.
+ *
+ * Carries what the Add Student dialog has to show before someone commits: the
+ * programme, the semester, how many course enrollments the act will create,
+ * and what the package costs. A term that is planning or closed is not here,
+ * because offering it and then refusing it is a worse screen than not
+ * offering it.
+ */
+export interface EnrolmentTermOption {
+  id: string;
+  programId: string;
+  programCode: string;
+  programName: string;
+  semesterCode: SemesterCode;
+  courseCount: number;
+  packagePrice: number;
+  currency: string;
+}
+
+/**
+ * One student on a programme term (direction.md 7a).
+ *
+ * The roster grain is **one row per student**, not one per course enrollment.
+ * A student joins a programme term and receives the curriculum, so listing
+ * them once with a course count answers "who is under this programme"; the
+ * course rows answer a different question and are listed separately.
+ */
+export interface TermRosterRow {
+  enrollmentId: string;
+  student: StudentSummary;
+  status: "pending" | "active" | "completed" | "withdrawn";
+  enrolledAt: string;
+  /** Curriculum courses this student holds a live enrollment in. */
+  courseCount: number;
+  /** Courses of the curriculum they dropped or had cancelled. */
+  unfinishedCount: number;
+}

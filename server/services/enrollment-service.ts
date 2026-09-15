@@ -5,12 +5,22 @@ import {
   enrollmentTable,
   evaluationGroupTable,
   programEnrollmentTable,
+  programTable,
+  programTermTable,
   studentTable,
 } from "@/server/repositories";
 import { matchesSearch, paginate, sortRows, type ListQueryInput } from "@/server/query";
-import { toSummary } from "./student-service";
+import { expandCurriculum, findEnrolmentConflict } from "@/lib/calculations/enrollment";
+import { createStudent, emailTaken, getStudent, toSummary } from "./student-service";
 import { evaluationGroupName } from "@/types";
-import type { EnrollmentListItem, PaginatedResult } from "@/types";
+import type { EnrolRequestInput } from "@/lib/api/contracts";
+import type {
+  EnrolmentResult,
+  EnrollmentListItem,
+  PaginatedResult,
+  Student,
+  TermRosterRow,
+} from "@/types";
 
 /**
  * Enrollment reads (direction.md §6-8).
@@ -131,4 +141,221 @@ export function courseRoster(courseId: string, semesterCode: string): Enrollment
   return buildListItems().filter(
     (item) => item.courseId === courseId && item.semesterCode === semesterCode,
   );
+}
+
+/**
+ * Enrolment writes (direction.md 7, 7a).
+ *
+ * Shaped and validated, and then nothing is stored - the same posture as every
+ * other write here, recorded in docs/decisions/why-bff.md. What is real is
+ * everything a client can observe: the rules below run, the status code is the
+ * one the situation deserves, and the response is the roster as it would look.
+ */
+
+export type EnrolOutcome =
+  | { ok: true; data: EnrolmentResult }
+  | { ok: false; status: 404 | 409 | 422; message: string; fieldErrors?: Record<string, string> };
+
+/**
+ * The most recent timestamp in the dataset, standing in for the present.
+ *
+ * Reading the clock would make two renders of the same page disagree, and this
+ * service is reachable from a server component.
+ */
+function seedNow(): string {
+  return enrollmentTable.reduce(
+    (latest, row) => (row.updatedAt > latest ? row.updatedAt : latest),
+    enrollmentTable[0]?.updatedAt ?? "2026-01-05T00:00:00.000Z",
+  );
+}
+
+/**
+ * Which student the request is about.
+ *
+ * The three paths differ only here: two name an existing profile and one
+ * describes a person who does not have one yet. Pulled out of `enrolStudent`
+ * so that function reads as the sequence of rules it is.
+ */
+function resolveStudent(
+  input: EnrolRequestInput,
+  program: { id: string; code: string; name: string },
+  stamp: string,
+): { ok: true; student: Student } | Extract<EnrolOutcome, { ok: false }> {
+  if (input.source === "new-student") {
+    if (emailTaken(input.student.email)) {
+      return {
+        ok: false,
+        status: 422,
+        message: "Some fields need attention",
+        fieldErrors: {
+          "student.email": "A student with that email already exists - enrol the existing profile",
+        },
+      };
+    }
+    return { ok: true, student: createStudent(input.student, program.name, stamp) };
+  }
+
+  const existing = getStudent(input.studentId);
+  if (!existing) {
+    return { ok: false, status: 404, message: "That student does not exist" };
+  }
+
+  // One student belongs to one programme, so enrolling them onto another is a
+  // contradiction with their own profile rather than a second enrolment.
+  // Programme name is the join the seed itself uses; the ids never meet.
+  if (existing.academic.program !== program.name) {
+    return {
+      ok: false,
+      status: 422,
+      message: "Some fields need attention",
+      fieldErrors: {
+        studentId: `${existing.personal.firstName} ${existing.personal.lastName} is on ${existing.academic.program}, not ${program.name}`,
+      },
+    };
+  }
+
+  return { ok: true, student: existing };
+}
+
+/**
+ * One student into one programme term, by any of the three paths.
+ *
+ * The order of the checks is deliberate: the term first, because a bad term id
+ * makes every later message meaningless; then the student; then the two rules
+ * about what a student may hold at once. A failure names the field a form can
+ * attach it to even when the status is 409, because `lib/api/client.ts` reads
+ * `fieldErrors` off any response and keeps only its own vetted prose.
+ *
+ * Both conflict rules are 409 rather than a field error, which is a departure
+ * from `createCourse` - a duplicate course code comes back as 422 on the Code
+ * field. The difference is that a code is a value the user can edit until it is
+ * free, while "this student already holds a place" is a fact about the world
+ * that no amount of retyping changes.
+ */
+export function enrolStudent(input: EnrolRequestInput): EnrolOutcome {
+  const term = programTermTable.find((row) => row.id === input.programTermId);
+  if (!term) {
+    return { ok: false, status: 404, message: "That programme term does not exist" };
+  }
+
+  const program = programTable.find((row) => row.id === term.programId);
+  if (!program) {
+    // A term whose programme is missing is a broken join, not a user error.
+    return { ok: false, status: 404, message: "That programme term does not exist" };
+  }
+
+  if (term.status !== "open") {
+    return {
+      ok: false,
+      status: 422,
+      message: "Some fields need attention",
+      fieldErrors: {
+        programTermId: `${program.code} ${term.semesterCode} is ${term.status}, so it is not taking enrolments`,
+      },
+    };
+  }
+
+  const stamp = seedNow();
+
+  const resolved = resolveStudent(input, program, stamp);
+  if (!resolved.ok) return resolved;
+  const student = resolved.student;
+
+  const conflict = findEnrolmentConflict(programEnrollmentTable, student.id, term);
+  if (conflict) {
+    const message =
+      conflict.kind === "already-enrolled"
+        ? `That student already holds a place in ${conflict.semesterCode}`
+        : "That student is enrolled on another programme";
+    return { ok: false, status: 409, message, fieldErrors: { studentId: message } };
+  }
+
+  const draft = expandCurriculum({
+    term,
+    studentId: student.id,
+    source: input.source,
+    stamp,
+  });
+
+  const coursesById = new Map(courseTable.map((course) => [course.id, course]));
+  const summary = toSummary(student);
+  const enrollments: EnrollmentListItem[] = [];
+  for (const row of draft.enrollments) {
+    const course = coursesById.get(row.courseId);
+    // Same posture as the list: a row whose course is missing is a broken join,
+    // not a row to render with a blank where the code should be.
+    if (!course) continue;
+    enrollments.push({
+      id: row.id,
+      student: summary,
+      courseId: course.id,
+      courseCode: course.code,
+      semesterCode: row.semesterCode,
+      status: row.status,
+    });
+  }
+
+  return {
+    ok: true,
+    data: {
+      student: summary,
+      programTermId: term.id,
+      programId: program.id,
+      programName: program.name,
+      semesterCode: term.semesterCode,
+      source: input.source,
+      enrollments,
+    },
+  };
+}
+
+/**
+ * The roster of one programme term, one row per student.
+ *
+ * `programRoster` in the programme service answers the same question for the
+ * money screen; this one adds what the enrolment screen needs and nothing the
+ * money screen does - how much of the curriculum each student is actually
+ * carrying. A package is billed whole (13b), so a head count alone hides the
+ * student who dropped three of four courses.
+ *
+ * Returns undefined for an unknown term, so the page can 404 rather than
+ * render an empty roster that looks like a term with no students.
+ */
+export function programTermRoster(programTermId: string): TermRosterRow[] | undefined {
+  const term = programTermTable.find((row) => row.id === programTermId);
+  if (!term) return undefined;
+
+  const studentsById = new Map(studentTable.map((student) => [student.id, student]));
+  const curriculum = new Set(term.courseIds);
+
+  return programEnrollmentTable
+    .filter(
+      (row) => row.programId === term.programId && row.semesterCode === term.semesterCode,
+    )
+    .flatMap((membership) => {
+      const student = studentsById.get(membership.studentId);
+      if (!student) return [];
+
+      const courses = enrollmentTable.filter(
+        (row) =>
+          row.studentId === membership.studentId &&
+          row.semesterCode === term.semesterCode &&
+          curriculum.has(row.courseId),
+      );
+      const unfinished = courses.filter(
+        (row) => row.status === "dropped" || row.status === "cancelled",
+      );
+
+      return [
+        {
+          enrollmentId: membership.id,
+          student: toSummary(student),
+          status: membership.status,
+          enrolledAt: membership.enrolledAt,
+          courseCount: courses.length - unfinished.length,
+          unfinishedCount: unfinished.length,
+        },
+      ];
+    })
+    .sort((a, b) => a.student.studentId.localeCompare(b.student.studentId));
 }

@@ -2,34 +2,35 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { TableSkeleton } from "@/components/feedback";
 import { PageHeader } from "@/components/shared";
-import { EnrollmentScreen } from "@/features/enrollment/components/enrollment-screen";
-import {
-  courseFilterOptions,
-  courseSemesterOptions,
-  programFilterOptions,
-} from "@/server/services";
+import { EnrolmentTermsScreen } from "@/features/enrollment/components/enrolment-terms-screen";
+import { courseSemesterOptions } from "@/server/services";
 
 export const metadata: Metadata = { title: "Enrollment" };
 
 /**
- * The list screen reads its state from the URL through `useSearchParams`, which
- * a statically prerendered page cannot resolve at build time. The Suspense
- * boundary is what lets the shell prerender while the table waits for the real
- * search params on the client - and the fallback doubles as the loading state.
+ * Enrollment starts at the programme term (direction.md §7a, decided
+ * 2026-09-16).
+ *
+ * A student joins a programme and the course enrollments follow, so the list
+ * that opens first is the list of terms. Choosing one leads to its students,
+ * which is where a student is added. The previous version of this page opened
+ * on every course enrollment in the dataset — a fine index and a poor place to
+ * begin.
+ *
+ * The screen reads its state from the URL through `useSearchParams`, which a
+ * statically prerendered page cannot resolve at build time. The Suspense
+ * boundary lets the shell prerender while the table waits for the real search
+ * params, and the fallback doubles as the loading state.
  */
 export default function Page() {
   return (
     <>
       <PageHeader
         title="Enrollment"
-        description="Enter from a programme to see who is under it, or narrow to a single course, semester or evaluation group."
+        description="Choose a programme term to see who is under it. A student joins the programme, and the course enrollments follow from its curriculum."
       />
       <Suspense fallback={<TableSkeleton columns={5} />}>
-        <EnrollmentScreen
-          courseOptions={courseFilterOptions()}
-          programOptions={programFilterOptions()}
-          semesterOptions={courseSemesterOptions()}
-        />
+        <EnrolmentTermsScreen semesterOptions={courseSemesterOptions()} />
       </Suspense>
     </>
   );

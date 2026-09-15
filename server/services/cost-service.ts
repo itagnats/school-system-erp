@@ -1,7 +1,18 @@
 import "server-only";
 
-import { calculateCostBreakdown } from "@/lib/calculations";
-import { costSheetTable, courseTable } from "@/server/repositories";
+import {
+  calculateCourseDirect,
+  calculateProgramCostBreakdown,
+  calculateStandaloneCourseCost,
+} from "@/lib/calculations";
+import {
+  courseCostSheetTable,
+  courseTable,
+  programTable,
+  programCostSheetTable,
+  programEnrollmentTable,
+  programTermTable,
+} from "@/server/repositories";
 import { matchesSearch, paginate, sortRows, type ListQueryInput } from "@/server/query";
 import {
   copyCatalogueItem,
@@ -10,26 +21,136 @@ import {
 } from "./catalogue-service";
 import type {
   CostSheetUpdateInput,
+  ProgramCostSheetUpdateInput,
   SheetGroupAddInput,
   SheetItemAddInput,
   SheetItemUpdateInput,
 } from "@/lib/api/contracts";
 import type {
   CatalogueComparison,
-  CostBreakdown,
+  CostGroup,
   CostItem,
-  CostSheet,
+  CostKind,
+  CourseCostBreakdown,
+  CourseCostInput,
+  CourseCostSheet,
   PaginatedResult,
+  ProgramCostBreakdown,
+  ProgramCostSheet,
+  ProgramTerm,
 } from "@/types";
 
 /**
- * Cost sheet reads (direction.md §11-13).
+ * Cost sheet reads and writes (direction.md §11-13, revised 2026-09-15).
  *
- * The list row carries the derived totals rather than the nested groups. A
- * table needs the total and the per-student figure; sending four levels of
- * nesting so the browser can add them up would move business math into the
- * client, which is exactly what the calculation layer exists to prevent.
+ * Two sheets, and the join between them is this module's real job: a course
+ * bears its direct costs, a programme term bears its indirect ones, and a
+ * course's total is its direct costs plus a derived share of its programme's
+ * pool. Neither sheet can be read usefully without the other, so both details
+ * carry the whole picture rather than half of it.
+ *
+ * A list row carries the derived totals rather than the nested groups. A table
+ * needs the total and the per-student figure; sending four levels of nesting so
+ * the browser can add them up would move business math into the client, which
+ * is exactly what the calculation layer exists to prevent.
  */
+
+/* -------------------------------------------------------------------------- */
+/* The join                                                                   */
+/* -------------------------------------------------------------------------- */
+
+/** Students on a programme term, active or completed but not withdrawn. */
+function termHeadCount(term: ProgramTerm): number {
+  return new Set(
+    programEnrollmentTable
+      .filter(
+        (enrollment) =>
+          enrollment.programId === term.programId &&
+          enrollment.semesterCode === term.semesterCode &&
+          enrollment.status !== "withdrawn",
+      )
+      .map((enrollment) => enrollment.studentId),
+  ).size;
+}
+
+function courseInputsFor(term: ProgramTerm): CourseCostInput[] {
+  const coursesById = new Map(courseTable.map((course) => [course.id, course]));
+
+  return term.courseIds.map((courseId) => {
+    const course = coursesById.get(courseId);
+    return {
+      courseId,
+      courseCode: course?.code ?? courseId,
+      courseName: course?.name ?? "Unknown course",
+      credits: course?.credits ?? 0,
+      sheet: courseCostSheetTable.find(
+        (sheet) =>
+          sheet.courseId === courseId && sheet.semesterCode === term.semesterCode,
+      ),
+    };
+  });
+}
+
+/**
+ * The full costing for one programme term, or undefined if it has no sheet.
+ *
+ * Every figure on both screens comes from here, which is what stops a course's
+ * share and its programme's pool being computed two different ways.
+ */
+export function programCostBreakdownFor(
+  term: ProgramTerm,
+  override?: ProgramCostSheet,
+): ProgramCostBreakdown | undefined {
+  const sheet =
+    override ?? programCostSheetTable.find((entry) => entry.programTermId === term.id);
+  if (!sheet) return undefined;
+
+  return calculateProgramCostBreakdown({
+    sheet,
+    courses: courseInputsFor(term),
+    studentCount: termHeadCount(term),
+  });
+}
+
+/** The programme term a course-semester belongs to, if any. */
+function termForCourse(
+  courseId: string,
+  semesterCode: string,
+): ProgramTerm | undefined {
+  return programTermTable.find(
+    (term) =>
+      term.semesterCode === semesterCode && term.courseIds.includes(courseId),
+  );
+}
+
+/**
+ * One course's costing, through its programme when it has one.
+ *
+ * Seven of the fifty-seven course-semesters belong to no programme term. They
+ * fall back to a standalone costing rather than being refused: a course costed
+ * outside a curriculum is a real thing, and its direct costs are still its own.
+ */
+function courseBreakdownFor(sheet: CourseCostSheet): CourseCostBreakdown {
+  const term = termForCourse(sheet.courseId, sheet.semesterCode);
+  const programme = term ? programCostBreakdownFor(term) : undefined;
+  const fromProgramme = programme?.courses.find(
+    (course) => course.courseId === sheet.courseId,
+  );
+  if (fromProgramme) return fromProgramme;
+
+  const course = courseTable.find((entry) => entry.id === sheet.courseId);
+  return calculateStandaloneCourseCost({
+    courseId: sheet.courseId,
+    courseCode: course?.code ?? sheet.courseId,
+    courseName: course?.name ?? "Unknown course",
+    credits: course?.credits ?? 0,
+    sheet,
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Course cost sheets                                                         */
+/* -------------------------------------------------------------------------- */
 
 export interface CostQuery extends ListQueryInput {
   courseId?: string;
@@ -43,19 +164,30 @@ export interface CostSheetListItem {
   courseCode: string;
   courseName: string;
   semesterCode: string;
-  status: CostSheet["status"];
+  status: CourseCostSheet["status"];
   currency: string;
   studentCount: number;
+  directTotal: number;
+  /** Share of its programme's indirect pool. Zero when it has no programme. */
+  indirectShare: number;
   totalCost: number;
   costPerStudent: number | null;
+  /** Null when the course belongs to no programme term. */
+  programTermId: string | null;
   updatedAt: string;
 }
 
-export interface CostSheetDetail {
-  sheet: CostSheet;
+export interface CourseCostSheetDetail {
+  sheet: CourseCostSheet;
   courseCode: string;
   courseName: string;
-  breakdown: CostBreakdown;
+  breakdown: CourseCostBreakdown;
+  /** The programme term this course is costed inside, if any. */
+  programTermId: string | null;
+  /** The programme's pool and markup, so the share can be explained on screen. */
+  programCostSheetId: string | null;
+  indirectTotal: number;
+  markupPercent: number;
   /**
    * How each item now compares with the catalogue entry it was copied from.
    *
@@ -71,6 +203,8 @@ const SORTABLE: Record<string, (row: CostSheetListItem) => string | number> = {
   semesterCode: (s) => s.semesterCode,
   status: (s) => s.status,
   studentCount: (s) => s.studentCount,
+  directTotal: (s) => s.directTotal,
+  indirectShare: (s) => s.indirectShare,
   totalCost: (s) => s.totalCost,
   costPerStudent: (s) => s.costPerStudent ?? -1,
   updatedAt: (s) => s.updatedAt,
@@ -80,11 +214,11 @@ function buildListItems(): CostSheetListItem[] {
   const coursesById = new Map(courseTable.map((c) => [c.id, c]));
 
   const items: CostSheetListItem[] = [];
-  for (const sheet of costSheetTable) {
+  for (const sheet of courseCostSheetTable) {
     const course = coursesById.get(sheet.courseId);
     if (!course) continue;
 
-    const breakdown = calculateCostBreakdown(sheet);
+    const breakdown = courseBreakdownFor(sheet);
     items.push({
       id: sheet.id,
       courseId: sheet.courseId,
@@ -94,8 +228,12 @@ function buildListItems(): CostSheetListItem[] {
       status: sheet.status,
       currency: sheet.currency,
       studentCount: breakdown.studentCount,
+      directTotal: breakdown.directTotal,
+      indirectShare: breakdown.indirectShare,
       totalCost: breakdown.totalCost,
       costPerStudent: breakdown.costPerStudent,
+      programTermId:
+        termForCourse(sheet.courseId, sheet.semesterCode)?.id ?? null,
       updatedAt: sheet.updatedAt,
     });
   }
@@ -114,20 +252,9 @@ export function listCostSheets(query: CostQuery): PaginatedResult<CostSheetListI
   return paginate(sorted, query.page, query.pageSize);
 }
 
-export function getCostSheet(costSheetId: string): CostSheetDetail | undefined {
-  const sheet = costSheetTable.find((s) => s.id === costSheetId);
-  if (!sheet) return undefined;
-
-  const course = courseTable.find((c) => c.id === sheet.courseId);
-  if (!course) return undefined;
-
-  return {
-    sheet,
-    courseCode: course.code,
-    courseName: course.name,
-    breakdown: calculateCostBreakdown(sheet),
-    drift: catalogueDriftFor(sheet),
-  };
+export function getCostSheet(costSheetId: string): CourseCostSheetDetail | undefined {
+  const sheet = courseCostSheetTable.find((s) => s.id === costSheetId);
+  return sheet ? courseDetailFrom(sheet) : undefined;
 }
 
 /** Cost sheets recorded against one course, for the course detail page. */
@@ -136,71 +263,267 @@ export function costSheetsForCourse(courseId: string): CostSheetListItem[] {
 }
 
 /**
- * Adjust the three inputs the total depends on, and recompute.
+ * Adjust the head count or the status, and recompute.
+ *
+ * Markup and the rounding step are **not** here any more: both moved to the
+ * programme term (§13), because a package is priced once and several per-course
+ * markups would leave a programme total that no screen adds up.
  *
  * Nothing is stored - see docs/decisions/why-bff.md - but the response is the
  * sheet as it would have been saved, with the breakdown recalculated from the
- * new values. That recomputation is the point of the endpoint: markup and head
- * count change the total and the per-student figure, and the client should see
- * the server derive them rather than derive them itself.
+ * new values.
  */
 export function updateCostSheet(
   costSheetId: string,
   input: CostSheetUpdateInput,
-): CostSheetDetail | undefined {
-  const current = getCostSheet(costSheetId);
+): CourseCostSheetDetail | undefined {
+  const current = courseCostSheetTable.find((s) => s.id === costSheetId);
   if (!current) return undefined;
 
-  const next: CostSheet = {
-    ...current.sheet,
-    markupPercent: input.markupPercent ?? current.sheet.markupPercent,
-    studentCount: input.studentCount ?? current.sheet.studentCount,
-    status: input.status ?? current.sheet.status,
-  };
+  return courseDetailFrom({
+    ...current,
+    studentCount: input.studentCount ?? current.studentCount,
+    status: input.status ?? current.status,
+  });
+}
+
+function courseDetailFrom(sheet: CourseCostSheet): CourseCostSheetDetail | undefined {
+  const course = courseTable.find((c) => c.id === sheet.courseId);
+  if (!course) return undefined;
+
+  const term = termForCourse(sheet.courseId, sheet.semesterCode);
+  const programSheet = term
+    ? programCostSheetTable.find((entry) => entry.programTermId === term.id)
+    : undefined;
+  const programme = term ? programCostBreakdownFor(term) : undefined;
+  const breakdown =
+    programme?.courses.find((entry) => entry.courseId === sheet.courseId) ??
+    calculateStandaloneCourseCost({
+      courseId: sheet.courseId,
+      courseCode: course.code,
+      courseName: course.name,
+      credits: course.credits,
+      sheet,
+    });
 
   return {
-    sheet: next,
-    courseCode: current.courseCode,
-    courseName: current.courseName,
-    breakdown: calculateCostBreakdown(next),
-    drift: current.drift,
+    sheet,
+    courseCode: course.code,
+    courseName: course.name,
+    breakdown,
+    programTermId: term?.id ?? null,
+    programCostSheetId: programSheet?.id ?? null,
+    indirectTotal: programme?.indirectTotal ?? 0,
+    markupPercent: programme?.markupPercent ?? 0,
+    drift: catalogueDriftFor(sheet),
   };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Programme cost sheets                                                      */
+/* -------------------------------------------------------------------------- */
+
+export interface ProgramCostSheetDetail {
+  sheet: ProgramCostSheet;
+  programTermId: string;
+  programCode: string;
+  programName: string;
+  semesterCode: string;
+  packagePrice: number;
+  breakdown: ProgramCostBreakdown;
+  drift: CatalogueComparison[];
+}
+
+export function getProgramCostSheetByTerm(
+  programTermId: string,
+): ProgramCostSheetDetail | undefined {
+  const term = programTermTable.find((entry) => entry.id === programTermId);
+  const sheet = programCostSheetTable.find(
+    (entry) => entry.programTermId === programTermId,
+  );
+  if (!term || !sheet) return undefined;
+  return programDetailFrom(sheet, term);
+}
+
+export function getProgramCostSheet(
+  programCostSheetId: string,
+): ProgramCostSheetDetail | undefined {
+  const sheet = programCostSheetTable.find((entry) => entry.id === programCostSheetId);
+  if (!sheet) return undefined;
+  const term = programTermTable.find((entry) => entry.id === sheet.programTermId);
+  return term ? programDetailFrom(sheet, term) : undefined;
+}
+
+function programDetailFrom(
+  sheet: ProgramCostSheet,
+  term: ProgramTerm,
+): ProgramCostSheetDetail | undefined {
+  const breakdown = programCostBreakdownFor(term, sheet);
+  if (!breakdown) return undefined;
+
+  const program = programTable.find((entry) => entry.id === term.programId);
+
+  return {
+    sheet,
+    programTermId: term.id,
+    programCode: program?.code ?? term.programId,
+    programName: program?.name ?? "Unknown programme",
+    semesterCode: term.semesterCode,
+    packagePrice: term.packagePrice,
+    breakdown,
+    drift: catalogueDriftFor(sheet),
+  };
+}
+
+/**
+ * Change the markup, the rounding step, the driver or the status.
+ *
+ * All four are programme-level by design (§13). The driver is accepted even
+ * though only one value exists, because refusing a field the type allows would
+ * be a lie about what the endpoint supports.
+ */
+export function updateProgramCostSheet(
+  programCostSheetId: string,
+  input: ProgramCostSheetUpdateInput,
+): ProgramCostSheetDetail | undefined {
+  const current = programCostSheetTable.find((s) => s.id === programCostSheetId);
+  if (!current) return undefined;
+  const term = programTermTable.find((entry) => entry.id === current.programTermId);
+  if (!term) return undefined;
+
+  return programDetailFrom(
+    {
+      ...current,
+      markupPercent: input.markupPercent ?? current.markupPercent,
+      priceRoundingStep: input.priceRoundingStep ?? current.priceRoundingStep,
+      driver: input.driver ?? current.driver,
+      status: input.status ?? current.status,
+    },
+    term,
+  );
+}
+
+export interface ProgramCostQuery extends ListQueryInput {
+  programId?: string;
+  semester?: string;
+  status?: string;
+}
+
+/**
+ * A programme cost sheet as a table row.
+ *
+ * The index of Cost Management (revised 2026-09-16): the programme term is
+ * where a costing is finished, so it is what a cost list should lead with. A
+ * course sheet is a contributing part and lists separately.
+ */
+export interface ProgramCostListItem {
+  id: string;
+  programTermId: string;
+  programId: string;
+  programCode: string;
+  programName: string;
+  semesterCode: string;
+  status: ProgramCostSheet["status"];
+  currency: string;
+  courseCount: number;
+  studentCount: number;
+  directTotal: number;
+  indirectTotal: number;
+  totalCost: number;
+  costPerStudent: number | null;
+  preferredPrice: number | null;
+  /** What the term actually charges, for the comparison the list exists to make. */
+  packagePrice: number;
+  /** Curriculum courses with no direct sheet. Unknown, never zero (§13a). */
+  missingCostSheets: number;
+  updatedAt: string;
+}
+
+const PROGRAM_SORTABLE: Record<
+  string,
+  (row: ProgramCostListItem) => string | number
+> = {
+  programCode: (s) => s.programCode,
+  semesterCode: (s) => s.semesterCode,
+  status: (s) => s.status,
+  courseCount: (s) => s.courseCount,
+  studentCount: (s) => s.studentCount,
+  directTotal: (s) => s.directTotal,
+  indirectTotal: (s) => s.indirectTotal,
+  totalCost: (s) => s.totalCost,
+  costPerStudent: (s) => s.costPerStudent ?? -1,
+  preferredPrice: (s) => s.preferredPrice ?? -1,
+  packagePrice: (s) => s.packagePrice,
+  updatedAt: (s) => s.updatedAt,
+};
+
+function buildProgramListItems(): ProgramCostListItem[] {
+  const programsById = new Map(programTable.map((program) => [program.id, program]));
+  const items: ProgramCostListItem[] = [];
+
+  for (const sheet of programCostSheetTable) {
+    const term = programTermTable.find((entry) => entry.id === sheet.programTermId);
+    if (!term) continue;
+    const program = programsById.get(term.programId);
+    const breakdown = programCostBreakdownFor(term, sheet);
+    if (!breakdown) continue;
+
+    items.push({
+      id: sheet.id,
+      programTermId: term.id,
+      programId: term.programId,
+      programCode: program?.code ?? term.programId,
+      programName: program?.name ?? "Unknown programme",
+      semesterCode: sheet.semesterCode,
+      status: sheet.status,
+      currency: sheet.currency,
+      courseCount: breakdown.courses.length,
+      studentCount: breakdown.studentCount,
+      directTotal: breakdown.directTotal,
+      indirectTotal: breakdown.indirectTotal,
+      totalCost: breakdown.totalCost,
+      costPerStudent: breakdown.costPerStudent,
+      preferredPrice: breakdown.preferredPrice,
+      packagePrice: term.packagePrice,
+      missingCostSheets: breakdown.coursesMissingCostSheet.length,
+      updatedAt: sheet.updatedAt,
+    });
+  }
+
+  return items;
+}
+
+export function listProgramCostSheets(
+  query: ProgramCostQuery,
+): PaginatedResult<ProgramCostListItem> {
+  const filtered = buildProgramListItems().filter((item) => {
+    if (query.programId && item.programId !== query.programId) return false;
+    if (query.semester && item.semesterCode !== query.semester) return false;
+    if (query.status && item.status !== query.status) return false;
+    return matchesSearch(
+      query.search,
+      item.programCode,
+      item.programName,
+      item.semesterCode,
+    );
+  });
+
+  const sorted = sortRows(
+    filtered,
+    PROGRAM_SORTABLE,
+    query.sort,
+    query.direction,
+    "programCode",
+  );
+  return paginate(sorted, query.page, query.pageSize);
 }
 
 /* -------------------------------------------------------------------------- */
 /* Sheet contents (direction.md §12a)                                         */
 /* -------------------------------------------------------------------------- */
 
-/**
- * Rebuild a detail from a changed sheet.
- *
- * Every write below routes through here so a response always carries the
- * recomputed breakdown. An endpoint returning an acknowledgement would leave
- * the caller to re-derive the total, which is the one thing the calculation
- * layer exists to prevent.
- */
-function detailFrom(sheet: CostSheet): CostSheetDetail | undefined {
-  const course = courseTable.find((c) => c.id === sheet.courseId);
-  if (!course) return undefined;
-
-  return {
-    sheet,
-    courseCode: course.code,
-    courseName: course.name,
-    breakdown: calculateCostBreakdown(sheet),
-    drift: catalogueDriftFor(sheet),
-  };
-}
-
-/** Replace one group's items, leaving the rest of the sheet alone. */
-function withGroupItems(sheet: CostSheet, groupId: string, items: CostItem[]): CostSheet {
-  return {
-    ...sheet,
-    groups: sheet.groups.map((group) =>
-      group.id === groupId ? { ...group, items } : group,
-    ),
-  };
-}
+/** Either detail, since one set of content writes serves both sheets. */
+export type SheetDetail = CourseCostSheetDetail | ProgramCostSheetDetail;
 
 /** The shape a write returns when the request was legal but the domain says no. */
 export interface SheetWriteError {
@@ -208,9 +531,51 @@ export interface SheetWriteError {
 }
 
 export function isSheetWriteError(
-  result: CostSheetDetail | SheetWriteError,
+  result: SheetDetail | SheetWriteError,
 ): result is SheetWriteError {
   return "fieldErrors" in result;
+}
+
+/**
+ * Either sheet, found by id, so one set of content writes serves both.
+ *
+ * The alternative was a course version and a programme version of every write,
+ * which is six near-identical functions and six chances for them to diverge on
+ * what "add an item" means.
+ */
+type AnySheet =
+  | { kind: "course"; sheet: CourseCostSheet }
+  | { kind: "program"; sheet: ProgramCostSheet };
+
+function findSheet(sheetId: string): AnySheet | undefined {
+  const course = courseCostSheetTable.find((entry) => entry.id === sheetId);
+  if (course) return { kind: "course", sheet: course };
+  const program = programCostSheetTable.find((entry) => entry.id === sheetId);
+  if (program) return { kind: "program", sheet: program };
+  return undefined;
+}
+
+/** What kind of cost item may sit on this sheet (§12). */
+function allowedKind(found: AnySheet): CostKind {
+  return found.kind === "course" ? "direct" : "indirect";
+}
+
+
+function detailFor(found: AnySheet, groups: CostGroup[]): SheetDetail | undefined {
+  if (found.kind === "course") {
+    return courseDetailFrom({ ...found.sheet, groups });
+  }
+  const term = programTermTable.find((entry) => entry.id === found.sheet.programTermId);
+  return term ? programDetailFrom({ ...found.sheet, groups }, term) : undefined;
+}
+
+/** Replace one group's items, leaving the rest of the sheet alone. */
+function withGroupItems(
+  groups: readonly CostGroup[],
+  groupId: string,
+  items: CostItem[],
+): CostGroup[] {
+  return groups.map((group) => (group.id === groupId ? { ...group, items } : group));
 }
 
 /**
@@ -220,15 +585,19 @@ export function isSheetWriteError(
  * snapshot rule. Adding the same catalogue item twice is allowed and
  * deliberate: two lecturers on one course are two lines rather than one line at
  * quantity two, because they may sit at different rates.
+ *
+ * **The kind is checked here and nowhere else matters.** Putting a classroom on
+ * a course sheet is how the old model double-counted; refusing it server-side
+ * is what makes that unrepresentable rather than merely discouraged.
  */
 export function addItemToSheet(
-  costSheetId: string,
+  sheetId: string,
   input: SheetItemAddInput,
-): CostSheetDetail | SheetWriteError | undefined {
-  const current = costSheetTable.find((s) => s.id === costSheetId);
-  if (!current) return undefined;
+): SheetDetail | SheetWriteError | undefined {
+  const found = findSheet(sheetId);
+  if (!found) return undefined;
 
-  const group = current.groups.find((entry) => entry.id === input.groupId);
+  const group = found.sheet.groups.find((entry) => entry.id === input.groupId);
   if (!group) {
     return { fieldErrors: { groupId: "That cost group is not on this sheet." } };
   }
@@ -246,12 +615,23 @@ export function addItemToSheet(
     };
   }
 
-  const copy = copyCatalogueItem(source, {
-    quantity: input.quantity,
-    allocationPercent: input.allocationPercent,
-  });
+  const wanted = allowedKind(found);
+  if (source.kind !== wanted) {
+    return {
+      fieldErrors: {
+        catalogueItemId:
+          wanted === "direct"
+            ? "That is an indirect cost. It belongs to the programme term, which shares it across the whole curriculum."
+            : "That is a direct cost. It belongs to a single course, not to the programme.",
+      },
+    };
+  }
 
-  return detailFrom(withGroupItems(current, group.id, [...group.items, copy]));
+  const copy = copyCatalogueItem(source, { quantity: input.quantity });
+  return detailFor(
+    found,
+    withGroupItems(found.sheet.groups, group.id, [...group.items, copy]),
+  );
 }
 
 /**
@@ -262,21 +642,21 @@ export function addItemToSheet(
  * and the row another.
  */
 export function updateSheetItem(
-  costSheetId: string,
+  sheetId: string,
   itemId: string,
   input: SheetItemUpdateInput,
-): CostSheetDetail | undefined {
-  const current = costSheetTable.find((s) => s.id === costSheetId);
-  const group = current?.groups.find((entry) =>
+): SheetDetail | undefined {
+  const found = findSheet(sheetId);
+  const group = found?.sheet.groups.find((entry) =>
     entry.items.some((item) => item.id === itemId),
   );
-  if (!current || !group) return undefined;
+  if (!found || !group) return undefined;
 
   const items = group.items.map((item) =>
     item.id === itemId ? applySheetItemUpdate(item, input) : item,
   );
 
-  return detailFrom(withGroupItems(current, group.id, items));
+  return detailFor(found, withGroupItems(found.sheet.groups, group.id, items));
 }
 
 function applySheetItemUpdate(item: CostItem, input: SheetItemUpdateInput): CostItem {
@@ -284,28 +664,25 @@ function applySheetItemUpdate(item: CostItem, input: SheetItemUpdateInput): Cost
     ...item,
     unitPrice: input.unitPrice ?? item.unitPrice,
     quantity: input.quantity ?? item.quantity,
-    // A direct cost cannot be allocated anywhere but wholly to its own course,
-    // whatever the request says (§12).
-    allocationPercent:
-      item.kind === "direct" ? 100 : (input.allocationPercent ?? item.allocationPercent),
     selectedOptionId: input.selectedOptionId ?? item.selectedOptionId,
   };
 }
 
 /** Remove one item from a sheet. The catalogue is untouched. */
 export function removeSheetItem(
-  costSheetId: string,
+  sheetId: string,
   itemId: string,
-): CostSheetDetail | undefined {
-  const current = costSheetTable.find((s) => s.id === costSheetId);
-  const group = current?.groups.find((entry) =>
+): SheetDetail | undefined {
+  const found = findSheet(sheetId);
+  const group = found?.sheet.groups.find((entry) =>
     entry.items.some((item) => item.id === itemId),
   );
-  if (!current || !group) return undefined;
+  if (!found || !group) return undefined;
 
-  return detailFrom(
+  return detailFor(
+    found,
     withGroupItems(
-      current,
+      found.sheet.groups,
       group.id,
       group.items.filter((item) => item.id !== itemId),
     ),
@@ -320,11 +697,11 @@ export function removeSheetItem(
  * that arrives full invites someone to delete six lines rather than add two.
  */
 export function addGroupToSheet(
-  costSheetId: string,
+  sheetId: string,
   input: SheetGroupAddInput,
-): CostSheetDetail | SheetWriteError | undefined {
-  const current = costSheetTable.find((s) => s.id === costSheetId);
-  if (!current) return undefined;
+): SheetDetail | SheetWriteError | undefined {
+  const found = findSheet(sheetId);
+  if (!found) return undefined;
 
   const source = getCatalogueGroup(input.catalogueGroupId);
   if (!source) {
@@ -332,22 +709,32 @@ export function addGroupToSheet(
       fieldErrors: { catalogueGroupId: "That catalogue group no longer exists." },
     };
   }
-  if (current.groups.some((group) => group.catalogueGroupId === source.id)) {
+  if (found.sheet.groups.some((group) => group.catalogueGroupId === source.id)) {
     return { fieldErrors: { catalogueGroupId: "This sheet already has that group." } };
   }
-
-  return detailFrom({
-    ...current,
-    groups: [
-      ...current.groups,
-      {
-        id: `grp-${source.id}-${current.id}`,
-        name: source.name,
-        catalogueGroupId: source.id,
-        items: [],
+  // A group with nothing this sheet may hold is an empty box that can never be
+  // filled - the catalogue group exists, but all of its items are the wrong
+  // kind for this sheet.
+  if (!source.items.some((item) => item.kind === allowedKind(found))) {
+    return {
+      fieldErrors: {
+        catalogueGroupId:
+          allowedKind(found) === "direct"
+            ? "That group holds only indirect costs, which belong to the programme term."
+            : "That group holds only direct costs, which belong to a course.",
       },
-    ],
-  });
+    };
+  }
+
+  return detailFor(found, [
+    ...found.sheet.groups,
+    {
+      id: `grp-${source.id}-${found.sheet.id}`,
+      name: source.name,
+      catalogueGroupId: source.id,
+      items: [],
+    },
+  ]);
 }
 
 /**
@@ -357,11 +744,13 @@ export function addGroupToSheet(
  * stored comparison is a stored value that can go stale - which is the failure
  * the snapshot rule exists to avoid.
  *
- * Only the unit price is compared. Quantity and allocation are expected to
- * differ per sheet, because the catalogue carries defaults rather than truths,
- * and reporting those as drift would mark almost every row.
+ * Only the unit price is compared. Quantity is expected to differ per sheet,
+ * because the catalogue carries defaults rather than truths, and reporting that
+ * as drift would mark almost every row.
  */
-export function catalogueDriftFor(sheet: CostSheet): CatalogueComparison[] {
+export function catalogueDriftFor(
+  sheet: Readonly<{ groups: readonly CostGroup[] }>,
+): CatalogueComparison[] {
   return sheet.groups.flatMap((group) =>
     group.items.map((item) => compareWithCatalogue(item)),
   );
@@ -384,14 +773,14 @@ function compareWithCatalogue(item: CostItem): CatalogueComparison {
 
 /** Move one item back onto the catalogue's current price. A deliberate act. */
 export function realignSheetItem(
-  costSheetId: string,
+  sheetId: string,
   itemId: string,
-): CostSheetDetail | undefined {
-  const current = costSheetTable.find((s) => s.id === costSheetId);
-  const group = current?.groups.find((entry) =>
+): SheetDetail | undefined {
+  const found = findSheet(sheetId);
+  const group = found?.sheet.groups.find((entry) =>
     entry.items.some((item) => item.id === itemId),
   );
-  if (!current || !group) return undefined;
+  if (!found || !group) return undefined;
 
   const target = group.items.find((item) => item.id === itemId);
   const source = target?.catalogueItemId
@@ -399,9 +788,10 @@ export function realignSheetItem(
     : undefined;
   if (!source) return undefined;
 
-  return detailFrom(
+  return detailFor(
+    found,
     withGroupItems(
-      current,
+      found.sheet.groups,
       group.id,
       group.items.map((item) =>
         item.id === itemId ? { ...item, unitPrice: source.defaultUnitPrice } : item,
@@ -409,3 +799,5 @@ export function realignSheetItem(
     ),
   );
 }
+
+export { calculateCourseDirect };

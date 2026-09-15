@@ -13,11 +13,18 @@ export const routes = {
   semesters: () => "/semesters",
   semester: (code: string) => `/semesters/${enc(code)}`,
   enrollment: () => "/enrollment",
+  /** A programme term seen through the enrolment lens: its students. */
+  enrolmentTerm: (programTermId: string) => `/enrollment/${enc(programTermId)}`,
   students: () => "/students",
   student: (studentId: string) => `/students/${enc(studentId)}`,
   costs: () => "/costs",
-  costSheet: (costSheetId: string) => `/costs/${enc(costSheetId)}`,
+  /** The course cost list. `/costs` itself now leads with programmes. */
+  courseCosts: () => "/costs/courses",
+  costSheet: (costSheetId: string) => `/costs/courses/${enc(costSheetId)}`,
   costCatalogue: () => "/costs/catalogue",
+  /** The indirect cost sheet for a programme term (direction.md 11). */
+  programCost: (programTermId: string) =>
+    `/costs/programmes/${enc(programTermId)}`,
   invoices: () => "/invoices",
   invoice: (invoiceId: string) => `/invoices/${enc(invoiceId)}`,
   /**

@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatCurrency, formatPercent } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import type { CatalogueGroup, CatalogueItem, Option } from "@/types";
 import {
   CATALOGUE_STATUS_LABEL,
@@ -175,7 +175,6 @@ function CatalogueGroupPanel({
               <TableHead>Kind</TableHead>
               <TableHead className="text-right">Default price</TableHead>
               <TableHead className="text-right">Default qty</TableHead>
-              <TableHead className="text-right">Allocation</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -209,13 +208,6 @@ function CatalogueGroupPanel({
                 </TableCell>
                 <TableCell className="text-right" data-numeric>
                   {item.defaultQuantity}
-                </TableCell>
-                <TableCell className="text-right" data-numeric>
-                  {item.kind === "direct" ? (
-                    <span className="text-muted-foreground">—</span>
-                  ) : (
-                    formatPercent(item.defaultAllocationPercent, 0)
-                  )}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">

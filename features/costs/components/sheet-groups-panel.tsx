@@ -18,10 +18,15 @@ import {
   DRIFT_TONE,
 } from "@/features/cost-catalogue/constants";
 import { formatCurrency, formatPercent } from "@/lib/utils";
-import type { CatalogueComparison, CostGroup, CostItem } from "@/types";
+import type {
+  CatalogueComparison,
+  CostGroup,
+  CostGroupBreakdown,
+  CostItem,
+  CostKind,
+} from "@/types";
 import { useSheetContents } from "../hooks/use-cost-sheet-mutations";
 import { AddFromCatalogueDialog } from "./add-from-catalogue-dialog";
-import type { CostSheetDetailResponse } from "../types";
 
 /**
  * What is on the sheet, group by group (direction.md §12, §12a).
@@ -36,32 +41,49 @@ import type { CostSheetDetailResponse } from "../types";
  * rule exists to prevent.
  */
 export function SheetGroupsPanel({
-  detail,
-}: Readonly<{ detail: CostSheetDetailResponse }>) {
+  sheetId,
+  currency,
+  kind,
+  groups,
+  breakdowns,
+  drift,
+  detailKey,
+}: Readonly<{
+  sheetId: string;
+  currency: string;
+  /** What this sheet may hold (§12). Filters the picker. */
+  kind: CostKind;
+  groups: readonly CostGroup[];
+  /** The server's recomputed totals for those same groups. */
+  breakdowns: readonly CostGroupBreakdown[];
+  drift: readonly CatalogueComparison[];
+  /** Where a write's response lands in the cache. */
+  detailKey: readonly unknown[];
+}>) {
   const [addingTo, setAddingTo] = useState<CostGroup | null>(null);
-  const driftByItem = new Map(detail.drift.map((entry) => [entry.itemId, entry]));
+  const driftByItem = new Map(drift.map((entry) => [entry.itemId, entry]));
   // The charged figure per line comes from the server's breakdown, never from
   // multiplying the inputs here: §13 requires the arithmetic to be visible, and
   // re-deriving it in the browser would be a second implementation of it.
   const chargedByItem = new Map(
-    detail.breakdown.groups.flatMap((group) =>
-      group.items.map((item) => [item.itemId, item.allocated] as const),
+    breakdowns.flatMap((group) =>
+      group.items.map((item) => [item.itemId, item.total] as const),
     ),
   );
   const totalsByGroup = new Map(
-    detail.breakdown.groups.map((group) => [group.groupId, group] as const),
+    breakdowns.map((group) => [group.groupId, group] as const),
   );
 
   return (
     <>
-      {detail.sheet.groups.map((group) => (
+      {groups.map((group) => (
         <Section
           key={group.id}
           title={group.name}
           description={groupDescription(
             totalsByGroup.get(group.id),
             group.items.length,
-            detail.sheet.currency,
+            currency,
           )}
           className="mt-4"
           flush
@@ -83,7 +105,6 @@ export function SheetGroupsPanel({
                   <TableHead>Item</TableHead>
                   <TableHead className="text-right">Unit price</TableHead>
                   <TableHead className="text-right">Quantity</TableHead>
-                  <TableHead className="text-right">Allocation</TableHead>
                   <TableHead className="text-right">Charged</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -92,8 +113,9 @@ export function SheetGroupsPanel({
                 {group.items.map((item) => (
                   <SheetItemRow
                     key={item.id}
-                    sheetId={detail.sheet.id}
-                    currency={detail.sheet.currency}
+                    sheetId={sheetId}
+                    currency={currency}
+                    detailKey={detailKey}
                     item={item}
                     comparison={driftByItem.get(item.id)}
                     charged={chargedByItem.get(item.id)}
@@ -107,8 +129,10 @@ export function SheetGroupsPanel({
 
       {addingTo ? (
         <AddFromCatalogueDialog
-          sheetId={detail.sheet.id}
+          sheetId={sheetId}
           group={addingTo}
+          kind={kind}
+          detailKey={detailKey}
           open
           onOpenChange={(open) => setAddingTo(open ? addingTo : null)}
         />
@@ -120,18 +144,20 @@ export function SheetGroupsPanel({
 function SheetItemRow({
   sheetId,
   currency,
+  detailKey,
   item,
   comparison,
   charged,
 }: Readonly<{
   sheetId: string;
   currency: string;
+  detailKey: readonly unknown[];
   item: CostItem;
   comparison?: CatalogueComparison;
-  /** What this line contributes after allocation, from the server. */
+  /** What this line contributes, from the server's recomputed breakdown. */
   charged?: number;
 }>) {
-  const mutation = useSheetContents(sheetId);
+  const mutation = useSheetContents(sheetId, detailKey);
   const [price, setPrice] = useState(String(item.unitPrice));
   const [quantity, setQuantity] = useState(String(item.quantity));
 
@@ -190,16 +216,6 @@ function SheetItemRow({
             Number(quantity) !== item.quantity && commit({ quantity: Number(quantity) })
           }
         />
-      </TableCell>
-
-      <TableCell className="text-right" data-numeric>
-        {item.kind === "direct" ? (
-          // A direct cost belongs wholly to its course, so there is nothing to
-          // allocate and nothing to edit (§12).
-          <span className="text-muted-foreground">Direct</span>
-        ) : (
-          formatPercent(item.allocationPercent, 0)
-        )}
       </TableCell>
 
       <TableCell className="text-right font-medium" data-numeric>

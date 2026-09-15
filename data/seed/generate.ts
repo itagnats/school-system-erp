@@ -1,5 +1,5 @@
 import { mockCatalogueGroups } from "@/data/mock/cost-catalog";
-import { mockCostSheets } from "@/data/mock/costs";
+import { mockCourseCostSheets, mockProgramCostSheets } from "@/data/mock/costs";
 import { mockCourses } from "@/data/mock/courses";
 import { mockEnrollments } from "@/data/mock/enrollments";
 import {
@@ -30,8 +30,9 @@ import type {
   CatalogueItem,
   CostGroup,
   CostItem,
-  CostSheet,
+  CostKind,
   CostSheetStatus,
+  CourseCostSheet,
   Course,
   CourseStatus,
   Enrollment,
@@ -44,6 +45,7 @@ import type {
   InvoiceLine,
   InvoiceStatus,
   Program,
+  ProgramCostSheet,
   ProgramEnrollment,
   ProgramTerm,
   ProgramTermStatus,
@@ -52,6 +54,7 @@ import type {
   Student,
 } from "@/types";
 import { EVALUATION_GROUP_LETTERS, evaluationGroupName } from "@/types";
+import { DEFAULT_PRICE_ROUNDING_STEP } from "@/lib/calculations/cost";
 import {
   CREDIT_PERCENT,
   CREDIT_RATE,
@@ -377,8 +380,6 @@ function copyFromCatalogue(
       ? Math.round((source.defaultUnitPrice * (0.85 + rng.next() * 0.4)) / 50) * 50
       : source.defaultUnitPrice,
     quantity: Math.max(1, Math.round(source.defaultQuantity * (0.7 + rng.next() * 0.6))),
-    allocationPercent:
-      source.kind === "direct" ? 100 : rng.pick([15, 20, 25, 35, 50]),
     options: source.options.map((option) => ({
       ...option,
       id: `${option.id}-${suffix}`,
@@ -400,23 +401,40 @@ function copyFromCatalogue(
  * active items. Not all of them: a sheet that always contains everything makes
  * the "add from catalogue" action look like it has nothing left to add.
  */
+/**
+ * Groups for one sheet, drawn from the catalogue and filtered by kind.
+ *
+ * `kind` is the whole point: a course sheet may only take direct items and a
+ * programme sheet only indirect ones (direction.md §12). Filtering here rather
+ * than at the call sites is what makes it impossible for the generator to
+ * produce a sheet the application would refuse to accept.
+ */
 function sheetGroupsFrom(
   rng: Random,
   catalogue: CatalogueGroup[],
   suffix: string,
+  kind: CostKind,
 ): CostGroup[] {
-  const usable = catalogue.filter((group) => group.status === "active");
+  const usable = catalogue
+    .filter((group) => group.status === "active")
+    .map((group) => ({
+      group,
+      available: group.items.filter(
+        (entry) => entry.status === "active" && entry.kind === kind,
+      ),
+    }))
+    .filter((entry) => entry.available.length > 0);
+
   const chosen = rng.sample(usable, Math.min(usable.length, rng.int(2, 3)));
 
   return chosen
-    .map((group) => {
-      const available = group.items.filter((entry) => entry.status === "active");
+    .map(({ group, available }) => {
       const items = rng
         .sample(available, Math.max(1, available.length - rng.int(0, 1)))
         .map((entry) => copyFromCatalogue(rng, entry, suffix));
 
       return {
-        id: `${group.id}-${suffix}`,
+        id: `${group.id}-${kind}-${suffix}`,
         name: group.name,
         catalogueGroupId: group.id,
         items,
@@ -425,14 +443,20 @@ function sheetGroupsFrom(
     .filter((group) => group.items.length > 0);
 }
 
-function generateCostSheets(
+/**
+ * Direct-cost sheets, one per course-semester (direction.md §11).
+ *
+ * Direct costs only. The indirect ones belong to the programme term and are
+ * generated once, by `generateProgramCostSheets`.
+ */
+function generateCourseCostSheets(
   rng: Random,
   courses: Course[],
   enrollments: Enrollment[],
   terms: ProgramTerm[],
   catalogue: CatalogueGroup[],
-): CostSheet[] {
-  const sheets: CostSheet[] = [...mockCostSheets];
+): CourseCostSheet[] {
+  const sheets: CourseCostSheet[] = [...mockCourseCostSheets];
   const existing = new Set(sheets.map((s) => `${s.courseId}:${s.semesterCode}`));
 
   const headCount = new Map<string, number>();
@@ -441,9 +465,11 @@ function generateCostSheets(
     headCount.set(key, (headCount.get(key) ?? 0) + 1);
   }
 
-  // A course taught inside a curriculum must have a sheet: the programme profit
-  // screen divides by it, and a missing sheet there does not read as an empty
-  // state, it reads as a 100% margin.
+  // A course taught inside a curriculum must have a sheet: the programme cost
+  // screen names the ones that do not, and a missing sheet there reads as an
+  // unknown cost rather than as a cheap course.
+  //
+  // With one deliberate exception, below.
   const inCurriculum = new Set(
     terms.flatMap((term) => term.courseIds.map((id) => `${id}:${term.semesterCode}`)),
   );
@@ -465,16 +491,83 @@ function generateCostSheets(
         courseId: course.id,
         semesterCode,
         status: rng.pick(SHEET_STATUSES),
-        markupPercent: rng.pick([0, 0, 5, 8, 10]),
         studentCount: headCount.get(key) ?? rng.int(15, 40),
         currency: "THB",
         // Built from the catalogue rather than cloned from a template sheet, so
         // every generated item knows where its rate came from (§12a).
-        groups: sheetGroupsFrom(rng, catalogue, suffix),
+        groups: sheetGroupsFrom(rng, catalogue, suffix, "direct"),
         createdAt: isoFromEpoch(createdDays),
         updatedAt: isoFromEpoch(createdDays + rng.int(5, 60)),
       });
     }
+  }
+
+  // One curriculum course is left uncosted on purpose (AUD-015, closed
+  // 2026-09-16). "A course with no cost sheet contributes unknown, never zero"
+  // is §13a's rule, it is unit tested, and until now it appeared on 0 of 19
+  // terms - a rule stated in the spec and demonstrated nowhere. The programme
+  // cost screen has a state for it, and a state that never renders is the
+  // failure this project keeps repeating.
+  //
+  // Dropped after generation rather than skipped during it: skipping would
+  // consume a different number of random draws and regenerate every sheet
+  // after it, for a change that should touch exactly one row.
+  return sheets.filter(
+    (sheet) =>
+      !(
+        sheet.courseId === UNCOSTED_COURSE.courseId &&
+        sheet.semesterCode === UNCOSTED_COURSE.semesterCode
+      ),
+  );
+}
+
+/**
+ * The one curriculum course deliberately left without a direct cost sheet.
+ *
+ * CS296 in 202502 - a mid-sized course in a four-course curriculum, so the
+ * programme it sits in still costs sensibly with one part unknown.
+ */
+const UNCOSTED_COURSE = { courseId: "crs-cs296", semesterCode: "202502" } as const;
+
+/**
+ * Indirect-cost sheets, one per programme term (direction.md §11).
+ *
+ * **One per term, with no exceptions.** A term without one has no classroom,
+ * no utilities and no activities, which is not a state a real programme is ever
+ * in — and an absent pool would quietly make every course in that term look
+ * cheaper than its neighbours rather than showing an empty state.
+ */
+function generateProgramCostSheets(
+  rng: Random,
+  terms: ProgramTerm[],
+  catalogue: CatalogueGroup[],
+): ProgramCostSheet[] {
+  const sheets: ProgramCostSheet[] = [...mockProgramCostSheets];
+  const existing = new Set(sheets.map((s) => s.programTermId));
+
+  for (const term of terms) {
+    if (existing.has(term.id)) continue;
+    existing.add(term.id);
+
+    const createdDays = -rng.int(40, 300);
+
+    sheets.push({
+      id: `pcs-${term.id.replace(/^pgt-/, "")}`,
+      programTermId: term.id,
+      semesterCode: term.semesterCode,
+      status: rng.pick(SHEET_STATUSES),
+      // One driver exists, so this is not a draw. Writing it out rather than
+      // defaulting it keeps the field visible in the generated data.
+      driver: "credits",
+      markupPercent: rng.pick([0, 0, 5, 8, 10]),
+      // A constant, not a draw: varying it would consume from the random
+      // stream and shift every value generated after it, for no gain.
+      priceRoundingStep: DEFAULT_PRICE_ROUNDING_STEP,
+      currency: "THB",
+      groups: sheetGroupsFrom(rng, catalogue, term.id, "indirect"),
+      createdAt: isoFromEpoch(createdDays),
+      updatedAt: isoFromEpoch(createdDays + rng.int(5, 60)),
+    });
   }
 
   return sheets;
@@ -1070,7 +1163,8 @@ export interface Dataset {
   courses: Course[];
   students: Student[];
   enrollments: Enrollment[];
-  costSheets: CostSheet[];
+  courseCostSheets: CourseCostSheet[];
+  programCostSheets: ProgramCostSheet[];
   programs: Program[];
   programTerms: ProgramTerm[];
   programEnrollments: ProgramEnrollment[];
@@ -1101,13 +1195,14 @@ export function generateDataset(): Dataset {
   const evaluationGroups = grouped.groups;
   const evaluationSetups = generateEvaluationSetups(rng, evaluationGroups, courses, semesters);
   const catalogueGroups = [...mockCatalogueGroups];
-  const costSheets = generateCostSheets(
+  const courseCostSheets = generateCourseCostSheets(
     rng,
     courses,
     enrollments,
     programTerms,
     catalogueGroups,
   );
+  const programCostSheets = generateProgramCostSheets(rng, programTerms, catalogueGroups);
   // Last: an invoice needs the curriculum for its lines and the course
   // enrollments for its credits, so both have to exist first.
   const invoices = generateInvoices(
@@ -1125,7 +1220,8 @@ export function generateDataset(): Dataset {
     courses,
     students,
     enrollments,
-    costSheets,
+    courseCostSheets,
+    programCostSheets,
     programs,
     programTerms,
     programEnrollments,

@@ -31,9 +31,10 @@ import { useCatalogueMutations } from "../hooks/use-catalogue";
  * is what they start as. A separate "edit" dialog would be the same form with
  * one more chance to drift out of step.
  *
- * Allocation is hidden for a direct cost rather than disabled: a direct cost
- * belongs wholly to its course, so the field has no meaning there, and showing
- * a greyed 100 invites someone to wonder what it would do.
+ * There is no allocation field any more (revised 2026-09-15). The kind now
+ * decides which sheet the item can reach — direct onto a course, indirect onto a
+ * programme term — and a share of the indirect pool is derived from the driver
+ * rather than typed here.
  */
 export function CatalogueItemDialog({
   groupId,
@@ -88,9 +89,6 @@ function ItemForm({
   const [kind, setKind] = useState<CostKind>(item?.kind ?? "direct");
   const [unitPrice, setUnitPrice] = useState(String(item?.defaultUnitPrice ?? 0));
   const [quantity, setQuantity] = useState(String(item?.defaultQuantity ?? 1));
-  const [allocation, setAllocation] = useState(
-    String(item?.defaultAllocationPercent ?? 25),
-  );
   const [note, setNote] = useState(item?.note ?? "");
 
   const fieldErrors =
@@ -102,7 +100,6 @@ function ItemForm({
       kind,
       defaultUnitPrice: Number(unitPrice),
       defaultQuantity: Number(quantity),
-      defaultAllocationPercent: kind === "shared" ? Number(allocation) : undefined,
       note: note.trim() === "" ? undefined : note.trim(),
     };
 
@@ -150,7 +147,7 @@ function ItemForm({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="direct">Direct — wholly this course</SelectItem>
-                  <SelectItem value="shared">Shared — allocated across courses</SelectItem>
+                  <SelectItem value="indirect">Indirect — borne by the programme</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -187,22 +184,6 @@ function ItemForm({
               />
             </Field>
 
-            {kind === "shared" ? (
-              <Field
-                id="item-allocation"
-                label="Default allocation %"
-                error={fieldErrors?.defaultAllocationPercent}
-              >
-                <Input
-                  id="item-allocation"
-                  type="number"
-                  inputMode="numeric"
-                  value={allocation}
-                  onChange={(event) => setAllocation(event.target.value)}
-                  aria-invalid={fieldErrors?.defaultAllocationPercent ? true : undefined}
-                />
-              </Field>
-            ) : null}
           </div>
 
           <Field id="item-note" label="Note" error={fieldErrors?.note}>

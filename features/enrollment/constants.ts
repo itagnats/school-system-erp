@@ -1,4 +1,4 @@
-import type { EnrollmentStatus, Option, StatusTone } from "@/types";
+import type { EnrollmentStatus, Option, ProgramTermStatus, StatusTone } from "@/types";
 import {
   ENROLLMENT_STATUSES,
   EVALUATION_GROUP_LETTERS,
@@ -48,3 +48,28 @@ export const ENROLLMENT_STATUS_OPTIONS: Option<EnrollmentStatus>[] =
 export const EVALUATION_GROUP_OPTIONS: Option[] = EVALUATION_GROUP_LETTERS.map(
   (letter) => ({ value: letter, label: evaluationGroupName(letter) }),
 );
+
+/**
+ * Programme term status, duplicated from `features/programs/constants.ts`.
+ *
+ * Deliberate, not an oversight. `CLAUDE.md` forbids a third cross-feature
+ * import while `AUD-012` is open, and `features/dashboard/constants.ts`
+ * already made the same copy for the same reason. Four literals in two places
+ * is cheaper than an edge between two domains - and the day a shared module
+ * exists, both copies collapse into it together.
+ */
+export const TERM_STATUS_TONE: Record<ProgramTermStatus, StatusTone> = {
+  planning: "neutral",
+  open: "success",
+  closed: "info",
+};
+
+export const TERM_STATUS_LABEL: Record<ProgramTermStatus, string> = {
+  planning: "Planning",
+  open: "Open",
+  closed: "Closed",
+};
+
+export const TERM_STATUS_OPTIONS: Option<ProgramTermStatus>[] = (
+  ["planning", "open", "closed"] as const
+).map((value) => ({ value, label: TERM_STATUS_LABEL[value] }));

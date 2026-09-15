@@ -9,6 +9,7 @@ export async function GET(request: Request) {
       ...query,
       program: readFilter(params, "program"),
       yearLevel: readFilter(params, "yearLevel"),
+      semester: readFilter(params, "semester"),
     }),
   );
 }

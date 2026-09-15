@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Section, StatusBadge } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { HttpError } from "@/lib/api";
+import { queryKeys, routes } from "@/lib/constants";
 import { formatCurrency, formatPercent } from "@/lib/utils";
 import { COST_STATUS_LABEL, COST_STATUS_TONE } from "../constants";
 import { useUpdateCostSheet } from "../hooks/use-cost-sheet-mutations";
@@ -17,8 +19,9 @@ import type { CostSheetDetailResponse } from "../types";
  * The cost sheet, with its working shown (direction.md §13).
  *
  * Server-rendered data arrives as `initial`; the panel becomes interactive only
- * so the two inputs the total depends on can be changed. Every figure below the
- * form comes back from the server recalculated - none of this arithmetic is
+ * so the three inputs the derived figures depend on can be changed - markup,
+ * head count, and the step the preferred price rounds up to. Every figure below
+ * the form comes back from the server recalculated - none of this arithmetic is
  * repeated in the browser, which is the whole reason the endpoint returns a
  * breakdown rather than an acknowledgement.
  */
@@ -32,7 +35,6 @@ export function CostBreakdownPanel({ initial }: Readonly<{ initial: CostSheetDet
 
   const money = (value: number) => formatCurrency(value, sheet.currency);
 
-  const [markup, setMarkup] = useState(String(sheet.markupPercent));
   const [students, setStudents] = useState(String(sheet.studentCount));
 
   const fieldErrors =
@@ -42,7 +44,7 @@ export function CostBreakdownPanel({ initial }: Readonly<{ initial: CostSheetDet
     <>
       <Section
         title="How the total is reached"
-        description="Direct plus shared makes the course total; the total divided by head count makes the cost per student."
+        description="This course's own direct costs, plus its share of the programme's indirect pool, divided by head count."
         actions={
           <StatusBadge
             tone={COST_STATUS_TONE[sheet.status]}
@@ -51,12 +53,25 @@ export function CostBreakdownPanel({ initial }: Readonly<{ initial: CostSheetDet
         }
       >
         <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Figure label="Direct costs" value={money(breakdown.directTotal)} />
-          <Figure label="Shared costs, after allocation" value={money(breakdown.sharedTotal)} />
+          <Figure
+            label="Direct costs"
+            value={money(breakdown.directTotal)}
+            hint="This course's own — lecturer, materials, TA."
+          />
+          <Figure
+            label="Indirect share"
+            value={money(breakdown.indirectShare)}
+            hint={
+              breakdown.sharePercent === null
+                ? "Costed outside any programme, so no share of a pool."
+                : `${formatPercent(breakdown.sharePercent)} of ${money(detail.indirectTotal)}, by credit hours.`
+            }
+          />
           <Figure label="Subtotal" value={money(breakdown.subtotal)} />
           <Figure
-            label={`Markup, ${formatPercent(sheet.markupPercent)}`}
+            label={`Markup, ${formatPercent(detail.markupPercent)}`}
             value={money(breakdown.markupAmount)}
+            hint="Set once on the programme term."
           />
         </dl>
 
@@ -70,6 +85,7 @@ export function CostBreakdownPanel({ initial }: Readonly<{ initial: CostSheetDet
                 ? "No students enrolled"
                 : money(breakdown.costPerStudent)
             }
+            hint="What this course costs to run, per head."
             strong
           />
         </div>
@@ -81,21 +97,11 @@ export function CostBreakdownPanel({ initial }: Readonly<{ initial: CostSheetDet
           // inference already gives.
           onSubmit={(event) => {
             event.preventDefault();
-            mutation.mutate({
-              markupPercent: Number(markup),
-              studentCount: Number(students),
-            });
+            mutation.mutate({ studentCount: Number(students) });
           }}
           className="mt-4 flex flex-wrap items-end gap-3 border-t border-hairline pt-4"
           data-print="hide"
         >
-          <NumberField
-            id="markupPercent"
-            label="Markup %"
-            value={markup}
-            onChange={setMarkup}
-            error={fieldErrors?.markupPercent}
-          />
           <NumberField
             id="studentCount"
             label="Students"
@@ -107,12 +113,34 @@ export function CostBreakdownPanel({ initial }: Readonly<{ initial: CostSheetDet
             Recalculate
           </Button>
           <p className="text-xs text-muted-foreground">
-            The server recomputes every figure above. Nothing is stored.
+            The server recomputes every figure above. Markup and the price
+            rounding live on the programme term. Nothing is stored.
           </p>
         </form>
       </Section>
 
-      <SheetGroupsPanel detail={detail} />
+      {detail.programTermId ? (
+        <p data-print="hide" className="mt-3 text-xs text-muted-foreground">
+          The indirect share is set on the programme term, not here.{" "}
+          <Link
+            href={routes.programCost(detail.programTermId)}
+            className="rounded-sm underline underline-offset-4"
+          >
+            Open its cost sheet
+          </Link>
+          .
+        </p>
+      ) : null}
+
+      <SheetGroupsPanel
+        sheetId={sheet.id}
+        currency={sheet.currency}
+        kind="direct"
+        groups={sheet.groups}
+        breakdowns={breakdown.groups}
+        drift={detail.drift}
+        detailKey={queryKeys.costs.detail(sheet.id)}
+      />
     </>
   );
 }
@@ -120,10 +148,13 @@ export function CostBreakdownPanel({ initial }: Readonly<{ initial: CostSheetDet
 function Figure({
   label,
   value,
+  hint,
   strong = false,
 }: Readonly<{
   label: string;
   value: string;
+  /** One line under the figure, for a number that needs saying what it is. */
+  hint?: string;
   strong?: boolean;
 }>) {
   return (
@@ -135,6 +166,10 @@ function Figure({
       >
         {value}
       </dd>
+      {/* A second <dd>, not a <p>: a <div> inside a <dl> may hold one <dt> and
+          several <dd>, and a stray <p> there is invalid. Matches the programme
+          term panel, which reached the same shape first. */}
+      {hint ? <dd className="text-xs text-muted-foreground">{hint}</dd> : null}
     </div>
   );
 }

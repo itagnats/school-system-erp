@@ -1,6 +1,6 @@
 import "server-only";
 
-import { catalogueGroupTable, costSheetTable } from "@/server/repositories";
+import { catalogueGroupTable, courseCostSheetTable, programCostSheetTable } from "@/server/repositories";
 import { matchesSearch, type ListQueryInput } from "@/server/query";
 import type {
   CatalogueGroupCreateInput,
@@ -8,7 +8,7 @@ import type {
   CatalogueItemCreateInput,
   CatalogueItemUpdateInput,
 } from "@/lib/api/contracts";
-import type { CatalogueGroup, CatalogueItem, CostItem } from "@/types";
+import type { CatalogueGroup, CatalogueItem, CostGroup, CostItem } from "@/types";
 
 /**
  * The master cost catalogue (direction.md §12a).
@@ -127,12 +127,23 @@ export function updateCatalogueGroup(
  * used can be removed cleanly, and one that has been used cannot, because the
  * copies on those sheets would point at nothing.
  */
+/**
+ * Every sheet of either kind, for the in-use counts.
+ *
+ * A catalogue item can be copied onto a course sheet or a programme one, so a
+ * count that looked at only one table would report zero for half the catalogue
+ * and let a used item be deleted (§12a).
+ */
+function allSheets(): { groups: readonly CostGroup[] }[] {
+  return [...courseCostSheetTable, ...programCostSheetTable];
+}
+
 export function sheetsUsingGroup(groupId: string): number {
   const group = getCatalogueGroup(groupId);
   if (!group) return 0;
 
   const itemIds = new Set(group.items.map((item) => item.id));
-  return costSheetTable.filter((sheet) =>
+  return allSheets().filter((sheet) =>
     sheet.groups.some((sheetGroup) =>
       sheetGroup.items.some(
         (item) => item.catalogueItemId && itemIds.has(item.catalogueItemId),
@@ -142,7 +153,7 @@ export function sheetsUsingGroup(groupId: string): number {
 }
 
 export function sheetsUsingItem(itemId: string): number {
-  return costSheetTable.filter((sheet) =>
+  return allSheets().filter((sheet) =>
     sheet.groups.some((group) =>
       group.items.some((item) => item.catalogueItemId === itemId),
     ),
@@ -163,10 +174,6 @@ export function createCatalogueItem(
     kind: input.kind,
     defaultUnitPrice: input.defaultUnitPrice,
     defaultQuantity: input.defaultQuantity,
-    // A direct cost belongs wholly to its course, so its allocation is not a
-    // choice. Accepting one from the client would let a request contradict §12.
-    defaultAllocationPercent:
-      input.kind === "direct" ? 100 : (input.defaultAllocationPercent ?? 25),
     options: [],
     status: "active",
     note: input.note,
@@ -202,10 +209,6 @@ function applyItemUpdate(item: CatalogueItem, input: CatalogueItemUpdateInput): 
     kind,
     defaultUnitPrice: input.defaultUnitPrice ?? item.defaultUnitPrice,
     defaultQuantity: input.defaultQuantity ?? item.defaultQuantity,
-    defaultAllocationPercent:
-      kind === "direct"
-        ? 100
-        : (input.defaultAllocationPercent ?? item.defaultAllocationPercent),
     status: input.status ?? item.status,
     note: input.note ?? item.note,
     updatedAt: WRITE_STAMP,
@@ -254,12 +257,13 @@ export function isBlocked(
  * read out here and becomes the sheet's own; the only thing that survives as a
  * link is the id, and that is for provenance rather than for values.
  *
- * Quantity and allocation may be overridden at the moment of copying, because
- * the catalogue carries defaults rather than truths.
+ * Quantity may be overridden at the moment of copying, because the catalogue
+ * carries defaults rather than truths. There is no allocation to override any
+ * more — a share of the indirect pool is derived from the driver (§13).
  */
 export function copyCatalogueItem(
   source: CatalogueItem,
-  overrides: { quantity?: number; allocationPercent?: number; selectedOptionId?: string },
+  overrides: { quantity?: number; selectedOptionId?: string },
 ): CostItem {
   const selectedOptionId =
     overrides.selectedOptionId ?? source.options[0]?.id ?? undefined;
@@ -270,10 +274,6 @@ export function copyCatalogueItem(
     kind: source.kind,
     unitPrice: source.defaultUnitPrice,
     quantity: overrides.quantity ?? source.defaultQuantity,
-    allocationPercent:
-      source.kind === "direct"
-        ? 100
-        : (overrides.allocationPercent ?? source.defaultAllocationPercent),
     options: source.options.map((option) => ({ ...option })),
     selectedOptionId,
     note: source.note,

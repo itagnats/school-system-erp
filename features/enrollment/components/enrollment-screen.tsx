@@ -12,7 +12,13 @@ import { EmptyState } from "@/components/feedback";
 import { FilterBar, FilterSelect, SearchInput, StatusBadge } from "@/components/shared";
 import { useListTable } from "@/hooks";
 import { routes } from "@/lib/constants";
-import type { EnrollmentListItem, EnrollmentStatus, Option, SemesterCode } from "@/types";
+import type {
+  EnrolmentTermOption,
+  EnrollmentListItem,
+  EnrollmentStatus,
+  Option,
+  SemesterCode,
+} from "@/types";
 import {
   ENROLLMENT_STATUS_LABEL,
   ENROLLMENT_STATUS_OPTIONS,
@@ -20,6 +26,7 @@ import {
   EVALUATION_GROUP_OPTIONS,
 } from "../constants";
 import { useEnrollments } from "../hooks/use-enrollments";
+import { AddStudentDialog } from "./add-student-dialog";
 
 /**
  * The enrollment roster (direction.md §6-8).
@@ -34,16 +41,29 @@ export function EnrollmentScreen({
   courseOptions,
   programOptions,
   semesterOptions,
+  termOptions,
+  locked,
 }: Readonly<{
   courseOptions: Option[];
   programOptions: Option[];
   semesterOptions: SemesterCode[];
+  /** Programme terms currently taking enrolments, for the Add Student dialog. */
+  termOptions: EnrolmentTermOption[];
+  /**
+   * Pins the table to one programme term.
+   *
+   * Set when this is the course-level section of a term page, where the
+   * programme and semester are the page rather than a choice. Their filter
+   * controls come off with them - a control whose value cannot change is
+   * furniture - and so does Add Student, which the page header already owns.
+   */
+  locked?: { programId: string; semesterCode: SemesterCode };
 }>) {
   const table = useListTable({ sort: "student" });
 
-  const programId = table.getFilter("programId");
+  const programId = locked?.programId ?? table.getFilter("programId");
   const courseId = table.getFilter("courseId");
-  const semester = table.getFilter("semester");
+  const semester = locked?.semesterCode ?? table.getFilter("semester");
   const status = table.getFilter("status");
   const groupId = table.getFilter("evaluationGroupId");
 
@@ -60,6 +80,19 @@ export function EnrollmentScreen({
     evaluationGroupId: groupId === "all" ? undefined : groupId,
   });
 
+  /**
+   * The term the filters already point at, if they point at exactly one.
+   *
+   * Enrolment belongs on the programme term page, where the term is in the URL
+   * (direction.md 7a). This screen is the flat roster, so it can still open the
+   * dialog - but when someone has already narrowed to one programme and one
+   * semester, asking them to pick the term again is asking a question they
+   * just answered.
+   */
+  const filteredTermId = termOptions.find(
+    (term) => term.programId === programId && term.semesterCode === semester,
+  )?.id;
+
   const semesterFilterOptions: Option[] = semesterOptions.map((code) => ({
     value: code,
     label: code,
@@ -71,11 +104,20 @@ export function EnrollmentScreen({
         activeCount={table.activeCount}
         onClear={table.clearAll}
         actions={
-          <DataTableViewOptions
-            columns={OPTIONAL_COLUMNS}
-            visibility={table.columnVisibility}
-            onVisibilityChange={table.setColumnVisibility}
-          />
+          <>
+            <DataTableViewOptions
+              columns={OPTIONAL_COLUMNS}
+              visibility={table.columnVisibility}
+              onVisibilityChange={table.setColumnVisibility}
+            />
+            {locked ? null : (
+              <AddStudentDialog
+                terms={termOptions}
+                semesterOptions={semesterOptions}
+                defaultTermId={filteredTermId}
+              />
+            )}
+          </>
         }
       >
         <SearchInput
@@ -85,24 +127,28 @@ export function EnrollmentScreen({
           aria-label="Search enrollments"
           className="w-full max-w-xs"
         />
-        <FilterSelect
-          label="Programme"
-          value={programId}
-          options={programOptions}
-          onValueChange={(value) => table.setFilter("programId", value)}
-        />
+        {locked ? null : (
+          <FilterSelect
+            label="Programme"
+            value={programId}
+            options={programOptions}
+            onValueChange={(value) => table.setFilter("programId", value)}
+          />
+        )}
         <FilterSelect
           label="Course"
           value={courseId}
           options={courseOptions}
           onValueChange={(value) => table.setFilter("courseId", value)}
         />
-        <FilterSelect
-          label="Semester"
-          value={semester}
-          options={semesterFilterOptions}
-          onValueChange={(value) => table.setFilter("semester", value)}
-        />
+        {locked ? null : (
+          <FilterSelect
+            label="Semester"
+            value={semester}
+            options={semesterFilterOptions}
+            onValueChange={(value) => table.setFilter("semester", value)}
+          />
+        )}
         <FilterSelect
           label="Status"
           value={status}

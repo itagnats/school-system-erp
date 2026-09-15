@@ -60,7 +60,11 @@ export const NAVIGATION: NavSection[] = [
     // Cost and billing are the two sides of the money: a sheet says what
     // delivery cost, an invoice says who owes for it (direction.md §13a, §13b).
     items: [
-      { label: "Cost Sheets", href: "/costs", icon: Receipt },
+      // The programme term is where a costing is finished, so it leads
+      // (direction.md 11, revised 2026-09-16). A course sheet is a
+      // contributing part and lists second.
+      { label: "Programme Costs", href: "/costs", icon: Receipt },
+      { label: "Course Costs", href: "/costs/courses", icon: Receipt },
       { label: "Cost Catalogue", href: "/costs/catalogue", icon: Library },
       { label: "Invoices", href: "/invoices", icon: FileSpreadsheet },
     ],

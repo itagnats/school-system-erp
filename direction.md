@@ -339,6 +339,29 @@ Two consequences the UI must respect:
 - a student may still drop an individual course, so a per-course head count is a
   subset of the programme head count and never assumed equal to it.
 
+## One programme at a time
+
+*Added 2026-09-15.*
+
+**A student holds one programme, and one programme term per semester.** This was
+already true of every one of the 635 seeded memberships - never two in a
+semester, and not one student who changes programme - but nothing enforced it,
+so it was a coincidence rather than a rule. It is now checked server-side:
+
+```text
+second programme term in the same semester   409
+a term whose programme is not the student own programme   422
+```
+
+The rule is not bureaucratic tidiness. The invoice is one document per student
+per semester over one package price (13b), and a second package in the same
+semester cannot be represented on it. The multi-term split in the invoice
+service exists for a case this rule makes impossible, which is why it has never
+run against real data.
+
+A **withdrawn** membership is not a conflict. It is the record of somebody who
+left, and enrolling them again is a real act rather than a duplicate.
+
 # 8. Enrollment Status
 
 Use clear enrollment statuses.
@@ -357,6 +380,31 @@ Cancelled
 The current status should be visible from the student list and student detail.
 
 Status changes should provide clear feedback to the user.
+
+## Status is progress, outcome is derived
+
+*Added 2026-09-15.*
+
+A status says **where a student is**, never **how they did**. The two are
+separate fields and one of them is not stored:
+
+```text
+202501   completed   outcome: passed     derived from the grades of that term
+202502   completed   outcome: failed
+202601   active      outcome: -          ongoing, no outcome yet
+202602   pending     outcome: -
+```
+
+Folding the outcome into the status looks tempting and breaks immediately:
+`completed` would have to mean completed **and** passed, and a student who
+finished and failed would have no state to be in. It is the same distinction
+already made for a score - not passed and not yet assessed are different claims
+(22) - and the same rule about derivation: a grade is computed from the score
+and never stored beside it.
+
+A completed term whose courses carry no evaluation derives to **unknown**, not
+to failed. That is the posture 13a already takes for a course with no cost
+sheet, and for the same reason: an absent measurement is not a bad one.
 
 ---
 
@@ -441,33 +489,52 @@ The profile should be separated into logical sections rather than being one gian
 
 ## Purpose
 
-Manage the financial structure associated with delivering a course in a semester.
+Manage the financial structure associated with delivering a programme in a
+semester, and the courses inside it.
 
 The cost-management model can retain the useful hierarchical structure of the real enterprise workflow while using fictional school data.
 
-Example:
+## Two sheets, because there are two kinds of cost
+
+*Revised 2026-09-15. Costing used to sit entirely on the course-semester, and
+a shared cost reached a course through a hand-entered `allocationPercent`. That
+percentage had nothing to be a percentage **of**: the same classroom was copied
+onto every course sheet that used it, each taking whatever share someone typed,
+and no screen ever added them up. Measured across the seed, 82 of 92
+programme-level pools recovered **less** than the cost — median 50% — while 7
+recovered more. Half the shared cost simply vanished, and nothing looked wrong.*
 
 ```text
-Course
-  ↓
-Semester
-  ↓
-Cost Sheet
+Course → Semester → Course Cost Sheet      DIRECT costs only
+                                            lecturer, TA, materials
+                                            belongs wholly to the course
+
+Programme → Programme Term → Programme Cost Sheet    INDIRECT costs only
+                                            classroom, utilities, workshop,
+                                            industry visit
+                                            borne once by the programme,
+                                            distributed across its curriculum
 ```
 
-Example:
+**A direct cost travels with the course.** It is entered once per
+course-semester and is the same whichever programme adds that course, which is
+what "the cost of running IT101" means.
 
-```text
-IT101
-202602
-Cost Sheet
-```
+**An indirect cost is borne once by the programme term** and shared out. Each
+programme term rents its own room, runs its own workshop; there is no
+institution-wide pool above it (considered and rejected — it needs a second
+driver, for splitting the school across programmes, which this demo does not
+need to invent).
+
+A course-semester that belongs to no programme term keeps its direct sheet and
+receives no indirect share. Seven of the fifty-seven sheets are in that
+position, and they are not an error.
 
 ---
 
 # 12. Cost Structure
 
-The cost sheet should support a hierarchy:
+Both sheets share one hierarchy:
 
 ```text
 Cost Sheet
@@ -482,24 +549,35 @@ Cost Sheet
 └── Cost Group
 ```
 
-Example:
+What differs is which items each may hold. **The kind decides the sheet, and the
+sheet does not get a say** — a direct item cannot be put on a programme sheet and
+an indirect one cannot be put on a course sheet. That is the rule the old model
+lacked, and enforcing it is what makes double-counting unrepresentable rather
+than merely detectable.
 
 ```text
-Teaching
-├── Instructor
-├── TA
-└── Guest Lecturer
+COURSE cost sheet — direct only
+  Teaching
+  ├── Instructor
+  ├── TA
+  └── Guest Lecturer
+  Student Activities
+  └── Materials
 
-Facilities
-├── Classroom
-├── Equipment
-└── Laboratory
-
-Student Activities
-├── Materials
-├── Workshop
-└── Field Trip
+PROGRAMME cost sheet — indirect only
+  Facilities
+  ├── Classroom
+  ├── Equipment
+  └── Utilities
+  Student Activities
+  ├── Workshop
+  └── Industry visit
 ```
+
+**`allocationPercent` is gone from the cost item** *(removed 2026-09-15)*. On a
+direct item it was always 100 and meant nothing; on an indirect one it was a
+share of an undefined whole. A share is now **derived** from the driver (§13),
+which is what makes it impossible for the shares not to total 100.
 
 ---
 
@@ -569,28 +647,107 @@ The system should demonstrate meaningful financial calculations.
 
 Support:
 
-- Direct costs
-- Shared / indirect costs
-- Cost allocation
-- Total cost
-- Cost per student
-- Optional markup
+- Direct costs, per course
+- Indirect costs, per programme term
+- Distribution of the indirect pool across the curriculum
+- Total cost, per course and per programme
+- Cost per student, on both bases
+- Optional markup, per programme term
 
-Basic calculation:
+## The calculation
+
+*Revised 2026-09-15.*
 
 ```text
-Direct Costs
-+
-Shared Costs
-=
-Total Course Cost
+per course
+  Direct Costs                                          (its own sheet)
 
-Total Course Cost
-÷
-Number of Students
-=
-Cost per Student
+per programme term
+  Indirect Costs                                        (its own sheet)
+  ÷ distributed by the DRIVER
+  = each course's Indirect Share                        (shares total exactly 100%)
+
+per course, again
+  Direct + Indirect Share          = Subtotal
+  Subtotal × markup                = Markup Amount      (the programme's markup)
+  Subtotal + Markup Amount         = Total Course Cost
+  Total Course Cost ÷ its students = Cost per Student
+  rounded up                       = Preferred Price
+
+per programme term
+  Σ Total Course Cost              = Total Programme Cost
+  ÷ programme enrolment            = Cost per Student, programme basis
 ```
+
+Both per-student figures are shown, because they answer different questions. The
+per-course one says which course is expensive to run. The **programme** one is
+the figure that can be set beside the package price, since a package is sold per
+student for the whole curriculum.
+
+## The driver
+
+The indirect pool is distributed by **credit hours**, and the share is derived,
+never entered:
+
+```text
+this course's credits
+───────────────────  ×  indirect pool   =  this course's share
+credits in the term
+```
+
+**Credits rather than contact hours.** Contact hours were the obvious
+alternative and are unusable here: measured against the seed, the lecturer-hours
+quantity has medians of 40, 43 and 43 for 2-, 3- and 4-credit courses. A
+2-credit course carries the same hours as a 4-credit one, because that quantity
+is generator jitter. Distributing by it would distribute by a random number that
+looks principled. Credits vary in 16 of the 19 programme terms, so the driver
+does real work; the other 3 are genuine ties, which split evenly and correctly.
+
+`CostDriver` is a union with one member today. Adding contact hours later means
+first making hours mean something in the data — at which point the two drivers
+would give nearly the same answer, which is the point.
+
+**The distribution is exact.** The shares are allocated by largest remainder to
+two decimals, so the parts sum to the pool to the satang. Rounding each share
+independently would leak a few satang out of every programme, and a cost that
+leaks is the failure this whole revision exists to remove.
+
+**A markup is one number per programme term**, applied to each course's subtotal
+after its share lands. Per-course markups would leave the programme total
+depending on several numbers that no screen adds up — the same shape of problem
+as the old allocation percentages.
+
+## Preferred price
+
+*Added 2026-09-15, after the user walked the cost sheet.*
+
+Cost per student is a **measurement**. It comes out as 4,988 or 4,201.11, and
+nothing is sold at those numbers — 1 of the 57 seeded sheets lands on a round
+hundred. The **preferred price** is the figure beside it that could actually be
+charged:
+
+```text
+Cost per Student
+rounded UP
+to the sheet's rounding step
+=
+Preferred Price     (and the difference is stated, not absorbed)
+```
+
+**Up, never to nearest.** 4,201.11 is closer to 4,000, and 4,000 would price a
+course below what it costs to run — the one outcome this figure exists to
+prevent.
+
+The **step is per sheet**, defaulting to 1,000, because a one-day workshop and a
+laboratory course do not round alike. It sits with markup and head count as the
+third input the derived figures depend on, and the server recomputes all of them.
+
+The uplift is reported **beside** the price rather than folded into it. It is
+margin the rounding created, not margin anyone chose, and collapsing the two
+would make the markup percentage a lie.
+
+Null, never zero: a sheet with no students has no cost per student, and so has
+no price to imply.
 
 The UI should make calculations understandable instead of hiding the business logic.
 

@@ -36,6 +36,19 @@ export const queryKeys = {
     list: (filters?: unknown) => ["costs", "list", filters ?? null] as const,
     detail: (id: string) => ["costs", "detail", id] as const,
   },
+  /**
+   * Programme cost sheets, keyed by the programme term.
+   *
+   * A separate group from `costs`: the two sheets are different records with
+   * different shapes, and one key space would let a course detail and a
+   * programme detail overwrite each other in the cache.
+   */
+  programCosts: {
+    all: ["program-costs"] as const,
+    list: (filters?: unknown) => ["program-costs", "list", filters ?? null] as const,
+    detail: (programTermId: string) =>
+      ["program-costs", "detail", programTermId] as const,
+  },
   catalogue: {
     all: ["catalogue"] as const,
     list: (filters?: unknown) => ["catalogue", "list", filters ?? null] as const,

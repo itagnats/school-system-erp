@@ -18,7 +18,7 @@ import {
   updateCostSheet,
   updateSheetItem,
 } from "../services/cost-service";
-import type { CostSheetDetailResponse, CostSheetRow } from "../types";
+import type { CostSheetRow } from "../types";
 import type { PaginatedResult } from "@/types";
 
 /**
@@ -78,13 +78,23 @@ const ACTION_MESSAGE: Record<SheetContentAction["kind"], string> = {
   "remove-item": "Line removed",
 };
 
-export function useSheetContents(costSheetId: string) {
+export function useSheetContents(
+  costSheetId: string,
+  /**
+   * Where the recomputed detail lands.
+   *
+   * Passed in rather than derived, because the same five writes serve a course
+   * sheet and a programme one and the two live in different key spaces. A
+   * single key space would let a programme detail overwrite a course detail.
+   */
+  detailKey: readonly unknown[] = queryKeys.costs.detail(costSheetId),
+) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (action: SheetContentAction) => runAction(costSheetId, action),
     onSuccess: (detail, action) => {
-      queryClient.setQueryData(queryKeys.costs.detail(costSheetId), detail);
+      queryClient.setQueryData(detailKey, detail);
       patchCachedRows(queryClient, costSheetId, detail);
       toast.success(ACTION_MESSAGE[action.kind]);
     },
@@ -108,8 +118,10 @@ export function useSheetContents(costSheetId: string) {
 function patchCachedRows(
   queryClient: QueryClient,
   costSheetId: string,
-  detail: CostSheetDetailResponse,
+  detail: { breakdown: { totalCost: number; costPerStudent: number | null; studentCount: number } },
 ) {
+  // A programme sheet id matches no row in the course list, so this is a
+  // harmless no-op for one rather than something to branch on.
   queryClient.setQueriesData<PaginatedResult<CostSheetRow>>(
     { queryKey: queryKeys.costs.all },
     (cached) =>
