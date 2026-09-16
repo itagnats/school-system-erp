@@ -74,3 +74,22 @@ export interface StudentListFilters {
   program?: string | "all";
   yearLevel?: number | "all";
 }
+
+/**
+ * One programme term a student has held a place in (direction.md 7a, 9).
+ *
+ * The profile shows enrolment history at **programme** grain, not course
+ * grain: a student joins a programme term and the course enrollments follow,
+ * so one row per term is the history a person recognises. The semester supplies
+ * the dates, because a term is a period rather than a label.
+ */
+export interface StudentProgramTerm {
+  programEnrollmentId: string;
+  programTermId?: string;
+  programCode: string;
+  programName: string;
+  semesterCode: string;
+  status: "pending" | "active" | "completed" | "withdrawn";
+  startDate: string;
+  endDate: string;
+}

@@ -1,4 +1,6 @@
 import { mockCatalogueGroups } from "@/data/mock/cost-catalog";
+import { mockQuestionGroups } from "@/data/mock/questions";
+import { questionsForRelation } from "@/lib/calculations";
 import { mockCourseCostSheets, mockProgramCostSheets } from "@/data/mock/costs";
 import { mockCourses } from "@/data/mock/courses";
 import { mockEnrollments } from "@/data/mock/enrollments";
@@ -49,6 +51,7 @@ import type {
   ProgramEnrollment,
   ProgramTerm,
   ProgramTermStatus,
+  QuestionGroup,
   Semester,
   SemesterStatus,
   Student,
@@ -855,7 +858,11 @@ function generateEvaluationSetups(
     });
   }
 
-  return setups;
+  // Every setup carries COPIES of the bank questions for the criteria it asks
+  // (direction.md 18a). Applied here rather than inside the loop so the
+  // hand-written setups get them too - otherwise the rule would hold for
+  // generated evaluations and silently not for the three in data/mock.
+  return setups.map(withCopiedQuestions);
 }
 
 /**
@@ -880,6 +887,31 @@ function pickBlend(rng: Random): readonly AssesseeConfig[] {
  * used, so every branch fell through and thirty of forty-one setups came out as
  * drafts - a table where almost nothing was configured.
  */
+/**
+ * Snapshot the bank onto one setup.
+ *
+ * The copy is taken by `questionsForRelation`, which the server also calls -
+ * one implementation, so a seeded evaluation and a written one cannot disagree
+ * about what a relation was asked. `criteria` still decides what is scored; the
+ * copies carry the wording.
+ */
+function withCopiedQuestions(setup: EvaluationSetup): EvaluationSetup {
+  return {
+    ...setup,
+    assessees: setup.assessees.map((assessee) => ({
+      ...assessee,
+      assessors: assessee.assessors.map((assessor) => ({
+        ...assessor,
+        questions: questionsForRelation(
+          mockQuestionGroups,
+          assessee.role,
+          assessor.criteria,
+        ),
+      })),
+    })),
+  };
+}
+
 function windowStatusFor(rng: Random, semesterStatus?: SemesterStatus): EvaluationWindowStatus {
   if (semesterStatus === "closed") {
     return rng.chance(0.75) ? "published" : "closed";
@@ -1172,6 +1204,7 @@ export interface Dataset {
   evaluationSetups: EvaluationSetup[];
   invoices: Invoice[];
   catalogueGroups: CatalogueGroup[];
+  questionGroups: QuestionGroup[];
 }
 
 /** Fixed seed. Changing it changes every generated row. */
@@ -1195,6 +1228,9 @@ export function generateDataset(): Dataset {
   const evaluationGroups = grouped.groups;
   const evaluationSetups = generateEvaluationSetups(rng, evaluationGroups, courses, semesters);
   const catalogueGroups = [...mockCatalogueGroups];
+  // Hand-written master data, like the catalogue: taken through as written
+  // rather than generated, because these are the words evaluators read.
+  const questionGroups = [...mockQuestionGroups];
   const courseCostSheets = generateCourseCostSheets(
     rng,
     courses,
@@ -1229,5 +1265,6 @@ export function generateDataset(): Dataset {
     evaluationSetups,
     invoices,
     catalogueGroups,
+    questionGroups,
   };
 }

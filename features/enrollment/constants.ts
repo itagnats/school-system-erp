@@ -73,3 +73,25 @@ export const TERM_STATUS_LABEL: Record<ProgramTermStatus, string> = {
 export const TERM_STATUS_OPTIONS: Option<ProgramTermStatus>[] = (
   ["planning", "open", "closed"] as const
 ).map((value) => ({ value, label: TERM_STATUS_LABEL[value] }));
+
+/**
+ * Programme membership status (direction.md 8).
+ *
+ * A different union from the course enrollment status above - four values
+ * against six - because they answer different questions: where a student is on
+ * the programme, and what happened to one of its courses. A status says where
+ * somebody is, never how they did.
+ */
+export const MEMBERSHIP_LABEL: Record<string, string> = {
+  pending: "Pending",
+  active: "Active",
+  completed: "Completed",
+  withdrawn: "Withdrawn",
+};
+
+export const MEMBERSHIP_TONE: Record<string, StatusTone> = {
+  pending: "warning",
+  active: "success",
+  completed: "info",
+  withdrawn: "error",
+};

@@ -2,14 +2,16 @@
 
 import { useState } from "react";
 import { Lock, LockOpen } from "lucide-react";
-import { Section, StatusBadge } from "@/components/shared";
-import { Button } from "@/components/ui/button";
+import { Section } from "@/components/shared";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { HttpError } from "@/lib/api";
 import {
   addAssessee,
+  formReadiness,
+  maxAssesseeShare,
   removeAssessee,
   setAssessorCriteria,
   setAssessorEnabled,
@@ -17,7 +19,6 @@ import {
   setAssessorWeight,
   unbalancedAssessees,
 } from "@/lib/calculations";
-import { formatDate } from "@/lib/utils";
 import { DEFAULT_ASSESSEE_CONFIG } from "@/config/app";
 import { EVALUATION_CRITERIA, EVALUATION_ROLES } from "@/types";
 import type {
@@ -26,12 +27,13 @@ import type {
   EvaluationSetupDetail,
   EvaluationWindowStatus,
 } from "@/types";
-import { ASSESSEE_ROLE_LABEL, WINDOW_STATUS_LABEL, WINDOW_STATUS_TONE } from "../constants";
 import { useUpdateEvaluationSetup } from "../hooks/use-evaluation-setups";
 import { AssesseesPanel } from "./assessees-panel";
+import { GroupList } from "./group-list";
+import { SetupSummaryBar } from "./setup-summary-bar";
 
 /**
- * One evaluation, configured (direction.md §14-20).
+ * One evaluation, configured (direction.md §14-20, §15a).
  *
  * Server-rendered data arrives as `initial`, and the screen becomes interactive
  * only for the settings that change what the score means. Everything derived -
@@ -39,16 +41,32 @@ import { AssesseesPanel } from "./assessees-panel";
  * ready - comes back recomputed from the server rather than being recalculated
  * in the browser.
  *
+ * ## Three zones, one Save
+ *
+ * The page used to be one stack of unrelated decisions: a name beside four
+ * dates that could not be edited, a lock, a blend, and a group list. It now
+ * reads in the order the work happens - **what and when** (this evaluation, its
+ * window, what evaluators are told), **who is assessed** (the cards), **who is
+ * in it** (the groups) - with a summary bar above them answering the question
+ * the list screen asks: is this ready.
+ *
  * The draft lives here rather than in each panel so that Save is one action
  * over one payload. A per-field save would let someone leave the blend
  * unbalanced between two requests, and an unbalanced blend is the one mistake
  * on this screen that nothing downstream would catch.
+ *
+ * **The window status is not in that draft.** Opening or closing an evaluation
+ * is an act with consequences for other people, not a field that waits for
+ * Save, so it goes over its own request and the server checks the move against
+ * `EVALUATION_WINDOW_TRANSITIONS`.
  */
 export function EvaluationSetupScreen({
   initial,
 }: Readonly<{ initial: EvaluationSetupDetail }>) {
   const mutation = useUpdateEvaluationSetup(initial.setup.id);
-  const detail = mutation.data ?? initial;
+  const statusMutation = useUpdateEvaluationSetup(initial.setup.id);
+  // Whichever wrote last is the live setup; both write the same cache entry.
+  const detail = statusMutation.data ?? mutation.data ?? initial;
   const { setup } = detail;
 
   const [draft, setDraft] = useState<Draft>(() => toDraft(detail));
@@ -59,13 +77,24 @@ export function EvaluationSetupScreen({
   const [baseline, setBaseline] = useState(() => JSON.stringify(toDraft(detail)));
   const dirty = JSON.stringify(draft) !== baseline;
 
+  /** Which assessee card is open. Held here so an error can open one. */
+  const [openRole, setOpenRole] = useState<EvaluationRole | null>(null);
+
   // Every assessee's blend has to balance, not just one: a setup with a sound
   // student card and a broken teacher card is still unsavable.
   const unbalanced = unbalancedAssessees(draft.assessees);
   const locked = setup.editingLocked;
 
-  const fieldErrors =
-    mutation.error instanceof HttpError ? mutation.error.fieldErrors : undefined;
+  // Readiness is read from the saved setup rather than the draft. "Ready" is a
+  // claim about what evaluators would meet, and an unsaved edit has not reached
+  // them - the same derivation the list screen renders, so the two agree.
+  const readinessInput = {
+    assesseeCount: setup.assessees.length,
+    groupCount: detail.groups.length,
+    isDraft: setup.status === "draft",
+  };
+
+  const fieldErrors = readFieldErrors(mutation.error) ?? readFieldErrors(statusMutation.error);
 
   function editAssessees(next: AssesseeConfig[]) {
     setDraft((current) => ({ ...current, assessees: next }));
@@ -76,8 +105,10 @@ export function EvaluationSetupScreen({
       {
         name: draft.name,
         shortName: draft.shortName,
-        status: draft.status,
         editingLocked: draft.editingLocked,
+        opensOn: draft.opensOn,
+        closesOn: draft.closesOn,
+        reportDate: draft.reportDate,
         guidance: draft.guidance,
         assessees: draft.assessees,
       },
@@ -91,30 +122,51 @@ export function EvaluationSetupScreen({
     );
   }
 
+  function changeStatus(status: EvaluationWindowStatus) {
+    statusMutation.mutate(
+      { status },
+      {
+        onSuccess: (saved) => {
+          // The window can move the lock and the dates nowhere, but rebasing
+          // keeps the draft and the live setup from drifting apart.
+          const next = toDraft(saved);
+          setDraft(next);
+          setBaseline(JSON.stringify(next));
+        },
+      },
+    );
+  }
+
   return (
     <div className="grid gap-4">
+      <SetupSummaryBar
+        status={setup.status}
+        opensOn={setup.opensOn}
+        closesOn={setup.closesOn}
+        reportDate={setup.reportDate}
+        threeSixtyForm={formReadiness({
+          ...readinessInput,
+          sharePercent: maxAssesseeShare(setup.assessees, (w) => w.effective360Percent),
+        })}
+        rankingForm={formReadiness({
+          ...readinessInput,
+          sharePercent: maxAssesseeShare(setup.assessees, (w) => w.effectiveRankingPercent),
+        })}
+        unbalanced={unbalanced}
+        ungroupedCount={detail.ungroupedCount}
+        groupCount={detail.groups.length}
+        dirty={dirty}
+        saving={mutation.isPending}
+        statusPending={statusMutation.isPending}
+        onSave={save}
+        onStatusChange={changeStatus}
+        onShowAssessee={setOpenRole}
+      />
+
       <Section
-        title="Evaluation info"
-        description="What this evaluation is called, when it runs, and whether its settings can still change."
+        title="This evaluation"
+        description="What it is called, when it runs, and what evaluators are told before they start."
         decor
-        actions={
-          <div className="flex items-center gap-2">
-            <StatusBadge
-              tone={WINDOW_STATUS_TONE[setup.status]}
-              label={WINDOW_STATUS_LABEL[setup.status]}
-            />
-            <Button
-              size="sm"
-              onClick={save}
-              // An unbalanced blend is refused here as well as on the server.
-              // Locking does not block Save, because unlocking is itself a save.
-              disabled={!dirty || unbalanced.length > 0}
-              loading={mutation.isPending}
-            >
-              Save changes
-            </Button>
-          </div>
-        }
       >
         <div className="grid gap-3 sm:grid-cols-2">
           <Field
@@ -138,16 +190,74 @@ export function EvaluationSetupScreen({
           />
         </div>
 
-        <dl className="mt-4 grid gap-3 rounded-lg border border-hairline bg-surface-sunken px-3.5 py-2.5 sm:grid-cols-4">
-          <Readout label="Course" value={`${detail.courseCode} · ${setup.semesterCode}`} />
-          <Readout label="Opens" value={formatDate(setup.opensOn)} />
-          <Readout label="Closes" value={formatDate(setup.closesOn)} />
-          <Readout label="Reports available" value={formatDate(setup.reportDate)} />
-        </dl>
+        {/* The window was three readouts sitting beside two editable fields,
+            which reads as editable and was not. The server checks the order of
+            these three against the stored setup, so a date that would close an
+            evaluation before it opens comes back as a field error. */}
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <Field
+            id="evaluation-opens-on"
+            type="date"
+            label="Opens"
+            value={draft.opensOn}
+            error={fieldErrors?.opensOn}
+            disabled={locked}
+            onValueChange={(value) => setDraft((current) => ({ ...current, opensOn: value }))}
+          />
+          <Field
+            id="evaluation-closes-on"
+            type="date"
+            label="Closes"
+            value={draft.closesOn}
+            error={fieldErrors?.closesOn}
+            disabled={locked}
+            onValueChange={(value) => setDraft((current) => ({ ...current, closesOn: value }))}
+          />
+          <Field
+            id="evaluation-report-date"
+            type="date"
+            label="Reports available"
+            hint="On or after the day it closes"
+            value={draft.reportDate}
+            error={fieldErrors?.reportDate}
+            disabled={locked}
+            onValueChange={(value) =>
+              setDraft((current) => ({ ...current, reportDate: value }))
+            }
+          />
+        </div>
+
+        <div className="mt-3">
+          <Label htmlFor="evaluation-guidance">Guidance for evaluators</Label>
+          <Textarea
+            id="evaluation-guidance"
+            value={draft.guidance}
+            disabled={locked}
+            rows={3}
+            aria-invalid={fieldErrors?.guidance ? true : undefined}
+            aria-describedby={
+              fieldErrors?.guidance ? "evaluation-guidance-error" : "evaluation-guidance-hint"
+            }
+            placeholder="What to weigh up, and what to leave out."
+            onChange={(event) =>
+              setDraft((current) => ({ ...current, guidance: event.target.value }))
+            }
+            className="mt-1"
+          />
+          <FieldNote
+            id="evaluation-guidance"
+            error={fieldErrors?.guidance}
+            hint="Shown beside every form in this evaluation. It was already stored and sent on save, but there was nowhere to write it."
+          />
+        </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3">
           <Readout label="Rating scale" value={`1 to ${setup.scaleMax}`} />
-          <Readout label="Students" value={`${detail.memberCount} in ${detail.groups.length} groups`} />
+          <Readout label="Course" value={`${detail.courseCode} · ${setup.semesterCode}`} />
+          <Readout
+            label="Students"
+            value={`${detail.memberCount} in ${detail.groups.length} groups`}
+          />
           <div className="flex items-center gap-2">
             <Switch
               id="editing-locked"
@@ -182,23 +292,15 @@ export function EvaluationSetupScreen({
         ) : null}
       </Section>
 
-      {unbalanced.length > 0 ? (
-        <p className="text-xs text-error" role="alert">
-          {unbalanced.map((role) => ASSESSEE_ROLE_LABEL[role]).join(", ")}
-          {unbalanced.length === 1 ? " has" : " have"} assessor weights that do not
-          total 100%. Each assessee is blended on its own, so a card has to
-          balance before it can be saved.
-        </p>
-      ) : null}
-
       {/* The cards edit the draft; their counts come from the saved detail,
           which is why an unsaved new card shows no assessor counts yet. */}
       <AssesseesPanel
         assessees={draft.assessees}
         summaries={detail.assessees}
-        groups={detail.groups}
-        ungroupedCount={detail.ungroupedCount}
         disabled={locked}
+        openRole={openRole}
+        onOpenRoleChange={setOpenRole}
+        unbalanced={unbalanced}
         onWeightChange={(assessee, assessor, percent) =>
           editAssessees(setAssessorWeight(draft.assessees, assessee, assessor, percent))
         }
@@ -244,6 +346,12 @@ export function EvaluationSetupScreen({
         }
       />
 
+      <Section
+        title="Evaluation groups"
+        description="Peer assessment happens inside a group, and an inspector is drawn from the next one along. Membership is set with the cohort, not here."
+      >
+        <GroupList groups={detail.groups} ungroupedCount={detail.ungroupedCount} />
+      </Section>
     </div>
   );
 }
@@ -251,8 +359,11 @@ export function EvaluationSetupScreen({
 interface Draft {
   name: string;
   shortName: string;
-  status: EvaluationWindowStatus;
   editingLocked: boolean;
+  /** Date parts, which is what a date input reads and writes. */
+  opensOn: string;
+  closesOn: string;
+  reportDate: string;
   guidance: string;
   assessees: AssesseeConfig[];
 }
@@ -262,8 +373,10 @@ function toDraft(detail: EvaluationSetupDetail): Draft {
   return {
     name: setup.name,
     shortName: setup.shortName,
-    status: setup.status,
     editingLocked: setup.editingLocked,
+    opensOn: dayOf(setup.opensOn),
+    closesOn: dayOf(setup.closesOn),
+    reportDate: dayOf(setup.reportDate),
     guidance: setup.guidance,
     // Two levels of array, so a shallow spread would have the draft and the
     // server response sharing one assessor list and one question set.
@@ -274,10 +387,20 @@ function toDraft(detail: EvaluationSetupDetail): Draft {
   };
 }
 
+/** The store holds UTC midnight; a date input wants the day on its own. */
+function dayOf(iso: string): string {
+  return iso.slice(0, 10);
+}
+
+function readFieldErrors(error: unknown): Record<string, string> | undefined {
+  return error instanceof HttpError ? error.fieldErrors : undefined;
+}
+
 function Field({
   id,
   label,
   hint,
+  type = "text",
   value,
   error,
   disabled,
@@ -286,6 +409,7 @@ function Field({
   id: string;
   label: string;
   hint?: string;
+  type?: "text" | "date";
   value: string;
   error?: string;
   disabled: boolean;
@@ -298,6 +422,7 @@ function Field({
       <Label htmlFor={id}>{label}</Label>
       <Input
         id={id}
+        type={type}
         value={value}
         disabled={disabled}
         aria-invalid={error ? true : undefined}
@@ -338,11 +463,13 @@ function FieldNote({
   return null;
 }
 
+/** A stated setting that is not editable here. Plain markup: these no longer
+ *  sit inside a description list, and a lone dt is not one. */
 function Readout({ label, value }: Readonly<{ label: string; value: string }>) {
   return (
     <div className="min-w-0">
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="truncate text-sm font-medium text-foreground">{value}</dd>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="truncate text-sm font-medium text-foreground">{value}</p>
     </div>
   );
 }

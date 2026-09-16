@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { programTermUpdateSchema } from "@/lib/api/contracts";
-import { handleItem, jsonError, notFound } from "@/server/http";
-import { getProgramTerm, updateProgramTerm } from "@/server/services";
+import { handleItem, handleRemoval, jsonError, notFound } from "@/server/http";
+import { deleteProgramTerm, getProgramTerm, updateProgramTerm } from "@/server/services";
 import { parseBody, readJson } from "@/server/validation";
 
 /** GET /api/programs/:programTermId - curriculum, roster and the profit working. */
@@ -35,4 +35,18 @@ export async function PATCH(
   if (!updated) return notFound("Programme term");
 
   return NextResponse.json(updated);
+}
+
+/**
+ * DELETE /api/programs/:programTermId
+ *
+ * Refused while the term has members or an invoice names it. A term in
+ * `planning` with nobody in it is the case this exists for.
+ */
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ programTermId: string }> },
+) {
+  const { programTermId } = await params;
+  return handleRemoval(deleteProgramTerm(programTermId), "Programme term");
 }

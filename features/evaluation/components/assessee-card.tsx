@@ -1,7 +1,8 @@
 "use client";
 
-import { ArrowLeft, ChevronDown, Lock, Trash2, TriangleAlert } from "lucide-react";
-import { StatusBadge } from "@/components/shared";
+import { useState } from "react";
+import { ChevronDown, Lock, Trash2, TriangleAlert } from "lucide-react";
+import { ConfirmDialog, StatusBadge } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,6 +43,7 @@ export function AssesseeCard({
   config,
   summary,
   expanded,
+  balanced,
   disabled,
   onToggleExpanded,
   onWeightChange,
@@ -54,6 +56,8 @@ export function AssesseeCard({
   /** Server-computed counts. Absent for a card added but not yet saved. */
   summary?: AssesseeSummary;
   expanded: boolean;
+  /** Whether this card's own blend totals 100. Shown on the card, not only above it. */
+  balanced: boolean;
   disabled: boolean;
   onToggleExpanded: () => void;
   onWeightChange: (assessor: EvaluationRole, percent: number) => void;
@@ -67,8 +71,20 @@ export function AssesseeCard({
   const active = config.assessors.filter((assessor) => assessor.enabled);
   const bodyId = `assessee-${config.role}-detail`;
 
+  // Removing a card discards its weights and every question set on it, and the
+  // only way back is Use defaults, which discards the other cards too. That is
+  // enough loss to ask first.
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
+
   return (
-    <li className="overflow-hidden rounded-lg border border-hairline bg-card shadow-xs">
+    <li
+      className={cn(
+        "overflow-hidden rounded-lg border bg-card shadow-xs",
+        // The card carries its own error, so a collapsed list shows which one
+        // to open rather than only that something is wrong somewhere.
+        balanced ? "border-hairline" : "border-error/40",
+      )}
+    >
       <div className="flex items-center gap-2 px-2 py-2">
         <button
           type="button"
@@ -87,10 +103,11 @@ export function AssesseeCard({
 
           <span className="shrink-0 text-sm font-medium text-foreground">{label}</span>
 
-          {/* Who assesses this role, at a glance. The arrow points at the
-              assessors, which is the direction people read backwards. */}
-          <ArrowLeft aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
+          {/* Who assesses this role, at a glance. The word, not an arrow: a
+              glyph pointing backwards asked the reader to learn a convention
+              to read a sentence two characters could state. */}
           <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+            assessed by{" "}
             {active.length === 0
               ? "nobody yet"
               : active.map((a) => EVALUATION_ROLE_LABEL[a.role]).join(" · ")}
@@ -115,7 +132,7 @@ export function AssesseeCard({
             size="icon"
             variant="ghost"
             disabled={disabled}
-            onClick={onRemove}
+            onClick={() => setConfirmingRemove(true)}
             aria-label={`Stop assessing the ${label}`}
           >
             <Trash2 aria-hidden className="size-4" />
@@ -177,6 +194,19 @@ export function AssesseeCard({
           </p>
         </div>
       ) : null}
+
+      <ConfirmDialog
+        open={confirmingRemove}
+        onOpenChange={setConfirmingRemove}
+        title={`Stop assessing the ${label}?`}
+        description={`This card's assessor weights and question sets go with it. Nothing is saved until you save the setup, so the ${label} can be added back — but it comes back with the defaults, not with what was here.`}
+        confirmLabel={`Remove ${label}`}
+        tone="destructive"
+        onConfirm={() => {
+          setConfirmingRemove(false);
+          onRemove();
+        }}
+      />
     </li>
   );
 }
@@ -233,14 +263,19 @@ function AssessorRow({
           <>
             <PercentField
               id={`${rowId}-weight`}
-              label="Weight"
+              suffix="of score"
+              label={`Weight: what the ${label} contributes to the ${assesseeLabel} score`}
               value={assessor.weightPercent}
               disabled={disabled}
               onValueChange={(value) => onWeightChange(assessor.role, value)}
             />
+            {/* Named "of that" rather than "ranked" because it is a share of the
+                row's own weight, not a second share of the score - which is the
+                single most misread number on this screen (§20). */}
             <PercentField
               id={`${rowId}-ranking`}
-              label="Ranked"
+              suffix="of that, ranked"
+              label={`Of the ${label} weight, how much comes from the ordering rather than the 360 form`}
               value={assessor.rankingSharePercent}
               disabled={disabled}
               onValueChange={(value) => onRankingShareChange(assessor.role, value)}
@@ -293,12 +328,16 @@ function AssessorRow({
 function PercentField({
   id,
   label,
+  suffix,
   value,
   disabled,
   onValueChange,
 }: Readonly<{
   id: string;
+  /** The full sentence, for the accessible name. */
   label: string;
+  /** The two or three words shown beside the field. */
+  suffix: string;
   value: number;
   disabled: boolean;
   onValueChange: (value: number) => void;
@@ -321,8 +360,8 @@ function PercentField({
         className="h-(--control-h-sm) w-16 text-right"
         data-numeric
       />
-      <span aria-hidden className="w-12 text-[10px] leading-tight text-muted-foreground">
-        % {label.toLowerCase()}
+      <span aria-hidden className="w-14 text-[10px] leading-tight text-muted-foreground">
+        % {suffix}
       </span>
     </div>
   );

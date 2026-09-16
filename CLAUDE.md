@@ -130,7 +130,7 @@ grep -rn 'from "@/features/' features/    # expect exactly the two above
 ```
 
 Domains: `programs`, `courses`, `semesters`, `enrollment`, `students`, `costs`,
-`cost-catalogue`, `invoices`, `evaluation`, `reports`, `dashboard`.
+`cost-catalogue`, `invoices`, `evaluation`, `question-bank`, `reports`, `dashboard`.
 
 ### Data flow
 
@@ -292,6 +292,20 @@ narrower set again, because what a student is asked about a peer is not what
 they are asked about their teacher. Held on `AssessorConfig.criteria`. An
 assessor weighted for the 360 form with an **empty** set is rejected
 server-side: the blend can total 100 and still be unable to produce a score.
+
+**The question bank is the wording** (`direction.md` §18a, added 2026-09-16).
+A criterion is a scoring dimension; a question is how somebody is asked about
+one. Master questions live in `question-bank` and are maintained at
+`/evaluation/manage/questions`; each carries a `prompt`, `helpText`, a type of
+`rating` or `text`, and the assessee roles it can be asked about. **A setup
+copies them** — `copyQuestion` / `questionsForRelation` in
+`lib/calculations/question.ts` is the only implementation, shared by the seed
+and the server, and a question a setup has copied returns **409** on delete.
+Two rules hold the line: a rated question must feed a criterion and a written
+one must not, both enforced server-side; and a question is *wording over a
+criterion*, never a new scoring dimension — adding a dimension means changing
+the canonical seven in §18 deliberately. Written answers are never scored and
+reach the report's feedback section by role.
 
 **How they combine was decided 2026-09-06** (`direction.md` §20): an ordering is
 **a share of each role's own weight**, not a fifth evaluator. Each role holds one

@@ -1,5 +1,6 @@
 import { api, apiPath } from "@/lib/api";
 import { studentListSchema } from "@/lib/api/contracts";
+import type { StudentUpdateInput } from "@/lib/api/contracts";
 import type { PaginatedResult, Student, StudentSummary } from "@/types";
 import type { StudentQueryParams } from "../types";
 
@@ -17,4 +18,18 @@ export async function fetchStudents(
  */
 export async function fetchStudent(studentId: string): Promise<Student> {
   return api.get<Student>(apiPath("students", studentId));
+}
+
+/**
+ * Save one profile section (direction.md 10).
+ *
+ * The response is the whole profile as it would have been saved, which is what
+ * lets the screen swap the section back to its view with the values the server
+ * settled on rather than the ones the form happened to hold.
+ */
+export async function updateStudent(
+  studentId: string,
+  input: StudentUpdateInput,
+): Promise<Student> {
+  return api.patch<Student>(apiPath("students", studentId), { body: input });
 }

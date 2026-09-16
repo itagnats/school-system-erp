@@ -163,20 +163,34 @@ the two can never disagree about who is on what.
 **The evaluation chain** is documented in full in
 [evaluation-model.md](evaluation-model.md).
 
-**The cost chain** is one visible formula:
+**The cost chain** is two sheets that meet (revised 2026-09-15, direction.md
+§11-13). A course bears its **direct** costs; a programme term bears its
+**indirect** ones once and shares them across its curriculum:
 
 ```
-Direct costs + Shared costs = Total course cost
-Total course cost ÷ Number of students = Cost per student
+per course     Direct costs                            (its own sheet)
+per term       Indirect costs                          (its own sheet)
+               distributed by credit hours             (shares total 100%)
+per course     Direct + Share = Subtotal, + markup = Total Course Cost
+               ÷ its students              = Cost per Student
+per term       Σ Total Course Cost          = Total Programme Cost
+               ÷ programme enrolment        = Cost per Student, programme basis
+               rounded up                   = Preferred Price
 ```
 
-with allocation and an optional markup. **The programme chain adds the other
-half of the sum:**
+The share is **derived**, never entered, which is what makes it impossible for
+the shares not to total 100. The old model let each course type a percentage of
+an undefined whole, and 82 of 92 pools recovered less than the cost.
+
+**The programme chain adds the other half of the sum** (revised 2026-09-12,
+§13a — revenue is invoiced, not implied):
 
 ```
-Package price × Enrolled students = Revenue
+Package price × Enrolled students = List revenue     (what the price implies)
+Σ billed invoice totals           = Revenue
+  of which paid                   = Collected
 Σ (course cost per student × programme head count on that course) = Cost
-Revenue − Cost = Net profit
+Collected − Cost                  = Net profit
 ```
 
 Cost is attributed per student rather than per sheet, because a course taught

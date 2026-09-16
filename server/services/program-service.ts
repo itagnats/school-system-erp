@@ -6,10 +6,12 @@ import {
   enrollmentTable,
   programEnrollmentTable,
   programTable,
+  invoiceTable,
   programTermTable,
   studentTable,
 } from "@/server/repositories";
 import { matchesSearch, paginate, sortRows, type ListQueryInput } from "@/server/query";
+import type { RemovalResult } from "@/server/http";
 import { programCostBreakdownFor } from "./cost-service";
 import { invoicedRevenueForTerm } from "./invoice-service";
 import { toSummary } from "./student-service";
@@ -316,4 +318,57 @@ export function openProgramTermOptions(): EnrolmentTermOption[] {
         ? a.programCode.localeCompare(b.programCode)
         : a.semesterCode.localeCompare(b.semesterCode),
     );
+}
+
+/**
+ * How many programme memberships exist, withdrawn ones included.
+ *
+ * A plain count rather than a list: the system guide needs the size of the
+ * table and nothing in it, and paginating a list to read `total` would be a
+ * query built to be thrown away. Withdrawn rows count here because this is the
+ * shape of the data, not a roster — `studentIdsInTerm` is the one that excludes
+ * them, and it is about who is on a course.
+ */
+export function programEnrollmentCount(): number {
+  return programEnrollmentTable.length;
+}
+
+/**
+ * Remove a programme term (decided 2026-09-16).
+ *
+ * Refused while anyone is a member or an invoice bills it. A term is what a
+ * package was sold as, so deleting one that has been billed would leave an
+ * invoice describing a curriculum nobody can look up.
+ *
+ * A term in `planning` with nobody in it is the case this exists for: created
+ * by mistake, or superseded before it opened.
+ */
+export function deleteProgramTerm(programTermId: string): RemovalResult | undefined {
+  const term = programTermTable.find((row) => row.id === programTermId);
+  if (!term) return undefined;
+
+  const members = programEnrollmentTable.filter(
+    (row) =>
+      row.programId === term.programId &&
+      row.semesterCode === term.semesterCode &&
+      row.status !== "withdrawn",
+  ).length;
+  // `programTermIds` is the join, not the semester: an invoice is per student
+  // per semester and names the terms it bills, so a term with no invoice
+  // against it can go even when that semester has been billed for others.
+  const invoices = invoiceTable.filter((row) =>
+    row.programTermIds.includes(term.id),
+  ).length;
+
+  if (members > 0 || invoices > 0) {
+    const holds: string[] = [];
+    if (members > 0) holds.push(`${members} ${members === 1 ? "student" : "students"}`);
+    if (invoices > 0) holds.push(`${invoices} ${invoices === 1 ? "invoice" : "invoices"}`);
+    return {
+      ok: false,
+      reason: `${holds.join(" and ")} still belong to this term. Withdraw its members first.`,
+    };
+  }
+
+  return { ok: true };
 }

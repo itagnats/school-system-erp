@@ -4,6 +4,7 @@ import type {
   AssessorConfig,
   EvaluationCriterion,
   EvaluationRole,
+  FormReadiness,
   WeightSummary,
 } from "@/types";
 
@@ -296,6 +297,54 @@ export function relationsWithoutQuestions(assessee: AssesseeConfig): EvaluationR
   return assessee.assessors
     .filter((a) => a.enabled && threeSixtySharePercent(a) > 0 && a.criteria.length === 0)
     .map((a) => a.role);
+}
+
+/**
+ * The largest share any assessee gives to one kind of form.
+ *
+ * A kind is in play if a single assessee weights it, so this is a maximum
+ * rather than a sum - a setup where only the teacher card uses an ordering
+ * still uses orderings.
+ */
+export function maxAssesseeShare(
+  assessees: readonly AssesseeConfig[],
+  pick: (summary: WeightSummary) => number,
+): number {
+  return assessees.reduce(
+    (max, assessee) => Math.max(max, pick(summariseWeights(assessee.assessors))),
+    0,
+  );
+}
+
+/**
+ * Whether one kind of form is configured (direction.md §15a).
+ *
+ * Lifted out of `evaluation-service` so the Manage Evaluation list and the
+ * setup screen answer "is this ready" with one derivation rather than two. The
+ * list reached this through the summary DTO; the detail screen has the same
+ * inputs and was previously showing nothing, which is how two screens about the
+ * same setup came to disagree about what it needed.
+ *
+ * The third state is the one that matters: a kind nothing weights is a decision
+ * to run without it, not an unfinished setup. Marking it as a failure pushes
+ * someone to "fix" a configuration that is already correct.
+ */
+export function formReadiness({
+  sharePercent,
+  assesseeCount,
+  groupCount,
+  isDraft,
+}: {
+  sharePercent: number;
+  assesseeCount: number;
+  groupCount: number;
+  isDraft: boolean;
+}): FormReadiness {
+  if (sharePercent <= 0) return "not-applicable";
+  if (assesseeCount === 0) return "not-configured";
+  if (groupCount === 0) return "not-configured";
+  if (isDraft) return "not-configured";
+  return "ready";
 }
 
 /** Assessees whose enabled assessor weights do not total 100. */

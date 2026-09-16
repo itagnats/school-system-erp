@@ -3,12 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { TableSkeleton } from "@/components/feedback";
-import { PageHeader, Section, StatusBadge } from "@/components/shared";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { PageHeader, Section } from "@/components/shared";
 import { AddStudentDialog } from "@/features/enrollment/components/add-student-dialog";
 import { EnrollmentScreen } from "@/features/enrollment/components/enrollment-screen";
+import { TermRosterTable } from "@/features/enrollment/components/term-roster-table";
 import { routes } from "@/lib/constants";
-import { formatDate } from "@/lib/utils";
 import {
   courseFilterOptions,
   courseSemesterOptions,
@@ -92,57 +91,7 @@ export default async function Page({ params }: Readonly<PageParams>) {
         title="Students"
         description="One row per student. A package is billed whole, so someone carrying two of four courses is still a member of this term."
       >
-        {roster.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Nobody is enrolled in this term yet.
-          </p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Student ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Major</TableHead>
-                <TableHead className="text-right">Courses</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Enrolled</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {roster.map((entry) => (
-                <TableRow key={entry.enrollmentId}>
-                  <TableCell>
-                    <Link
-                      href={routes.student(entry.student.id)}
-                      className="font-medium text-primary hover:underline"
-                    >
-                      {entry.student.studentId}
-                    </Link>
-                  </TableCell>
-                  <TableCell>{entry.student.fullName}</TableCell>
-                  <TableCell className="text-muted-foreground">{entry.student.major}</TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {entry.courseCount}
-                    {entry.unfinishedCount > 0 ? (
-                      <span className="ml-1 text-xs text-muted-foreground">
-                        +{entry.unfinishedCount} unfinished
-                      </span>
-                    ) : null}
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge
-                      tone={MEMBERSHIP_TONE[entry.status]}
-                      label={MEMBERSHIP_LABEL[entry.status]}
-                    />
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {formatDate(entry.enrolledAt)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+        <TermRosterTable rows={roster} />
       </Section>
 
       <Section
@@ -172,22 +121,3 @@ const TERM_NOT_OPEN: Record<string, string> = {
   closed: "Closed - this term is over",
   open: "",
 };
-
-/**
- * Programme membership status, which is a different union from the course
- * enrollment status beneath it — four values against six. `direction.md` §8
- * says a status is where a student is, never how they did.
- */
-const MEMBERSHIP_LABEL: Record<string, string> = {
-  pending: "Pending",
-  active: "Active",
-  completed: "Completed",
-  withdrawn: "Withdrawn",
-};
-
-const MEMBERSHIP_TONE = {
-  pending: "warning",
-  active: "success",
-  completed: "info",
-  withdrawn: "error",
-} as const;

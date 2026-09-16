@@ -1,7 +1,13 @@
 import "server-only";
 
-import { courseTable } from "@/server/repositories";
+import {
+  courseCostSheetTable,
+  courseTable,
+  enrollmentTable,
+  programTermTable,
+} from "@/server/repositories";
 import { matchesSearch, paginate, sortRows, type ListQueryInput } from "@/server/query";
+import type { RemovalResult } from "@/server/http";
 import type { CourseCreateInput, CourseUpdateInput } from "@/lib/api/contracts";
 import type { Course, PaginatedResult, SemesterCode } from "@/types";
 
@@ -150,4 +156,44 @@ function seedNow(): string {
     (latest, course) => (course.updatedAt > latest ? course.updatedAt : latest),
     courseTable[0]?.updatedAt ?? "2026-01-05T00:00:00.000Z",
   );
+}
+
+/**
+ * Remove a course (decided 2026-09-16).
+ *
+ * Refused while a curriculum lists it, anyone is enrolled in it, or a cost
+ * sheet records what it cost. The curriculum is the important one: a programme
+ * term prices a package of named courses, and deleting one out from under it
+ * would leave an invoice billing a course that does not exist.
+ *
+ * Archiving is the intended route for a course that is no longer taught, which
+ * is why the status union already has `archived`. The reason says so.
+ */
+export function deleteCourse(courseId: string): RemovalResult | undefined {
+  const course = courseTable.find((row) => row.id === courseId);
+  if (!course) return undefined;
+
+  const curricula = programTermTable.filter((term) => term.courseIds.includes(courseId)).length;
+  const enrolled = enrollmentTable.filter(
+    (row) => row.courseId === courseId && row.status !== "cancelled",
+  ).length;
+  const sheets = courseCostSheetTable.filter((sheet) => sheet.courseId === courseId).length;
+
+  const holds: string[] = [];
+  if (curricula > 0) holds.push(`${curricula} programme term${curricula === 1 ? "" : "s"}`);
+  if (enrolled > 0) holds.push(`${enrolled} enrollment${enrolled === 1 ? "" : "s"}`);
+  if (sheets > 0) holds.push(`${sheets} cost sheet${sheets === 1 ? "" : "s"}`);
+
+  if (holds.length > 0) {
+    const list =
+      holds.length === 1
+        ? holds[0]
+        : `${holds.slice(0, -1).join(", ")} and ${holds[holds.length - 1]}`;
+    return {
+      ok: false,
+      reason: `${list} still reference ${course.code}. Archive it instead, so the record of what was taught survives.`,
+    };
+  }
+
+  return { ok: true };
 }

@@ -168,6 +168,57 @@ export const WINDOW_STATUS_OPTIONS: Option<EvaluationWindowStatus>[] = (
   ["draft", "open", "closed", "published"] as const
 ).map((value) => ({ value, label: WINDOW_STATUS_LABEL[value] }));
 
+/** What each window status means for the people who have to act on it. */
+export const WINDOW_STATUS_DESCRIPTION: Record<EvaluationWindowStatus, string> = {
+  draft: "Nobody can submit yet. Configure the blend, then open the window.",
+  open: "Evaluators can submit. Settings are usually locked while this runs.",
+  closed: "Submissions have stopped. Scores can be reviewed before reports go out.",
+  published: "Reports are available to their readers. This is the last state.",
+};
+
+/**
+ * A window move, as the button that makes it.
+ *
+ * The verb depends on the pair rather than the target: `closed -> open` is a
+ * reopening and reads as a correction, where `draft -> open` is the evaluation
+ * starting. Same destination, different act.
+ */
+export function windowAction(
+  from: EvaluationWindowStatus,
+  to: EvaluationWindowStatus,
+): { label: string; confirm?: { title: string; description: string } } {
+  if (to === "open") {
+    return from === "closed"
+      ? {
+          label: "Reopen",
+          confirm: {
+            title: "Reopen this evaluation?",
+            description:
+              "Evaluators will be able to submit again, and any score already reviewed can change. Reopening is recorded as a deliberate act.",
+          },
+        }
+      : { label: "Open evaluation" };
+  }
+  if (to === "closed") {
+    return {
+      label: "Close",
+      confirm: {
+        title: "Close this evaluation?",
+        description:
+          "Evaluators can no longer submit. Anyone part-way through a form keeps what they sent, and the rest is lost.",
+      },
+    };
+  }
+  return {
+    label: "Publish reports",
+    confirm: {
+      title: "Publish the reports?",
+      description:
+        "Reports become available to their readers, and a published evaluation cannot be moved again. Check the blend and the scores first.",
+    },
+  };
+}
+
 /* -------------------------------------------------------------------------- */
 /* Form readiness                                                             */
 /* -------------------------------------------------------------------------- */

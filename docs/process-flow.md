@@ -14,6 +14,25 @@ Audited 2026-09-12 against the working tree at commit `6b89d17`. Counts are from
 the shipped seed (`SEED = 20260105`), read out of `data/seed/generate.ts` rather
 than quoted from an older document.
 
+## Partly superseded — read this first
+
+*Updated 2026-09-16 at commit `ba6c6eb`.* This is an audit, so it is left as the
+record of what was found on 2026-09-12 rather than rewritten. Four of its
+findings have since been acted on, and the money chain it describes has changed
+shape underneath it:
+
+| Since the audit | Effect on this document |
+| --- | --- |
+| **F-8 closed** — invoicing built, revenue is now billed rather than implied (§13a/§13b) | the `ProgramProfit` line in the diagram is right; "Package price × head count" anywhere else is now *list* revenue |
+| **F-3 closed** — the cost catalogue and sheet CRUD landed | the Cost row in the module table and the F-3 section below are both out of date |
+| **AUD-001 closed** — the dashboard is built | the Dashboard row in the module table is out of date |
+| **Costing rebuilt programme-first** (2026-09-15, §11-13) | **the biggest divergence.** `CostSheet (61)` in the diagram is now two records: `CourseCostSheet` (56, direct only) and `ProgramCostSheet` (19, indirect only). `direct + shared + markup` is gone — a course's total is its direct costs plus a *derived* share of its programme's pool, and markup moved to the programme term. `allocationPercent` no longer exists |
+| **AUD-015 closed** — one curriculum course is deliberately uncosted | "every cohort covered, so no programme term reports an unknown cost" is now false **on purpose**: 1 of 19 terms reports one |
+
+The three chains and the join points are still accurate; the cost chain's
+internals are not. `direction.md` §11-13 and `architecture.md` are the current
+description.
+
 **Updated the same day**, when the invoice module was built: chain A now runs to
 a billed document, and finding F-8 — revenue counted a pending student as earned
 — is closed by it.
@@ -149,7 +168,11 @@ button anywhere. Every one of the 1,297 enrolments exists because the seed
 generator made it. For a product whose stated spine is the student lifecycle,
 the lifecycle has no entrance.
 
-### F-3 · medium — Cost Management cannot manage the cost structure
+### F-3 · medium — Cost Management cannot manage the cost structure — **CLOSED 2026-09-12**
+
+*Closed by the cost catalogue and sheet CRUD. The description below is the
+finding as written; allocation percentages no longer exist at all after the
+2026-09-15 rebuild.*
 
 The update contract accepts `markupPercent` and `studentCount` only
 (`features/costs/components/cost-breakdown-panel.tsx:85`). The four levels §12

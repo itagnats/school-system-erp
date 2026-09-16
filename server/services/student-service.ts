@@ -1,10 +1,25 @@
 import "server-only";
 
-import { enrollmentTable, programEnrollmentTable, studentTable } from "@/server/repositories";
+import {
+  enrollmentTable,
+  invoiceTable,
+  programEnrollmentTable,
+  programTable,
+  programTermTable,
+  semesterTable,
+  studentTable,
+} from "@/server/repositories";
 import { matchesSearch, paginate, sortRows, type ListQueryInput } from "@/server/query";
 import { demoStudentSerial } from "@/lib/calculations/enrollment";
-import type { NewStudentInput } from "@/lib/api/contracts";
-import type { PaginatedResult, Student, StudentSummary } from "@/types";
+import type { NewStudentInput, StudentUpdateInput } from "@/lib/api/contracts";
+import type {
+  PaginatedResult,
+  Student,
+  StudentProgramTerm,
+  StudentSummary,
+} from "@/types";
+import type { WriteResult } from "./course-service";
+import type { RemovalResult } from "@/server/http";
 
 /**
  * Student reads (direction.md §9).
@@ -161,7 +176,190 @@ export function createStudent(
  * against. Compared case-insensitively, because nobody thinks of an address as
  * case-sensitive even where the standard allows it.
  */
-export function emailTaken(email: string): boolean {
+export function emailTaken(email: string, exceptId?: string): boolean {
   const normalised = email.trim().toLowerCase();
-  return studentTable.some((student) => student.personal.email.toLowerCase() === normalised);
+  return studentTable.some(
+    (student) =>
+      student.id !== exceptId && student.personal.email.toLowerCase() === normalised,
+  );
+}
+
+/**
+ * Profile editing (direction.md 10).
+ *
+ * One section at a time, because that is how the screen is shaped: a set of
+ * focused forms rather than one giant one. The request carries a whole section,
+ * so this replaces rather than merges - there is no field whose absence has to
+ * be interpreted.
+ *
+ * Nothing is stored, the same as every other write here. What is real is the
+ * validation, the status code and the record as it would have been saved.
+ */
+export function updateStudent(
+  studentId: string,
+  input: StudentUpdateInput,
+): WriteResult<Student> | undefined {
+  const student = getStudent(studentId);
+  if (!student) return undefined;
+
+  const stamp = studentStamp();
+
+  if (input.section === "personal") {
+    // An email identifies a person to the institution, so two profiles must not
+    // carry one. Checked against everybody except this student, or saving a
+    // profile without touching its email would reject itself.
+    if (emailTaken(input.personal.email, student.id)) {
+      return {
+        ok: false,
+        fieldErrors: { email: "Another student already uses that email address" },
+      };
+    }
+
+    return {
+      ok: true,
+      data: {
+        ...student,
+        // The section arrives whole, avatar included, so this replaces rather
+        // than merges. Clearing the picture is an absent `avatarUrl`, which is
+        // the same shape as never having had one.
+        personal: input.personal,
+        updatedAt: stamp,
+      },
+    };
+  }
+
+  if (input.section === "academic") {
+    return {
+      ok: true,
+      data: {
+        ...student,
+        academic: {
+          ...input.academic,
+          // Programme is not editable here. A student belongs to one programme
+          // and that is decided by enrolment (direction.md 7a), so letting a
+          // profile form change it would put the profile and the membership
+          // into a disagreement the seed itself relies on not existing.
+          program: student.academic.program,
+        },
+        updatedAt: stamp,
+      },
+    };
+  }
+
+  const contact = input.emergencyContact;
+  const cleared = !contact.name && !contact.relationship && !contact.phone;
+  return {
+    ok: true,
+    data: {
+      ...student,
+      emergencyContact: cleared ? undefined : contact,
+      updatedAt: stamp,
+    },
+  };
+}
+
+/**
+ * The most recent timestamp in the dataset, standing in for the present.
+ *
+ * Reading the clock would make two renders of the same page disagree, and this
+ * service is reachable from a server component.
+ */
+function studentStamp(): string {
+  return studentTable.reduce(
+    (latest, student) => (student.updatedAt > latest ? student.updatedAt : latest),
+    studentTable[0]?.updatedAt ?? "2026-01-05T00:00:00.000Z",
+  );
+}
+
+/**
+ * Enrolment history for the profile, newest first (direction.md 9).
+ *
+ * Programme grain rather than course grain: a student joins a programme term
+ * and the courses follow from its curriculum, so "what have they been enrolled
+ * in" is answered once per term rather than once per course. The course-level
+ * history is still available on the enrolment screens.
+ *
+ * A membership whose programme or semester is missing is a broken join and is
+ * dropped rather than rendered with blanks, the same posture the roster takes.
+ */
+export function studentProgramHistory(studentId: string): StudentProgramTerm[] {
+  const student = getStudent(studentId);
+  if (!student) return [];
+
+  const programsById = new Map(programTable.map((program) => [program.id, program]));
+  const semestersByCode = new Map(semesterTable.map((semester) => [semester.code, semester]));
+  const termIdByKey = new Map(
+    programTermTable.map((term) => [`${term.programId}|${term.semesterCode}`, term.id]),
+  );
+
+  return programEnrollmentTable
+    .filter((membership) => membership.studentId === student.id)
+    .flatMap((membership) => {
+      const program = programsById.get(membership.programId);
+      const semester = semestersByCode.get(membership.semesterCode);
+      if (!program || !semester) return [];
+
+      return [
+        {
+          programEnrollmentId: membership.id,
+          programTermId: termIdByKey.get(`${membership.programId}|${membership.semesterCode}`),
+          programCode: program.code,
+          programName: program.name,
+          semesterCode: membership.semesterCode,
+          status: membership.status,
+          startDate: semester.startDate,
+          endDate: semester.endDate,
+        },
+      ];
+    })
+    .sort((a, b) => b.semesterCode.localeCompare(a.semesterCode));
+}
+
+/**
+ * Remove a student (direction.md 8, decided 2026-09-16).
+ *
+ * Refused while anything still points at them. A profile is not the record of
+ * a person so much as the thing every enrolment, evaluation and invoice hangs
+ * off, and deleting it would leave rows referring to somebody who is not there
+ * - which is the one outcome a demo of referential care must not show.
+ *
+ * A **withdrawn** membership does not block. It is the record of someone who
+ * left, and if that is all they have, nothing depends on the profile any more.
+ */
+export function deleteStudent(studentId: string): RemovalResult | undefined {
+  const student = getStudent(studentId);
+  if (!student) return undefined;
+
+  const memberships = programEnrollmentTable.filter(
+    (row) => row.studentId === student.id && row.status !== "withdrawn",
+  ).length;
+  const courses = enrollmentTable.filter(
+    (row) =>
+      row.studentId === student.id && row.status !== "dropped" && row.status !== "cancelled",
+  ).length;
+  const invoices = invoiceTable.filter((row) => row.studentId === student.id).length;
+
+  const holds: string[] = [];
+  if (memberships > 0) holds.push(`${memberships} programme ${plural(memberships, "enrolment")}`);
+  if (courses > 0) holds.push(`${courses} course ${plural(courses, "enrollment")}`);
+  if (invoices > 0) holds.push(`${invoices} ${plural(invoices, "invoice")}`);
+
+  if (holds.length > 0) {
+    return {
+      ok: false,
+      reason: `${sentenceList(holds)} still point at this student. Withdraw them from their programme first.`,
+    };
+  }
+
+  return { ok: true };
+}
+
+function plural(count: number, word: string): string {
+  return count === 1 ? word : `${word}s`;
+}
+
+/** "a, b and c" - the reason is read by a person, not parsed. */
+function sentenceList(parts: string[]): string {
+  if (parts.length === 1) return parts[0];
+  return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
 }

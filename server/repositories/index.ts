@@ -13,6 +13,7 @@ import type {
   ProgramCostSheet,
   ProgramEnrollment,
   ProgramTerm,
+  QuestionGroup,
   Semester,
   Student,
 } from "@/types";
@@ -44,3 +45,4 @@ export const programEnrollmentTable: ProgramEnrollment[] = [...seed.programEnrol
 export const evaluationGroupTable: EvaluationGroup[] = [...seed.evaluationGroups];
 export const evaluationSetupTable: EvaluationSetup[] = [...seed.evaluationSetups];
 export const invoiceTable: Invoice[] = [...seed.invoices];
+export const questionGroupTable: QuestionGroup[] = [...seed.questionGroups];

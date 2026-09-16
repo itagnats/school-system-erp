@@ -12,6 +12,20 @@ import { EVALUATION_CRITERIA, EVALUATION_ROLES } from "@/types";
  */
 
 const windowStatus = z.enum(["draft", "open", "closed", "published"]);
+
+/**
+ * A window date, either shape.
+ *
+ * A date input produces `2026-03-06`; the store holds `2026-03-06T00:00:00.000Z`
+ * and a client echoing a setup back unchanged sends that. Accepting both and
+ * normalising in the service keeps one format in the table, rather than two that
+ * sort alike and compare differently.
+ */
+const windowDate = z.union([z.iso.date(), z.iso.datetime()], {
+  // On the union, not on each member: a union reports its own failure, so a
+  // message on the members alone reaches the client as "Invalid input".
+  error: "A window date must be an ISO date, e.g. 2026-03-06",
+});
 const readiness = z.enum(["ready", "not-configured", "not-applicable"]);
 const evaluatorRole = z.enum(EVALUATION_ROLES);
 const criterion = z.enum(EVALUATION_CRITERIA);
@@ -160,6 +174,13 @@ export const evaluationSetupUpdateSchema = z.object({
     .optional(),
   status: windowStatus.optional(),
   editingLocked: z.boolean().optional(),
+  // The window, as a date input produces it. Whether the three are in a sane
+  // order is checked in the service instead: a PATCH may carry one of them, so
+  // the comparison has to happen against the stored values it will be merged
+  // with rather than against whatever this payload happens to hold.
+  opensOn: windowDate.optional(),
+  closesOn: windowDate.optional(),
+  reportDate: windowDate.optional(),
   // The 1-5 scale of direction.md §18. Allowing 3 or 10 here would mean every
   // stored rating had to record the scale it was made on.
   scaleMax: z.literal(5).optional(),

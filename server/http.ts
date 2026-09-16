@@ -72,3 +72,29 @@ export async function handleItem<T>(
 
   return NextResponse.json(result);
 }
+
+/**
+ * The outcome of a removal (added 2026-09-16).
+ *
+ * Three answers, not two: it happened, it was refused because something still
+ * points at the row, or the row was never there. `undefined` carries the last
+ * one so a service can stay honest about a missing id without inventing a
+ * reason for it.
+ *
+ * The reason travels in `fieldErrors.status` rather than in `message`, because
+ * `lib/api/client.ts` keeps its own vetted prose for display and reads only
+ * `fieldErrors` out of the body. A 409 whose explanation is in `message` shows
+ * the user nothing.
+ */
+export type RemovalResult = { ok: true } | { ok: false; reason: string };
+
+export function handleRemoval(result: RemovalResult | undefined, what: string) {
+  if (!result) return notFound(what);
+  if (!result.ok) {
+    return jsonError(409, `That ${what.toLowerCase()} is still in use`, {
+      status: result.reason,
+    });
+  }
+  // 204: the row is gone and there is nothing useful to say about it.
+  return new NextResponse(null, { status: 204 });
+}

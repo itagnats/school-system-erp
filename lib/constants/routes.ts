@@ -17,6 +17,8 @@ export const routes = {
   enrolmentTerm: (programTermId: string) => `/enrollment/${enc(programTermId)}`,
   students: () => "/students",
   student: (studentId: string) => `/students/${enc(studentId)}`,
+  /** The profile as a set of forms, one section per tab (direction.md 10). */
+  studentEdit: (studentId: string) => `/students/${enc(studentId)}/edit`,
   costs: () => "/costs",
   /** The course cost list. `/costs` itself now leads with programmes. */
   courseCosts: () => "/costs/courses",
@@ -38,6 +40,7 @@ export const routes = {
   evaluation: (personaId?: string) =>
     personaId ? `/evaluation?as=${enc(personaId)}` : "/evaluation",
   evaluationManage: () => "/evaluation/manage",
+  questionBank: () => "/evaluation/manage/questions",
   evaluationSetup: (setupId: string) => `/evaluation/manage/${enc(setupId)}`,
   evaluationAssignment: (assignmentId: string, personaId?: string) =>
     personaId

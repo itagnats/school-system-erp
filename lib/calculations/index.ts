@@ -12,5 +12,7 @@ export * from "./cost";
 export * from "./profit";
 export * from "./invoice";
 export * from "./evaluation-weights";
+export * from "./evaluation-window";
+export * from "./question";
 export * from "./score";
 export * from "./enrollment";

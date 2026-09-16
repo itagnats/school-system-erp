@@ -93,7 +93,8 @@ Students
 └── Student Profiles
 
 Cost Management
-├── Cost Sheets
+├── Programme Costs      (revised 2026-09-16: the index, §11)
+├── Course Costs
 ├── Cost Catalogue
 └── Invoices
 
@@ -105,8 +106,19 @@ Evaluation
 Reports
 └── Student Reports
 
-Design System
+Develop
+├── Design System
+└── System Guide
 ```
+
+**Develop is the tooling, not the school** *(added 2026-09-16)*. Design System
+documents how PRIME looks by rendering the real tokens and components; System
+Guide documents how it works by re-deriving the real figures. Both obey one
+rule: **demonstrate, never restate.** Counts come from the services, the worked
+money example is computed by the same calculation the cost screens use, and the
+route map is read from the config the sidebar reads — so neither page can
+describe a system that no longer exists. Five documents under `docs/` carried
+stale counts on 2026-09-16, which is the failure these two are built against.
 
 Navigation can be adjusted during implementation if UX improvements are discovered.
 
@@ -1236,6 +1248,58 @@ class of failure: the blend can total 100 and the setup still be unable to
 produce a score, since an empty question set contributes nothing to the half it
 is paid for.
 
+## The question bank (added 2026-09-16)
+
+A criterion is a scoring dimension, not a question. `teamwork` is what the score
+is made of; *"How reliably did they carry their share of the group's work?"* is
+what an evaluator is actually asked. Until now only the first existed, so the
+360 form showed seven bare labels and the setup screen configured question sets
+nobody could read.
+
+The **question bank** is master data: one maintained list of questions, drawn on
+by every evaluation.
+
+```text
+QuestionGroup            e.g. "Assessing a student", "Assessing a teacher"
+  Question
+    criterion            the scoring dimension it feeds, or none for a text question
+    prompt               what the evaluator reads
+    helpText             what a low answer means against a high one
+    type                 rating | text
+    appliesTo            which assessee roles it can be asked about
+    status               active | archived
+```
+
+**A question is wording over a criterion, never a new scoring dimension.** §18
+rejects per-relation wording so that a role's score stays comparable with
+another role's, and the same argument applies here: two questions feeding
+`teamwork` are two ways of asking one thing, and the score is unchanged by which
+one a course picked. Adding a scored dimension means changing the canonical list
+in §18, deliberately, not writing a new question.
+
+**A text question is not scored at all.** It has no criterion, never enters the
+blend of §20, and lands in the report's Feedback part (§23) — attributed to a
+role and never to a person. This is what the forms were missing: an ordering and
+a rating both compress a judgement into a number, and neither can say *why*.
+
+**A setup takes a copy, never a reference.** Attaching questions to an
+evaluation snapshots their prompt, help text and type; only the id survives, for
+provenance. This is §12a applied to a second kind of master data, for the same
+reason: an answered question is evidence of what somebody was asked. If a setup
+referenced the bank, rewording a question would silently rewrite last
+semester's form, and a report would quote answers to a question that was never
+put. Drift is computed on read, never stored, and archiving replaces deleting
+once a setup has copied a question.
+
+The general rule this is the second instance of: **evidence of a past decision
+copies; a current setting references.** A cost sheet is evidence. A submitted
+answer is evidence. The weight blend on a setup is a setting.
+
+**The bank is maintained under Manage Evaluation**, not beside the cost
+catalogue. They are the same *kind* of thing and belong to different people: a
+question is edited by whoever runs the evaluation, and putting it in Cost
+Management would file it by mechanism rather than by who needs it.
+
 ---
 
 # 19. Evaluation Form
@@ -1850,11 +1914,12 @@ Forms should support:
 - Cost groups
 - Cost items
 - Cost options
-- Direct costs
-- Shared costs
-- Allocation
+- Direct costs, per course
+- Indirect costs, per programme term
+- Distribution by the driver (credit hours)
 - Total cost
-- Cost per student
+- Cost per student, per course and per programme
+- Preferred price
 
 ### Evaluation
 

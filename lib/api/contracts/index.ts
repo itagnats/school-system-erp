@@ -15,3 +15,4 @@ export * from "./catalogue";
 export * from "./invoice";
 export * from "./program";
 export * from "./evaluation";
+export * from "./question";

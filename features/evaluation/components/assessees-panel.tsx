@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Plus, RotateCcw } from "lucide-react";
 import { Section } from "@/components/shared";
 import { Button } from "@/components/ui/button";
@@ -15,12 +14,10 @@ import type {
   AssesseeConfig,
   AssesseeSummary,
   EvaluationCriterion,
-  EvaluationGroupSummary,
   EvaluationRole,
 } from "@/types";
 import { ASSESSEE_ROLE_LABEL } from "../constants";
 import { AssesseeCard } from "./assessee-card";
-import { GroupList } from "./group-list";
 
 /**
  * Who is assessed, and by whom (direction.md §16, §16a).
@@ -33,9 +30,10 @@ import { GroupList } from "./group-list";
 export function AssesseesPanel({
   assessees,
   summaries,
-  groups,
-  ungroupedCount,
   disabled,
+  openRole,
+  onOpenRoleChange,
+  unbalanced,
   onWeightChange,
   onRankingShareChange,
   onEnabledChange,
@@ -46,9 +44,16 @@ export function AssesseesPanel({
 }: Readonly<{
   assessees: AssesseeConfig[];
   summaries: AssesseeSummary[];
-  groups: EvaluationGroupSummary[];
-  ungroupedCount: number;
   disabled: boolean;
+  /**
+   * Which card is open. Controlled by the screen rather than held here, so the
+   * blend error in the summary bar can open the card that causes it - which is
+   * the whole reason that error used to be a dead end.
+   */
+  openRole: EvaluationRole | null;
+  onOpenRoleChange: (role: EvaluationRole | null) => void;
+  /** Assessees whose weights do not total 100, for the card to say so. */
+  unbalanced: EvaluationRole[];
   onWeightChange: (
     assessee: EvaluationRole,
     assessor: EvaluationRole,
@@ -76,7 +81,7 @@ export function AssesseesPanel({
   const taken = new Set(assessees.map((assessee) => assessee.role));
   const addable = EVALUATION_ROLES.filter((role) => !taken.has(role));
 
-  /**
+  /*
    * One card open at a time.
    *
    * An accordion rather than independent toggles: three cards expanded is the
@@ -86,11 +91,9 @@ export function AssesseesPanel({
    * A new card opens itself, because adding one and then having to click it is
    * a step with no purpose.
    */
-  const [openRole, setOpenRole] = useState<EvaluationRole | null>(null);
 
   return (
-    <>
-      <Section
+    <Section
         title="Assessees and assessors"
         description="Each card is one role being assessed. Open one to pick who assesses it and what each is worth; every card's assessor weights total 100 on their own."
         actions={
@@ -116,7 +119,7 @@ export function AssesseesPanel({
                     key={role}
                     onSelect={() => {
                       onAdd(role);
-                      setOpenRole(role);
+                      onOpenRoleChange(role);
                     }}
                   >
                     {ASSESSEE_ROLE_LABEL[role]}
@@ -141,9 +144,10 @@ export function AssesseesPanel({
                 config={assessee}
                 summary={summaries.find((s) => s.role === assessee.role)}
                 expanded={openRole === assessee.role}
+                balanced={!unbalanced.includes(assessee.role)}
                 disabled={disabled}
                 onToggleExpanded={() =>
-                  setOpenRole(openRole === assessee.role ? null : assessee.role)
+                  onOpenRoleChange(openRole === assessee.role ? null : assessee.role)
                 }
                 onWeightChange={(assessor, percent) =>
                   onWeightChange(assessee.role, assessor, percent)
@@ -162,14 +166,6 @@ export function AssesseesPanel({
             ))}
           </ul>
         )}
-      </Section>
-
-      <Section
-        title="Evaluation groups"
-        description="Peer assessment happens inside a group, and an inspector is drawn from the next one along."
-      >
-        <GroupList groups={groups} ungroupedCount={ungroupedCount} />
-      </Section>
-    </>
+    </Section>
   );
 }

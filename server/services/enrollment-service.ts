@@ -16,6 +16,7 @@ import { evaluationGroupName } from "@/types";
 import type { EnrolRequestInput } from "@/lib/api/contracts";
 import type {
   EnrolmentResult,
+  ProgramEnrollment,
   EnrollmentListItem,
   PaginatedResult,
   Student,
@@ -358,4 +359,48 @@ export function programTermRoster(programTermId: string): TermRosterRow[] | unde
       ];
     })
     .sort((a, b) => a.student.studentId.localeCompare(b.student.studentId));
+}
+
+/**
+ * Withdraw a student from a programme term (direction.md 8, decided
+ * 2026-09-16).
+ *
+ * **A status, not a removal.** Section 8 makes the lifecycle explicit and
+ * `withdrawn` is its end state: the person was here and left, which is a fact
+ * about the term rather than an absence. Deleting the row instead would take
+ * the invoice`s counterparty with it and make a closed term`s head count
+ * change retrospectively.
+ *
+ * The course enrollments go with it, as `cancelled` rather than `dropped`:
+ * dropping is a decision about one course taken while the programme continues,
+ * and this is the programme ending. The distinction is not cosmetic - a
+ * cancelled course credits the whole line on the invoice and a dropped one
+ * credits half (13b).
+ */
+export function withdrawFromTerm(
+  programEnrollmentId: string,
+): { membership: ProgramEnrollment; cancelled: number } | undefined {
+  const membership = programEnrollmentTable.find((row) => row.id === programEnrollmentId);
+  if (!membership) return undefined;
+
+  const term = programTermTable.find(
+    (row) =>
+      row.programId === membership.programId && row.semesterCode === membership.semesterCode,
+  );
+  const curriculum = new Set(term?.courseIds ?? []);
+  const stamp = seedNow();
+
+  const cancelled = enrollmentTable.filter(
+    (row) =>
+      row.studentId === membership.studentId &&
+      row.semesterCode === membership.semesterCode &&
+      curriculum.has(row.courseId) &&
+      row.status !== "cancelled" &&
+      row.status !== "completed",
+  ).length;
+
+  return {
+    membership: { ...membership, status: "withdrawn", updatedAt: stamp },
+    cancelled,
+  };
 }

@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { evaluationSetupUpdateSchema } from "@/lib/api/contracts";
 import { handleItem, jsonError, notFound } from "@/server/http";
-import { getEvaluationSetup, updateEvaluationSetup } from "@/server/services";
+import {
+  getEvaluationSetup,
+  isSetupUpdateError,
+  updateEvaluationSetup,
+} from "@/server/services";
 import { parseBody, readJson } from "@/server/validation";
 
 /** GET /api/evaluation/:setupId - the configuration, its groups and its relations. */
@@ -33,6 +37,12 @@ export async function PATCH(
 
   const updated = updateEvaluationSetup(setupId, parsed.data);
   if (!updated) return notFound("Evaluation setup");
+  // The schema said the request is well formed; this says the setup it would
+  // produce makes sense - a window that closes before it opens, or a published
+  // evaluation being reopened.
+  if (isSetupUpdateError(updated)) {
+    return jsonError(422, "That change is not allowed", updated.fieldErrors);
+  }
 
   return NextResponse.json(updated);
 }

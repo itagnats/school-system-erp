@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { courseUpdateSchema } from "@/lib/api/contracts";
-import { handleItem, jsonError, notFound } from "@/server/http";
+import { handleItem, handleRemoval, jsonError, notFound } from "@/server/http";
 import { parseBody, readJson } from "@/server/validation";
-import { getCourse, updateCourse } from "@/server/services";
+import { deleteCourse, getCourse, updateCourse } from "@/server/services";
 
 /** GET /api/courses/:courseId - accepts either the id or the course code. */
 export async function GET(
@@ -32,4 +32,19 @@ export async function PATCH(
   }
 
   return NextResponse.json(result.data);
+}
+
+/**
+ * DELETE /api/courses/:courseId
+ *
+ * Refused while a curriculum lists it, anyone is enrolled, or a cost sheet
+ * records what it cost. `archived` is the intended route for a course no longer
+ * taught, and the 409 says so.
+ */
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ courseId: string }> },
+) {
+  const { courseId } = await params;
+  return handleRemoval(deleteCourse(courseId), "Course");
 }

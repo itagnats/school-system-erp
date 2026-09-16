@@ -14,6 +14,7 @@ export * from "./catalogue-service";
 export * from "./invoice-service";
 export * from "./program-service";
 export * from "./evaluation-service";
+export * from "./question-service";
 export * from "./persona-service";
 export * from "./report-service";
 export * from "./dashboard-service";

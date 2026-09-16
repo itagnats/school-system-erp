@@ -1,4 +1,4 @@
-import { api } from "@/lib/api";
+import { api, apiPath } from "@/lib/api";
 import {
   enrolResultSchema,
   enrollmentListSchema,
@@ -69,4 +69,23 @@ export async function fetchEnrolmentTerms(
 ): Promise<PaginatedResult<ProgramTermSummary>> {
   const raw = await api.get<unknown>("programs", { query: { ...params } });
   return programTermListSchema.parse(raw);
+}
+
+/**
+ * Withdraw a student from a programme term (direction.md 8).
+ *
+ * DELETE, because that is the caller intent; a status change, because that is
+ * what the domain does with someone who leaves. The response says how many
+ * course enrollments were cancelled with it, so the screen can state the
+ * consequence rather than implying a row vanished.
+ */
+export async function withdrawFromTerm(
+  programEnrollmentId: string,
+): Promise<WithdrawalResult> {
+  return api.delete<WithdrawalResult>(apiPath("enrollment", programEnrollmentId));
+}
+
+export interface WithdrawalResult {
+  membership: { id: string; studentId: string; status: string; updatedAt: string };
+  cancelled: number;
 }

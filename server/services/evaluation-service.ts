@@ -1,9 +1,14 @@
 import "server-only";
 
 import {
+  canTransitionWindow,
+  formReadiness,
+  maxAssesseeShare,
   relationsWithoutQuestions,
   summariseWeights,
+  toStoredDate,
   unbalancedAssessees,
+  windowDateErrors,
 } from "@/lib/calculations";
 import {
   courseTable,
@@ -94,11 +99,12 @@ function readinessFor(
   setup: EvaluationSetup,
   groupCount: number,
 ): FormReadiness {
-  if (sharePercent <= 0) return "not-applicable";
-  if (setup.assessees.length === 0) return "not-configured";
-  if (groupCount === 0) return "not-configured";
-  if (setup.status === "draft") return "not-configured";
-  return "ready";
+  return formReadiness({
+    sharePercent,
+    assesseeCount: setup.assessees.length,
+    groupCount,
+    isDraft: setup.status === "draft",
+  });
 }
 
 /** The largest share any assessee gives to one kind of form. */
@@ -106,10 +112,7 @@ function maxShare(
   setup: EvaluationSetup,
   pick: (summary: ReturnType<typeof summariseWeights>) => number,
 ): number {
-  return setup.assessees.reduce(
-    (max, assessee) => Math.max(max, pick(summariseWeights(assessee.assessors))),
-    0,
-  );
+  return maxAssesseeShare(setup.assessees, pick);
 }
 
 function buildSummary(setup: EvaluationSetup): EvaluationSetupSummary | undefined {
@@ -313,6 +316,24 @@ function buildDetail(setup: EvaluationSetup): EvaluationSetupDetail | undefined 
 }
 
 /**
+ * A rejected setup change, keyed by the field that is wrong.
+ *
+ * Two things reach it, and both are well-formed requests that are nonsense
+ * anyway: an illegal window move, and three dates that do not run in order.
+ * Neither can be expressed in the schema, because both are judged against the
+ * stored setup rather than against the payload.
+ */
+export interface EvaluationSetupUpdateError {
+  fieldErrors: Record<string, string>;
+}
+
+export function isSetupUpdateError(
+  result: EvaluationSetupDetail | EvaluationSetupUpdateError,
+): result is EvaluationSetupUpdateError {
+  return "fieldErrors" in result;
+}
+
+/**
  * Apply a configuration change and recompute.
  *
  * Nothing is stored - see docs/decisions/why-bff.md - but the response carries
@@ -327,16 +348,37 @@ function buildDetail(setup: EvaluationSetup): EvaluationSetupDetail | undefined 
 export function updateEvaluationSetup(
   setupId: string,
   input: EvaluationSetupUpdateInput,
-): EvaluationSetupDetail | undefined {
+): EvaluationSetupDetail | EvaluationSetupUpdateError | undefined {
   const current = evaluationSetupTable.find((row) => row.id === setupId);
   if (!current) return undefined;
+
+  // Checked on the merge rather than on the payload. A PATCH may carry one date
+  // or only the status, so the question is always "is the setup that results
+  // from this coherent", never "is this request internally consistent".
+  const status = input.status ?? current.status;
+  if (!canTransitionWindow(current.status, status)) {
+    return {
+      fieldErrors: {
+        status: `An evaluation cannot go from ${current.status} to ${status}.`,
+      },
+    };
+  }
+
+  const window = {
+    opensOn: input.opensOn ? toStoredDate(input.opensOn) : current.opensOn,
+    closesOn: input.closesOn ? toStoredDate(input.closesOn) : current.closesOn,
+    reportDate: input.reportDate ? toStoredDate(input.reportDate) : current.reportDate,
+  };
+  const dateErrors = windowDateErrors(window);
+  if (dateErrors) return { fieldErrors: dateErrors };
 
   const next: EvaluationSetup = {
     ...current,
     name: input.name ?? current.name,
     shortName: input.shortName ?? current.shortName,
-    status: input.status ?? current.status,
+    status,
     editingLocked: input.editingLocked ?? current.editingLocked,
+    ...window,
     scaleMax: input.scaleMax ?? current.scaleMax,
     guidance: input.guidance ?? current.guidance,
     // Replaced wholesale rather than merged. A partial merge would let a client

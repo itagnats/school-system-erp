@@ -11,6 +11,7 @@ export type * from "./enrollment";
 export type * from "./cost";
 export type * from "./invoice";
 export type * from "./evaluation";
+export type * from "./question";
 export type * from "./report";
 export type * from "./dashboard";
 

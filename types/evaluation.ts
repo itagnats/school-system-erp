@@ -1,4 +1,5 @@
 import type { SemesterCode } from "./common";
+import type { SetupQuestion } from "./question";
 import type { StudentSummary } from "./student";
 
 /**
@@ -215,6 +216,16 @@ export interface AssessorConfig {
    * drawn from the one canonical list (§18).
    */
   criteria: EvaluationCriterion[];
+  /**
+   * The bank questions this relation asks, **copied** onto the setup (§18a).
+   *
+   * Optional while the two models sit side by side: `criteria` still drives the
+   * score, and these carry the wording an evaluator reads. A copy rather than a
+   * reference, because rewording the bank must not change what an answered
+   * question asked - `copyQuestion` in `question-service` is the only place the
+   * snapshot is taken.
+   */
+  questions?: SetupQuestion[];
 }
 
 /**

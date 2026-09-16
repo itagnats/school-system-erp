@@ -1,16 +1,12 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DescriptionList, PageHeader, Section, StatusBadge } from "@/components/shared";
+import { DescriptionList, Section } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
-import {
-  ENROLLMENT_STATUS_LABEL,
-  ENROLLMENT_STATUS_TONE,
-} from "@/features/enrollment/constants";
+import { StudentIdentityCard } from "@/features/students/components/student-identity-card";
+import { StudentProgramHistory } from "@/features/students/components/student-program-history";
 import { yearLevelLabel } from "@/features/students/constants";
-import { routes } from "@/lib/constants";
 import { formatDate } from "@/lib/utils";
-import { getStudent, studentEnrollments } from "@/server/services";
+import { getStudent, studentProgramHistory } from "@/server/services";
 
 interface PageParams {
   params: Promise<{ studentId: string }>;
@@ -27,129 +23,107 @@ export async function generateMetadata({ params }: PageParams): Promise<Metadata
 }
 
 /**
- * The student profile (direction.md §9).
+ * The student profile, read-only (direction.md §9).
  *
- * Split into sections rather than one long list, because that is how it will be
- * edited later: a set of focused forms, not one giant one.
+ * **Reading and editing are separate screens** (decided 2026-09-16). The
+ * profile opens as a record to be read — identity on the left, enrolment
+ * history on the right, the rest below — and Edit leads to `/edit`, where the
+ * same content is a set of forms behind tabs. An inline edit toggle per section
+ * was built first and put aside: it made every section carry a control for an
+ * action almost nobody takes on a given visit, and it left the page unable to
+ * decide whether it was a document or a form.
+ *
+ * There is no page header here. The identity card is the header — repeating the
+ * name above it would say the same thing twice on a screen whose whole top-left
+ * is a name.
  */
 export default async function Page({ params }: PageParams) {
   const { studentId } = await params;
   const student = getStudent(studentId);
   if (!student) notFound();
 
-  const history = studentEnrollments(student.id);
+  const history = studentProgramHistory(student.id);
   const { personal, academic, experience, emergencyContact } = student;
 
   return (
     <>
-      <PageHeader
-        title={`${personal.firstName} ${personal.lastName}`}
-        description={`${academic.program} - ${academic.major}`}
-        meta={
-          <span className="text-xs text-muted-foreground" data-numeric>
-            {student.studentId}
-          </span>
-        }
-      />
-
-      <Section title="Personal">
-        <DescriptionList
-          items={[
-            { label: "Email", value: personal.email },
-            { label: "Phone", value: personal.phone ?? "Not provided" },
-            { label: "Date of birth", value: formatDate(personal.dateOfBirth) },
-            {
-              label: "Emergency contact",
-              value: emergencyContact
-                ? `${emergencyContact.name} (${emergencyContact.relationship}) - ${emergencyContact.phone}`
-                : "Not provided",
-              wide: true,
-            },
-          ]}
-        />
-      </Section>
-
-      <Section title="Academic" className="mt-4">
-        <DescriptionList
-          items={[
-            { label: "Program", value: academic.program },
-            { label: "Major", value: academic.major },
-            { label: "Year", value: yearLevelLabel(academic.yearLevel) },
-            {
-              label: "Skills",
-              value: <TagList values={academic.skills} empty="None recorded" />,
-              wide: true,
-            },
-            {
-              label: "Interests",
-              value: <TagList values={academic.interests} empty="None recorded" />,
-              wide: true,
-            },
-            {
-              label: "Certifications",
-              value: <TagList values={academic.certifications} empty="None recorded" />,
-              wide: true,
-            },
-          ]}
-        />
-      </Section>
-
-      <Section
-        title="Experience"
-        description={experience.careerGoal}
-        className="mt-4"
-      >
-        <div className="grid gap-4 sm:grid-cols-2">
-          <ExperienceGroup title="Projects" items={experience.projects} />
-          <ExperienceGroup title="Clubs" items={experience.clubs} />
-          <ExperienceGroup title="Activities" items={experience.activities} />
-          <ExperienceGroup title="Achievements" items={experience.achievements} />
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:items-start">
+        {/*
+          The left column is who this student is and where they have been: the
+          identity card, then the enrolment history beneath it. Both are the
+          reader confirming they are on the right profile. The right column is
+          the profile proper, so the history does not push the first section of
+          it below the fold.
+        */}
+        <div className="grid gap-4">
+          <StudentIdentityCard student={student} />
+          <StudentProgramHistory history={history} />
         </div>
-      </Section>
 
-      <Section
-        title="Enrollment history"
-        description="Every course this student has been enrolled in, newest semester first."
-        className="mt-4"
-      >
-        {history.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            This student is not enrolled in any course yet.
-          </p>
-        ) : (
-          <ul className="grid gap-2">
-            {history.map((enrollment) => (
-              <li
-                key={enrollment.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-hairline bg-card px-3 py-2"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Link
-                    href={routes.course(enrollment.courseId)}
-                    className="rounded-sm font-medium underline-offset-4 hover:underline"
-                  >
-                    {enrollment.courseId.replace("crs-", "").toUpperCase()}
-                  </Link>
-                  <span className="text-sm text-muted-foreground" data-numeric>
-                    {enrollment.semesterCode}
-                  </span>
-                </div>
-                <StatusBadge
-                  tone={ENROLLMENT_STATUS_TONE[enrollment.status]}
-                  label={ENROLLMENT_STATUS_LABEL[enrollment.status]}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
+        <div className="grid gap-4">
+          <Section title="Personal">
+            <DescriptionList
+              items={[
+                { label: "Name", value: `${personal.firstName} ${personal.lastName}` },
+                { label: "Email", value: personal.email },
+                { label: "Phone", value: personal.phone ?? "Not provided" },
+                { label: "Date of birth", value: formatDate(personal.dateOfBirth) },
+              ]}
+            />
+          </Section>
+
+          <Section
+            title="Academic"
+            description={`Programme is ${academic.program}, set by enrolment rather than on this profile.`}
+          >
+            <DescriptionList
+              items={[
+                { label: "Program", value: academic.program },
+                { label: "Major", value: academic.major },
+                { label: "Year", value: yearLevelLabel(academic.yearLevel) },
+                { label: "Skills", value: <TagList values={academic.skills} />, wide: true },
+                { label: "Interests", value: <TagList values={academic.interests} />, wide: true },
+                {
+                  label: "Certifications",
+                  value: <TagList values={academic.certifications} />,
+                  wide: true,
+                },
+              ]}
+            />
+          </Section>
+
+          <Section title="Experience" description={experience.careerGoal}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <ExperienceGroup title="Projects" items={experience.projects} />
+              <ExperienceGroup title="Clubs" items={experience.clubs} />
+              <ExperienceGroup title="Activities" items={experience.activities} />
+              <ExperienceGroup title="Achievements" items={experience.achievements} />
+            </div>
+          </Section>
+
+          <Section title="Emergency contact">
+            {emergencyContact ? (
+              <DescriptionList
+                columns={3}
+                items={[
+                  { label: "Name", value: emergencyContact.name },
+                  { label: "Relationship", value: emergencyContact.relationship },
+                  { label: "Phone", value: emergencyContact.phone },
+                ]}
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">No emergency contact recorded.</p>
+            )}
+          </Section>
+        </div>
+      </div>
     </>
   );
 }
 
-function TagList({ values, empty }: { values: string[]; empty: string }) {
+function TagList({ values }: { values: string[] }) {
   if (values.length === 0) {
-    return <span className="text-muted-foreground">{empty}</span>;
+    return <span className="text-muted-foreground">None recorded</span>;
   }
   return (
     <span className="flex flex-wrap gap-1.5">
@@ -183,9 +157,7 @@ function ExperienceGroup({
                 <p className="text-xs text-muted-foreground">{item.description}</p>
               ) : null}
               {item.startDate ? (
-                <p className="text-xs text-muted-foreground">
-                  From {formatDate(item.startDate)}
-                </p>
+                <p className="text-xs text-muted-foreground">From {formatDate(item.startDate)}</p>
               ) : null}
             </li>
           ))}

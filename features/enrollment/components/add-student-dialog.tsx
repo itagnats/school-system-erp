@@ -144,7 +144,7 @@ function EnrolmentReceipt({
 }) {
   return (
     <div className="grid gap-3">
-      <div className="flex items-start gap-2 rounded-md border border-hairline bg-tone-mint/40 p-3">
+      <div className="flex items-start gap-2 rounded-md border border-hairline bg-tone-green/40 p-3">
         <CheckCircle2 className="mt-0.5 size-4 text-success" aria-hidden />
         <div className="grid gap-0.5 text-sm">
           <p className="font-medium">

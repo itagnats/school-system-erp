@@ -2,6 +2,7 @@ import {
   BookOpen,
   CalendarRange,
   ClipboardCheck,
+  Compass,
   FileSpreadsheet,
   FileText,
   GraduationCap,
@@ -87,7 +88,15 @@ export const NAVIGATION: NavSection[] = [
     items: [{ label: "Student Reports", href: "/reports", icon: FileText }],
   },
   {
-    items: [{ label: "Design System", href: "/design-system", icon: Layers }],
+    // Its own named section rather than an unlabelled tail. The design system
+    // is not a feature of the school - it is the tooling the school is built
+    // from - and a heading says so where a bare item at the bottom of the list
+    // read as one more destination.
+    label: "Develop",
+    items: [
+      { label: "Design System", href: "/design-system", icon: Layers },
+      { label: "System Guide", href: "/system-guide", icon: Compass },
+    ],
   },
 ];
 
