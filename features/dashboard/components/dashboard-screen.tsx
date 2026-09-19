@@ -11,9 +11,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { canOpenPath } from "@/lib/access";
 import { routes } from "@/lib/constants";
 import { formatDate, formatNumber, formatScore } from "@/lib/utils";
-import type { DashboardEvaluationRow, DashboardSummary } from "@/types";
+import type { AppRole, DashboardEvaluationRow, DashboardSummary } from "@/types";
 import { WINDOW_STATUS_LABEL, WINDOW_STATUS_TONE } from "../constants";
 
 /**
@@ -30,9 +31,24 @@ import { WINDOW_STATUS_LABEL, WINDOW_STATUS_TONE } from "../constants";
  * platform, and the line that keeps it honest is that the dashboard *states*
  * and the module *explains*: anything a reader wants to interrogate belongs to
  * the screen that owns it.
+ *
+ * **Those links are filtered by role** (direction.md §3a). The dashboard is
+ * open to everyone and the modules it points at are not: a TA can read this
+ * page and open neither Courses nor Semesters. A link that refuses the person
+ * who clicked it is worse than no link, so where the role cannot follow it the
+ * text stays and the anchor goes — the figure is still theirs to read.
  */
-export function DashboardScreen({ summary }: { summary: DashboardSummary }) {
+export function DashboardScreen({
+  summary,
+  role,
+}: {
+  summary: DashboardSummary;
+  role: AppRole;
+}) {
   const { semester } = summary;
+  const canOpenCourses = canOpenPath(role, "/courses");
+  const canOpenSemesters = canOpenPath(role, "/semesters");
+  const canManageEvaluation = canOpenPath(role, "/evaluation/manage");
 
   if (!semester) {
     return (
@@ -41,9 +57,11 @@ export function DashboardScreen({ summary }: { summary: DashboardSummary }) {
         title="No semester is running"
         description="Every figure on this page is measured against the active semester. Open Semesters to see what is upcoming."
         action={
-          <Link href={routes.semesters()} className="text-sm font-medium text-primary underline-offset-4 hover:underline">
-            Go to Semesters
-          </Link>
+          canOpenSemesters ? (
+            <Link href={routes.semesters()} className="text-sm font-medium text-primary underline-offset-4 hover:underline">
+              Go to Semesters
+            </Link>
+          ) : undefined
         }
       />
     );
@@ -108,12 +126,14 @@ export function DashboardScreen({ summary }: { summary: DashboardSummary }) {
           title="Evaluation progress"
           description="Evaluations running this semester, least complete first."
           actions={
-            <Link
-              href={routes.evaluationManage()}
-              className="text-xs font-medium text-primary underline-offset-4 hover:underline"
-            >
-              Manage
-            </Link>
+            canManageEvaluation ? (
+              <Link
+                href={routes.evaluationManage()}
+                className="text-xs font-medium text-primary underline-offset-4 hover:underline"
+              >
+                Manage
+              </Link>
+            ) : undefined
           }
         >
           {summary.evaluations.length === 0 ? (
@@ -126,7 +146,7 @@ export function DashboardScreen({ summary }: { summary: DashboardSummary }) {
           ) : (
             <ul className="flex flex-col gap-3">
               {summary.evaluations.map((row) => (
-                <EvaluationProgressRow key={row.setupId} row={row} />
+                <EvaluationProgressRow key={row.setupId} row={row} linked={canManageEvaluation} />
               ))}
             </ul>
           )}
@@ -137,12 +157,14 @@ export function DashboardScreen({ summary }: { summary: DashboardSummary }) {
         title="Courses this semester"
         description={`The ${summary.courses.length} busiest of ${summary.courseCount} running in ${semester.code}.`}
         actions={
-          <Link
-            href={routes.courses()}
-            className="text-xs font-medium text-primary underline-offset-4 hover:underline"
-          >
-            All courses
-          </Link>
+          canOpenCourses ? (
+            <Link
+              href={routes.courses()}
+              className="text-xs font-medium text-primary underline-offset-4 hover:underline"
+            >
+              All courses
+            </Link>
+          ) : undefined
         }
         flush
       >
@@ -164,12 +186,16 @@ export function DashboardScreen({ summary }: { summary: DashboardSummary }) {
             {summary.courses.map((course) => (
               <TableRow key={course.id} className="hairline-b">
                 <TableCell className="text-sm">
-                  <Link
-                    href={routes.course(course.id)}
-                    className="rounded-sm font-medium text-foreground underline-offset-4 hover:underline"
-                  >
-                    {course.code}
-                  </Link>
+                  {canOpenCourses ? (
+                    <Link
+                      href={routes.course(course.id)}
+                      className="rounded-sm font-medium text-foreground underline-offset-4 hover:underline"
+                    >
+                      {course.code}
+                    </Link>
+                  ) : (
+                    <span className="font-medium text-foreground">{course.code}</span>
+                  )}
                   <p className="truncate text-xs text-muted-foreground">{course.name}</p>
                 </TableCell>
                 <TableCell className="text-right text-sm" data-numeric>
@@ -187,18 +213,28 @@ export function DashboardScreen({ summary }: { summary: DashboardSummary }) {
   );
 }
 
-function EvaluationProgressRow({ row }: { row: DashboardEvaluationRow }) {
+function EvaluationProgressRow({
+  row,
+  linked,
+}: {
+  row: DashboardEvaluationRow;
+  linked: boolean;
+}) {
   const label = `${row.courseCode} · ${row.shortName}`;
 
   return (
     <li className="flex flex-col gap-1.5">
       <div className="flex items-baseline justify-between gap-2">
-        <Link
-          href={routes.evaluationSetup(row.setupId)}
-          className="truncate rounded-sm text-sm font-medium text-foreground underline-offset-4 hover:underline"
-        >
-          {label}
-        </Link>
+        {linked ? (
+          <Link
+            href={routes.evaluationSetup(row.setupId)}
+            className="truncate rounded-sm text-sm font-medium text-foreground underline-offset-4 hover:underline"
+          >
+            {label}
+          </Link>
+        ) : (
+          <span className="truncate text-sm font-medium text-foreground">{label}</span>
+        )}
         <StatusBadge
           tone={WINDOW_STATUS_TONE[row.status]}
           label={WINDOW_STATUS_LABEL[row.status]}

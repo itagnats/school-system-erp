@@ -15,8 +15,19 @@ import type { StatusTone, StudentProgramTerm } from "@/types";
  * The dates are the **semester's**, not the enrolment's. A term is a period,
  * and showing the day somebody was added to a roster instead would answer a
  * question nobody asked.
+ *
+ * `linked` is false for a student reading their own profile (direction.md §3a).
+ * The term page lives under `/enrollment`, which is administrator-only, so for
+ * them the term is a label rather than a destination - the row still says which
+ * programme and semester it was, which is the part that is theirs to know.
  */
-export function StudentProgramHistory({ history }: { history: StudentProgramTerm[] }) {
+export function StudentProgramHistory({
+  history,
+  linked = true,
+}: {
+  history: StudentProgramTerm[];
+  linked?: boolean;
+}) {
   return (
     <Section
       title="Enrollment history"
@@ -42,7 +53,7 @@ export function StudentProgramHistory({ history }: { history: StudentProgramTerm
                 label={MEMBERSHIP_LABEL[entry.status]}
               />
 
-              {entry.programTermId ? (
+              {entry.programTermId && linked ? (
                 <Link
                   href={routes.enrolmentTerm(entry.programTermId)}
                   className="font-medium text-primary hover:underline"

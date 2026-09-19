@@ -1,22 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Printer } from "lucide-react";
+import { FileText } from "lucide-react";
 import { EmptyState, ErrorState, LoadingState } from "@/components/feedback";
 import { Section, StatusBadge } from "@/components/shared";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
 import type { EvaluationResultRow, EvaluationResults } from "@/types";
 import { ASSESSEE_ROLE_LABEL } from "../constants";
 import { useStudentReport } from "../hooks/use-results";
 import { ReportDocument } from "./report-document";
+import { ReportSheetDialog } from "./report-sheet-dialog";
 import { SubjectAvatar } from "./subject-avatar";
 
 /**
@@ -170,16 +163,12 @@ function ResultRow({
 }
 
 /**
- * The report, in a dialog, with a print action.
+ * The report, fetched when it opens.
  *
- * `window.print()` rather than a generated PDF: the browser already knows how
- * to paginate a document and produce a file, and shipping a PDF library to do
- * it worse would be a large dependency for a worse result. The print rule in
- * `globals.css` hides the application chrome so the sheet carries the report
- * and nothing else.
- *
- * Fetched when it opens, not with the table: a course-semester has dozens of
- * subjects and each report carries a criteria breakdown and every comment.
+ * Lazy on purpose: a course-semester has dozens of subjects and each report
+ * carries a criteria breakdown and every comment. The sheet itself is
+ * `ReportSheetDialog`, shared with a student's own reports so the two cannot
+ * print differently.
  */
 function ReportDialog({
   setupId,
@@ -189,46 +178,22 @@ function ReportDialog({
   const query = useStudentReport(setupId, subjectId);
 
   return (
-    <Dialog
+    <ReportSheetDialog
       open={Boolean(subjectId)}
-      onOpenChange={(open) => !open && onClose()}
+      onClose={onClose}
+      subtitle={
+        query.data
+          ? `${query.data.displayName} · ${query.data.courseCode} ${query.data.semesterCode}`
+          : "Loading the report."
+      }
+      printable={Boolean(query.data)}
     >
-      <DialogContent
-        // The print rule keys off this, and on the shell being marked chrome.
-        data-print="report"
-        className={cn("max-h-[90vh] overflow-y-auto sm:max-w-3xl")}
-      >
-        <DialogHeader data-print="hide">
-          <DialogTitle>Evaluation report</DialogTitle>
-          <DialogDescription>
-            {query.data
-              ? `${query.data.displayName} · ${query.data.courseCode} ${query.data.semesterCode}`
-              : "Loading the report."}
-          </DialogDescription>
-        </DialogHeader>
-
-        {query.isPending ? <LoadingState label="Building the report" /> : null}
-        {query.error ? (
-          <ErrorState error={query.error} onRetry={() => query.refetch()} />
-        ) : null}
-        {query.data ? <ReportDocument report={query.data} /> : null}
-
-        {query.data ? (
-          <div
-            data-print="hide"
-            className="flex items-center justify-end gap-2 border-t border-hairline pt-3"
-          >
-            <Button variant="outline" onClick={onClose}>
-              Close
-            </Button>
-            <Button onClick={() => window.print()}>
-              <Printer aria-hidden className="size-4" />
-              Download PDF
-            </Button>
-          </div>
-        ) : null}
-      </DialogContent>
-    </Dialog>
+      {query.isPending ? <LoadingState label="Building the report" /> : null}
+      {query.error ? (
+        <ErrorState error={query.error} onRetry={() => query.refetch()} />
+      ) : null}
+      {query.data ? <ReportDocument report={query.data} /> : null}
+    </ReportSheetDialog>
   );
 }
 

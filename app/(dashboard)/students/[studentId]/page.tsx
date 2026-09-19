@@ -5,7 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { StudentIdentityCard } from "@/features/students/components/student-identity-card";
 import { StudentProgramHistory } from "@/features/students/components/student-program-history";
 import { yearLevelLabel } from "@/features/students/constants";
+import { canOpenPath } from "@/lib/access";
 import { formatDate } from "@/lib/utils";
+import { requireOwnStudent } from "@/server/principal";
 import { getStudent, studentProgramHistory } from "@/server/services";
 
 interface PageParams {
@@ -39,6 +41,11 @@ export async function generateMetadata({ params }: PageParams): Promise<Metadata
  */
 export default async function Page({ params }: PageParams) {
   const { studentId } = await params;
+  // `/students` is owner-scoped, so reaching this page is not the same as being
+  // allowed to read it: the proxy let a student through to *a* profile and this
+  // is where it is settled whether it is theirs (direction.md §3a).
+  const principal = await requireOwnStudent(studentId);
+
   const student = getStudent(studentId);
   if (!student) notFound();
 
@@ -57,7 +64,7 @@ export default async function Page({ params }: PageParams) {
         */}
         <div className="grid gap-4">
           <StudentIdentityCard student={student} />
-          <StudentProgramHistory history={history} />
+          <StudentProgramHistory history={history} linked={canOpenPath(principal.role, "/enrollment")} />
         </div>
 
         <div className="grid gap-4">

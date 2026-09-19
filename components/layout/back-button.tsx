@@ -4,6 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import type { DemoPrincipal } from "@/types";
 import { useBreadcrumbTrail } from "./use-breadcrumb-trail";
 
 /**
@@ -40,10 +41,10 @@ let entryPathname: string | null = null;
  * navigation affordance in that slot competes with both. Above the h1 the
  * control belongs to the page it will leave, on the same left edge as the title.
  */
-export function BackButton() {
+export function BackButton({ principal }: Readonly<{ principal: DemoPrincipal }>) {
   const pathname = usePathname();
   const router = useRouter();
-  const trail = useBreadcrumbTrail();
+  const trail = useBreadcrumbTrail(principal);
   const parentHref = trail?.parentHref ?? null;
 
   useEffect(() => {

@@ -27,8 +27,10 @@ import { PersonaSwitcher } from "./persona-switcher";
  * Scaffold-grade layout. The structure and the states are real; the visual
  * design is being taken separately.
  */
-export function YourEvaluationScreen() {
-  const { personaId, setPersona } = usePersonaParam();
+export function YourEvaluationScreen({
+  signedInPersonaId,
+}: Readonly<{ signedInPersonaId?: string }>) {
+  const { personaId, setPersona } = usePersonaParam(signedInPersonaId);
   const personas = usePersonas();
   const queue = useEvaluationQueue(personaId);
 
@@ -38,7 +40,7 @@ export function YourEvaluationScreen() {
     <div className="grid gap-4">
       <Section
         title="Acting as"
-        description="There is no sign-in, so who you are is a demo choice. Switching identity changes what you are asked to do."
+        description="This opens as the role you signed in with. Switching here changes only what you are asked to assess, not what the rest of the application will let you open."
       >
         <PersonaSwitcher
           personas={personas.data ?? []}

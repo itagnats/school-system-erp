@@ -124,6 +124,200 @@ Navigation can be adjusted during implementation if UX improvements are discover
 
 ---
 
+# 3a. Roles and the Demo Sign-in
+
+*(added 2026-09-16)*
+
+PRIME has four **app roles** — `administrator`, `teacher`, `ta`, `student` —
+and a sign-in screen at `/login` that is a row of cards rather than a form.
+There is no password, no account directory and no recovery: choosing a card is
+the whole of it.
+
+## An app role is not an evaluation role
+
+They are different questions with an overlapping vocabulary, and collapsing
+them is the same mistake §14 already records about evaluation roles.
+
+| | asks | lives on |
+| --- | --- | --- |
+| `EvaluationRole` | what somebody is inside one assessment | a setup's assessee and assessor cards |
+| `AppRole` | which parts of the application they may open | the session |
+
+`inspector` is an evaluation role and deliberately **not** an app role: an
+inspector is a student from another group, so it owns no screen the student
+role does not. `administrator` is an app role and not an evaluation role,
+because nobody in the evaluation model runs the school — somebody has to own
+Cost Management, Invoices and the curriculum, and no teacher, TA or student
+does.
+
+## What each role reaches
+
+```text
+administrator   everything — the whole sidebar
+teacher         Dashboard · Courses · Student Profiles · Manage Evaluation
+                · Your Evaluation · Student Reports
+ta              Dashboard · Manage Evaluation (read only) · Your Evaluation
+student         Dashboard · Your Evaluation
+everyone        Design System · System Guide
+```
+
+Two placements are deliberate and stated here so they are re-decided rather
+than inherited:
+
+- **Dashboard is open to everyone** because it carries active courses, the
+  current semester, enrollment and evaluation progress — and no revenue, cost
+  or invoice. **Add a money card to it and it becomes staff-only.**
+- **Develop is open to everyone.** The design system and the system guide are
+  the tooling PRIME is built from rather than part of the school, and this is a
+  portfolio piece whose showcase should not sit behind a role.
+
+Reading and writing are separated where the roles differ: a TA reads Manage
+Evaluation to see who still owes work and changes nothing; a teacher reads a
+student profile and an administrator edits it.
+
+## One table, two readers
+
+The rules live in `lib/access/policy.ts` and are read by both the sidebar,
+which hides what a role cannot use, and `proxy.ts`, which refuses it. **Hiding
+a link is courtesy; the refusal is the rule.** Two tables would let those
+disagree, and the one that disagrees silently is always the server's.
+
+The allowlist **falls closed**: a path with no rule is denied to everybody, so
+a route added without one stops working loudly instead of serving everybody
+quietly.
+
+## A record of your own
+
+*(added 2026-09-16, later)*
+
+Three of the four roles are answered by the table above: what you may open
+depends only on which role you hold. A student is not, because the question
+they ask is **"may I open *my* profile"**, and the path `/students/stu-007`
+does not say whose record it names.
+
+So a rule may also carry an `owner` list, and it means something narrower than
+the other two columns:
+
+```text
+read    this role may open anything under the prefix
+write   this role may change anything under the prefix
+owner   this role reaches ONE record under the prefix - and the table
+        cannot tell which, so the edge lets them through and something
+        downstream compares the ids
+```
+
+**Passing the proxy is therefore not the same as being allowed**, and that is
+the only place in PRIME where those two come apart. `requireOwnStudent` and
+`mayReadStudent` / `mayWriteStudent` in `server/principal.ts` are where it is
+settled, and they are called by the profile page, the edit page and the two
+handlers under `/api/students/<id>`. The collection itself is never reachable:
+`/students` stays staff-only, because a student who could list every profile
+would have been handed exactly the directory the rule exists to withhold.
+
+The principal's own `studentId` is resolved **on the server**, from the demo
+persona's enrolment, and is never carried in the cookie. A cookie asserting
+which record it may read is the same shape of mistake as a cookie asserting
+its own role, which is the hole `AUD-023` records.
+
+This is also the answer to the objection in *What this is not*: enforcement no
+longer stops at the edge for the one case where the edge is not competent to
+decide. It is the pattern a real system uses everywhere.
+
+## What a student sees
+
+Two of the roles get the same screens with less on them. The student gets
+**their own**.
+
+- **`/dashboard` is a different screen for a student.** The staff dashboard
+  asks how the school is doing — head counts, coverage, the busiest courses.
+  A student's asks what they are enrolled in and what they still owe: their
+  programme and standing, their courses, their evaluation queue. It is a
+  separate screen rather than the same one with panels removed, because a
+  student reading the school's head count has been shown a figure that is true
+  and none of their business.
+- **It is not scoped to the active semester.** The staff dashboard measures one
+  moment; this one is a record. The seeded student holds enrolments in 202502
+  and 202602 while 202601 is running, so a dashboard filtered to "now" would be
+  empty for the only student who can sign in. Every row carries its semester
+  and the current one is marked, so nothing is disguised as current.
+- **My Profile is in their sidebar**, at `/students/<their id>`, and **My
+  Reports** beside Student Reports, at `/reports/students/<their id>` (added
+  2026-09-19; see §23). These are the navigation items whose href is a record,
+  which is why the sidebar is built from the principal rather than from the
+  role. Each sits in the section that already holds the staff view of the same
+  thing rather than in a section of its own.
+
+**Every link on a screen goes somewhere the reader may open.** This is a rule,
+not a finish: before it, a student's dashboard offered Courses, Semesters,
+Manage Evaluation and eight course rows, every one of which refused them, and
+the back control on their own profile pointed at the staff list. A link that
+refuses the person who was shown it is worse than no link, because it teaches
+the reader that the navigation lies. Where a role cannot follow a link the
+label stays and the anchor goes — the figure is still theirs to read.
+
+The two **Develop** pages are the deliberate exception. The System Guide prints
+the whole route tree because documenting the application is what it is for, and
+a reader who follows one of those to `/no-access` has been shown the access
+rule working rather than a broken link.
+
+## What a student may change
+
+A student may **edit their own profile** — the user's decision on 2026-09-16,
+taken over a read-only profile and over a per-field rule, and recorded here
+rather than left to be discovered in a handler.
+
+What that actually reaches, checked against the write path rather than assumed:
+
+```text
+may change    name, email, phone, date of birth
+              major, year level, skills, interests, certifications
+              emergency contact
+never         their programme - the update path has always ignored it,
+              for every role, because a programme comes from enrolment
+never         their student id
+never         DELETE - `ownerMethods` stops at PATCH
+```
+
+**Editing a record and removing one are different acts**, which is why the
+verbs an owner gets are spelled out in the table instead of inherited from the
+write column.
+
+A real school would not let a student set their own year level, and the cost of
+saying so is one line here rather than a surprise later. It is in scope because
+the demonstration is the *mechanism* — a per-record authorization check, on a
+route that already existed, enforced on both the page and the endpoint — and
+the mechanism is identical whether the field list is generous or strict.
+
+## What this is not
+
+It is not authentication, and every surface says so — the sign-in screen, the
+account menu, and the comments on the code. The cookie is unsigned and
+self-asserted: there is no session store to verify it against and no secret to
+sign it with that would not also be in the repository. Anyone can set it by
+hand and be any role.
+
+What it demonstrates is the part a frontend actually owns — where a session is
+established, what the cookie carrying it should look like (`HttpOnly`,
+`SameSite=Lax`, `Secure` in production, a short life), where authorization is
+enforced, and that a hidden link is not a protection. §33 still rules out real
+SSO, real identity integration and complex permission administration, and this
+does not smuggle them back in.
+
+**In a real system the check would not stop here.** `proxy.ts` is the only
+enforcement point for a rule about *roles*, because the cookie **is** the claim
+— a second check inside a handler would read the same unverified string and
+reach the same answer. Given a signed session and a session store, each route
+handler would re-verify it against the principal it is acting for, because a
+check that runs once at the edge is one deployment mistake away from not
+running at all.
+
+The ownership rules above are the exception, and they are the exception for a
+reason worth keeping: the edge cannot decide them *at all*, whatever the cookie
+is worth, because it sees a path and never a record. That is what makes them
+the one place where PRIME already enforces authorization twice.
+
+---
+
 # 4. Course
 
 ## Purpose
@@ -1654,6 +1848,47 @@ make a weak profile fill the frame exactly like a strong one.
 **Coverage below 100% is stated on the face of the report.** A confident number
 computed over half the evidence is the most misleading thing a report can print.
 
+## A student's own report (added 2026-09-19)
+
+The delivery above assumes a reader with a question about one subject among
+dozens. A student has no results table and never will, so their report needs a
+second way in — and it is the smaller one:
+
+```text
+/reports                      staff: the picker, then every subject's score
+/reports/students/<id>        one student's own reports, owner-scoped
+```
+
+`/reports` stays staff-only. The deeper rule is owner-scoped in the sense §3a
+describes: the edge lets a student through to *a* record beneath
+`/reports/students` and `requireOwnStudent` decides whose. Staff keep `read`
+there too, so the same page doubles as one person's reports across cohorts.
+
+**Published setups only.** A `closed` evaluation is scored and not yet handed
+over, and an `open` one is still being submitted; releasing a report is a
+deliberate act and the window status is where that act is recorded. Staff keep
+the wider view they already have, which stops at `draft`.
+
+**It is the same document, not a version for the subject.** A trimmed copy
+would be a second thing to maintain and a standing invitation to decide later
+what somebody may know about their own assessment. The rank is in it, stating
+its scope (§21); the comments are in it, attributed to a role and never to a
+person (§23), which is what makes showing them to the subject safe at all.
+
+**Nothing on that page is fetched.** The documents are built during the server
+render and handed to the print dialog, so a student's own report never travels
+over the API. That is not only fewer moving parts: the list and the document
+came from one call, so they cannot disagree.
+
+The endpoints behind all this are guarded **in their handlers** rather than by
+the table, and that is forced rather than chosen. Rules match by prefix, and
+`/api/evaluation` has to stay readable by everyone because the queue and the
+evaluation form need it — so `…/results` and `…/report/<subjectId>`, which sit
+beneath it, inherited a reach nobody intended: every signed-in student could
+pull a cohort's names, scores and grades (`AUD-029`). There is no prefix that
+names a segment behind a dynamic id, so the check moved downstream, the same
+way the ownership check did and for the same reason.
+
 ---
 
 # 24. Dashboard
@@ -1964,11 +2199,11 @@ Not required:
 - Library management
 - Full attendance system
 - Full HR system
-- Real SSO
+- Real SSO (the demo role sign-in is in scope - 3a)
 - Real student identity integration
 - Real external integrations
 - Production notification infrastructure
-- Complex permission administration
+- Complex permission administration (a four-role access table is in scope - 3a)
 - Complete accounting system
 - Full analytics platform
 - Mobile application

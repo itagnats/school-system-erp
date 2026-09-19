@@ -14,8 +14,10 @@ export type * from "./evaluation";
 export type * from "./question";
 export type * from "./report";
 export type * from "./dashboard";
+export type * from "./identity";
 
 export { ENROLLMENT_STATUSES } from "./enrollment";
+export { APP_ROLES } from "./identity";
 export {
   EVALUATION_ROLES,
   EVALUATION_CRITERIA,

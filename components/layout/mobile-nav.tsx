@@ -14,6 +14,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { routes } from "@/lib/constants";
+import type { DemoPrincipal } from "@/types";
 import { Brand } from "./brand";
 import { SidebarNav } from "./sidebar-nav";
 
@@ -22,7 +23,7 @@ import { SidebarNav } from "./sidebar-nav";
  * not a shrunken sidebar: it closes on selection so the user is never left
  * looking at the menu after choosing a destination.
  */
-export function MobileNav() {
+export function MobileNav({ principal }: Readonly<{ principal: DemoPrincipal }>) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const [lastPathname, setLastPathname] = useState(pathname);
@@ -56,7 +57,7 @@ export function MobileNav() {
           </SheetTitle>
         </SheetHeader>
         <ScrollArea className="h-[calc(100%-var(--header-h))]">
-          <SidebarNav onNavigate={() => setOpen(false)} />
+          <SidebarNav principal={principal} onNavigate={() => setOpen(false)} />
         </ScrollArea>
       </SheetContent>
     </Sheet>

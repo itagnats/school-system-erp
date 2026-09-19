@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { PetalField } from "@/components/decor";
+import type { DemoPrincipal } from "@/types";
 import { AppHeader } from "./app-header";
 import { BackButton } from "./back-button";
 import { AppSidebar } from "./app-sidebar";
@@ -10,7 +11,10 @@ import { AppSidebar } from "./app-sidebar";
  * The shell is generic: it knows about navigation and theme, and nothing about
  * courses, enrollment, cost or evaluation. Pages supply their own PageHeader.
  */
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({
+  children,
+  principal,
+}: Readonly<{ children: ReactNode; principal: DemoPrincipal }>) {
   return (
     // data-print="app" is the hook the report print rule keys off: printing a
     // report hides the application and leaves the document. See globals.css.
@@ -28,12 +32,12 @@ export function AppShell({ children }: { children: ReactNode }) {
         Skip to content
       </a>
       <PetalField />
-      <AppSidebar />
+      <AppSidebar principal={principal} />
       {/* The content column is the scroll container. Putting the overflow here
           rather than on <main> keeps the header sticky at its top, so content
           still passes under its blurred bar. */}
       <div data-app-scroll className="flex min-w-0 flex-1 flex-col overflow-y-auto">
-        <AppHeader />
+        <AppHeader principal={principal} />
         <main
           id="main-content"
           // Focusable only as a skip-link target, so focus actually lands in
@@ -48,7 +52,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               crowding the breadcrumb slot. It renders nothing where the trail
               reports no parent, so no page has to opt in or out. */}
           <div className="mx-auto w-full max-w-[1400px]">
-            <BackButton />
+            <BackButton principal={principal} />
             {children}
           </div>
         </main>

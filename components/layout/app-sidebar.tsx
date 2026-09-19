@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { APP } from "@/config/app";
 import { routes } from "@/lib/constants";
+import type { DemoPrincipal } from "@/types";
 import { Brand } from "./brand";
 import { SidebarNav } from "./sidebar-nav";
 
@@ -9,7 +10,7 @@ import { SidebarNav } from "./sidebar-nav";
  * Desktop sidebar. Fixed width from --sidebar-w, separated from the content by
  * a hairline rather than a shadow.
  */
-export function AppSidebar() {
+export function AppSidebar({ principal }: Readonly<{ principal: DemoPrincipal }>) {
   return (
     <aside
       // Navigation is never part of a printed page. It costs nothing on the
@@ -33,7 +34,7 @@ export function AppSidebar() {
           lets the nav push the track past the sidebar and take the scroll with
           it. The ScrollArea viewport needs a bounded height to scroll at all. */}
       <ScrollArea className="min-h-0 flex-1">
-        <SidebarNav />
+        <SidebarNav principal={principal} />
       </ScrollArea>
 
       {/* Writes are validated and shaped but never stored, so every load starts

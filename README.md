@@ -7,10 +7,19 @@ score, ranking, grade and individual reporting.
 PRIME is a portfolio project. The school, the courses and every student record
 are fictional.
 
-**Status: scaffold.** The design system, theme, application shell, shared
-components and routing are in place. The feature modules are not built yet —
-every application route renders a placeholder, and each one names the module
-that will own it.
+**Status: eleven modules built.** The design system, theme, application shell,
+shared components, routing, domain types, the API layer and the test harness are
+in place, and there are twelve <!-- count:features --> folders under `features/`.
+Dashboard, Curriculum, Course, Semester, Enrollment, Student, Cost, Cost
+Catalogue, Invoices and Manage Evaluation render real data from the BFF under
+`app/api/`. Your Evaluation is built but deliberately plain, pending a design
+pass. Every application route renders real data: `/reports/students/[studentId]`
+was the last placeholder and is now a student's own reports, owner-scoped.
+
+Two honest caveats. **Nothing has been seen in a browser** — every screen has
+been verified by build, test and served markup, never by eye. And **writes are
+never persisted**: a mutation validates, applies its business rules and returns
+the correct result, then changes nothing.
 
 ---
 
@@ -23,9 +32,19 @@ The reasoning behind the code, not just the shape of it:
 | [docs/architecture.md](docs/architecture.md) | The layering rule, folder map, routing, where state lives, the domain model, and an honest inventory of what is built |
 | [docs/design-system.md](docs/design-system.md) | Sakura — the six rules, the token contract, motion, contrast, accessibility |
 | [docs/data-flow.md](docs/data-flow.md) | Seed → repository → service → BFF → hook → component; the list and error contracts |
-| [docs/process-flow.md](docs/process-flow.md) | The three business chains and where they join, module by module — and an audit of where a flow dead-ends |
+| [docs/process-flow.md](docs/process-flow.md) | The three business chains end to end — curriculum to enrolment, cost to price, evaluation to report — and where each one currently stops |
 | [docs/evaluation-model.md](docs/evaluation-model.md) | The 360° chain: four roles, the weighted score, ranking scope, derived grades |
 | [docs/decisions/](docs/decisions/) | Why feature-first architecture · why shadcn · why a BFF with no backend |
+
+Two of those pages also exist inside the running application, which is the only
+version that cannot go stale: [`/design-system`](http://localhost:3000/design-system)
+renders every token and primitive from the shipped CSS, and
+[`/system-guide`](http://localhost:3000/system-guide) counts the dataset, draws
+the domain as a mind map and re-derives the money chain in front of the reader.
+**They demonstrate where the markdown restates**, which is why the counts in
+these documents are checked against the filesystem by
+`tests/docs/doc-counts.test.ts` — a number that falls behind the code fails the
+build.
 
 ---
 
@@ -57,9 +76,18 @@ cp .env.example .env.local   # optional; the default API base is /api
 npm run dev
 ```
 
-Open http://localhost:3000. The root path redirects to `/dashboard`.
+Open http://localhost:3000. The root path redirects to `/dashboard`, and with no
+session that redirects again to `/login` — pick a role card. **Administrator**
+sees everything; **student** is the interesting one, because the dashboard, the
+breadcrumbs and every link on the page change shape rather than simply refusing.
 
-Start at [`/design-system`](http://localhost:3000/design-system) — one page
+Then [`/system-guide`](http://localhost:3000/system-guide) — how the system
+works, with every number on it read from a service as the page renders: the
+dataset counted, the domain drawn as a mind map, the money chain re-derived and
+checked in front of you, and the whole route tree built from
+`config/navigation.ts`.
+
+And [`/design-system`](http://localhost:3000/design-system) — one page
 documenting every token, primitive, overlay and pattern everything else is built
 from, with a sticky table of contents down the left. Nothing is hidden behind a
 tab, so a component can be linked to directly: `/design-system#calendar`.
@@ -92,40 +120,69 @@ npm run test:run -- tests/calculations/grade.test.ts
 Dependencies point in one direction only:
 
 ```
-design tokens  ->  components/ui  ->  components/shared  ->  features/*  ->  app/*
+design tokens
+  ->  components/ui       ->  components/decor   ->  components/data-viz
+  ->  components/shared   ->  components/layout
+  ->  features/*          ->  app/*
 ```
 
 ```
 app/
 ├── (dashboard)/          application routes, wrapped in the shell
-├── design-system/        living documentation of the system
+├── api/                  the BFF, one folder per domain
+├── login/                the demo sign-in card row
+├── design-system/        living documentation of the visual system
+├── system-guide/         how the system works, derived from the services
 ├── layout.tsx            fonts, metadata, providers
 └── globals.css           the token layer
+proxy.ts                  role enforcement, before anything renders
 components/
 ├── ui/                   generic primitives, no business knowledge
+├── decor/                the petal layer; inert and stripped in print
+├── data-viz/             the only place recharts is imported
 ├── shared/               app-level patterns: page header, filters, status, panels
 ├── data-table/           the single table implementation
 ├── forms/                form section and action layouts
 ├── feedback/             loading, empty, error, skeletons, query boundary
-├── layout/               sidebar, header, breadcrumbs, theme toggle
+├── layout/               sidebar, header, breadcrumbs, back control, user menu
 └── providers/            theme and query providers
 features/<domain>/        components, hooks, services, validations, calculations
+server/                   the BFF's own half: repositories, services, principal
+├── repositories/         the in-memory store, seeded once
+├── services/             list, read and write logic behind each route handler
+├── principal.ts          who the request is acting as, server-side
+└── simulate.ts           the ?_simulate switch for the four UI states
 lib/
-├── api/                  fetch client and error mapping
+├── access/               the role table both the sidebar and the proxy read
+├── api/                  fetch client, error mapping, contracts, session
+├── barcode/              the Code 128 encoder on the invoice sheet
 ├── calculations/         cross-module business math
 ├── validations/          shared Zod primitives
 ├── constants/            query keys and route builders
 └── utils/                cn, formatting, URL helpers
+hooks/                    list query params, table wiring, mounted
 types/                    one file per domain
 config/                   app constants, navigation, validated env
-data/mock/                fictional fixtures
-tests/                    unit tests for the calculation layer
+data/
+├── seed/                 the deterministic generator
+└── mock/                 fictional fixtures
+tests/                    calculations, contracts, access, barcode, docs
 ```
 
 The rule that matters: a generic component never learns domain vocabulary. It
 takes a tone, a label or a render prop, and the feature supplies the meaning.
 `StatusBadge` is the worked example — it knows about six visual tones and
 nothing about enrollment.
+
+There are 33 <!-- count:routeHandlers --> route handlers under `app/api`, and the
+tests cover the part that can be wrong without looking wrong — the
+11 <!-- count:calculations --> calculation modules under `lib/calculations`,
+checked by 16 <!-- count:testFiles --> test files.
+
+**Identity is not a domain.** The role table lives in `lib/access/` and the
+session helpers in `lib/api/session.ts`, below `components/` — because the
+application shell is where somebody switches role, and a component may never
+import from a feature.
 
 ### Data flow
 
@@ -153,13 +210,18 @@ Business math is pure, lives in `lib/calculations` or a feature's
 `calculations/` folder, and is never inline in JSX. It is the part with unit
 tests, because it is the part that can be wrong without looking wrong:
 
-- cost total, allocation and cost per student
-- weighted evaluation score
+- cost totals, the indirect share and cost per student
+- the weighted evaluation score
 - ranking, including ties
 - grade from score
+- invoice lines, the package reconciliation and the payment payload
+- enrolment expansion and the conflict rules
 
 Grade is always derived from the score and never stored, so the two cannot drift
-apart.
+apart. The same move recurs everywhere: **a share of an indirect cost pool is
+derived from credits rather than typed onto a course**, and an evaluation
+assignment exists because a setup names your role rather than because a row says
+it does. Anything derived cannot disagree with what it was derived from.
 
 ---
 
@@ -167,7 +229,7 @@ apart.
 
 **Sakura (桜)** — soft Japanese spring, at comfortable density. A barely-pink
 ground, white cards held by pale pink borders and low pink-tinted shadows,
-generous rounding, and sakura pink as the action colour. Five ideas hold it
+generous rounding, and sakura pink as the action colour. Six ideas hold it
 together:
 
 1. **A card is a soft object.** It sits on a pink hairline *and* a pink shadow,
@@ -186,6 +248,12 @@ together:
 5. **Density is comfortable.** 44px rows, 36px controls. The soft cards need the
    air to read as designed. All of it is tokens, so changing them re-tunes every
    shared component at once.
+6. **Motion reports, it never decorates.** Three durations (120 / 200 / 320ms)
+   and four curves, registered in Tailwind's own namespaces so `duration-fast`
+   cooperates with `transition-*`. Never a raw number: an arbitrary `duration-200`
+   cannot follow the token when the scale is re-tuned. Reduced motion is honoured
+   once, globally, and the only element exempt is the spinner inside a pending
+   button — a frozen spinner reads as a hung page.
 
 There are two ramps. `--sakura-*` (桜) does four specific jobs: 200 is the card
 border, 300 the decorative petal, 600 the action colour, and 700 the deepest
@@ -207,8 +275,11 @@ it, and `--primary` lightens and takes dark lettering.
 Feature code uses semantic tokens (`--primary`, `--muted-foreground`,
 `--hairline`, `--seal`, `--success`) and the named type steps, never the raw
 `--sakura-*` / `--hai-*` ramps, a hex value, or a pixel size in a class name.
-All 33 text pairs clear 4.5:1 in both themes, checked against the tinted grounds
-rather than only against white.
+All 12 <!-- count:contrastPairs --> measured text pairs clear 4.5:1 in both
+themes, checked against the tinted grounds rather than only against white. The
+figures are computed from the shipped `globals.css` rather than asserted; the
+tightest are 4.52 light (white on a primary button) and 5.75 dark (the accent on
+the pink card tone).
 
 ---
 
@@ -262,7 +333,44 @@ presentation, whose tests would mostly assert on markup.
 
 ## Security posture
 
-For a public demo with no authentication, the relevant controls are:
+### There is a demo sign-in, and it is authorisation without authentication
+
+`/login` is a row of role cards — administrator, teacher, TA, student — and the
+choice lands in an unsigned `HttpOnly` cookie. **This is deliberately not
+authentication**: there is no password, no session store and no secret that is
+not also in this repository, and every surface says so. What it demonstrates is
+the layer above: where authorisation lives, and what it costs.
+
+- **One table decides everything.** `lib/access/policy.ts` maps each role to the
+  pages and API methods it may reach. The sidebar filters itself with it and
+  `proxy.ts` enforces it — **hiding a link is courtesy, the refusal is the
+  rule.** The allowlist falls closed: a path with no entry is denied to
+  everybody.
+- **One enforcement point, chosen knowingly.** `proxy.ts` (Next 16 renamed
+  Middleware to Proxy) checks every request before anything renders, rather than
+  each of the route handlers calling a guard it might forget. The trade is
+  written in the file: for a real system each handler would re-verify a signed
+  session, because a check that runs once at the edge is one deployment mistake
+  away from not running at all. What makes it honest here is that the cookie
+  **is** the claim — a second check would read the same unverified string.
+- **Passing the proxy is not the same as being allowed.** A student may open
+  their own record and nobody else's, and the edge sees a path rather than a
+  record. Such paths are let through and `requireOwnStudent` in
+  `server/principal.ts` compares the ids on the other side. The collection stays
+  staff-only, and the principal's `studentId` is resolved server-side from the
+  demo persona rather than carried in the cookie.
+- **CSRF, two locks.** The session cookie is `SameSite=Lax`, and `proxy.ts`
+  additionally compares `Origin` to `Host` on every non-GET request. A request
+  with **no** `Origin` is allowed through: that is curl, a test or another
+  server, none of which carry a browser's cookies to be ridden.
+- **The session cookie** is `HttpOnly`, `Secure` in production, `SameSite=Lax`
+  and expires in eight hours. Nothing client-side caches "who am I" — the answer
+  lives in a cookie the browser cannot read and the server decides afresh.
+- **An app role is not an evaluation role.** `inspector` is an evaluation role
+  and not an app one; `administrator` is the reverse. Collapsing the two is how
+  an access table starts granting the wrong thing.
+
+### The controls that do not depend on a session
 
 - security headers set in `next.config.ts`: `X-Content-Type-Options`,
   `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` and a CSP with
@@ -276,11 +384,23 @@ For a public demo with no authentication, the relevant controls are:
 - ids encoded through `apiPath()` and the route builders rather than
   interpolated into a URL.
 
-Known gap: the CSP still carries `unsafe-inline` for scripts and styles. See the
-work log for why and what closing it would cost.
+- server-side validation on every write, through Zod schemas in
+  `server/validation.ts` and each feature's `validations/` module; a client-side
+  check is a convenience and never the rule.
 
-Authentication, authorisation and CSRF are out of scope for this project
-(direction.md §33). Adding any of them means revisiting this section.
+Known gaps, stated rather than implied:
+
+- the CSP still carries `unsafe-inline` for scripts and styles — see the work
+  log for why and what closing it would cost;
+- the principal cookie is **unsigned**, so anyone can name themselves an
+  administrator by editing it. That is the demo's premise, not an oversight: the
+  point is to show where the check goes, and a signature with the key in the
+  repository would only look like security;
+- there is no rate limiting, no audit log and no account lifecycle, because
+  there are no accounts.
+
+Real authentication (SSO) remains out of scope (`direction.md` §33).
+Authorisation is not: it was added on 2026-09-16 and is described above.
 
 ---
 

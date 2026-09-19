@@ -199,8 +199,10 @@ looks like it wants to be, for exactly this reason.
 
 The figures on `/design-system#a11y-contrast` are **computed, not asserted** — a
 script parses the shipped `globals.css`, resolves the token graph and applies the
-WCAG 2.1 formula in both themes. Worst pair in use: **4.52** light (white on
-`--primary`), **5.54** dark. A non-text indicator needs only 3:1.
+WCAG 2.1 formula in both themes. The table carries
+12 <!-- count:contrastPairs --> pairs; the tightest are **4.52** light (white on
+`--primary`) and **5.75** dark (the accent on the pink card tone). A non-text
+indicator needs only 3:1.
 
 Both times this palette was audited, the failures were in values that looked
 obviously fine. Resolve the graph and test the real pairs rather than the

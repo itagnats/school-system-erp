@@ -1,5 +1,7 @@
 import type { SemesterCode } from "./common";
-import type { EvaluationWindowStatus, RatingValue } from "./evaluation";
+import type { EnrollmentStatus } from "./enrollment";
+import type { StudentProgramTerm } from "./student";
+import type { EvaluationKind, EvaluationRole, EvaluationWindowStatus, RatingValue } from "./evaluation";
 import type { SemesterStatus } from "./semester";
 
 /**
@@ -84,4 +86,86 @@ export interface DashboardSummary {
   courses: DashboardCourseRow[];
   /** How many courses run this semester in total, so the panel can say what it is showing. */
   courseCount: number;
+}
+
+/* -------------------------------------------------------------------------- */
+/* The student's own dashboard (direction.md §3a, §24)                        */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * One row of "your courses".
+ *
+ * Carries its own semester because this list is **not scoped to the active
+ * one**. The seeded student is enrolled in 202502 and 202602 and the active
+ * semester is 202601, so a dashboard filtered to "now" would be empty for the
+ * only student who can sign in - and an empty landing page demonstrates
+ * nothing. Showing every semester and labelling each row is the honest version:
+ * nothing is hidden and nothing is passed off as current.
+ */
+export interface StudentCourseRow {
+  enrollmentId: string;
+  courseId: string;
+  courseCode: string;
+  courseName: string;
+  credits: number;
+  semesterCode: SemesterCode;
+  /** Whether this is the semester the school is currently running. */
+  isCurrentSemester: boolean;
+  status: EnrollmentStatus;
+}
+
+/** One thing the student still owes, condensed from their evaluation queue. */
+export interface StudentTaskRow {
+  assignmentId: string;
+  courseCode: string;
+  shortName: string;
+  kind: EvaluationKind;
+  /** Who they are being asked about. */
+  assesseeRole: EvaluationRole;
+  subjectCount: number;
+  completedCount: number;
+  /** False once the window has closed; the row is then a record, not a task. */
+  windowOpen: boolean;
+}
+
+/**
+ * Everything on a student's dashboard.
+ *
+ * A different shape from `DashboardSummary` rather than a filtered version of
+ * it, because it answers a different question. The staff dashboard asks how the
+ * school is doing; this one asks what *you* are enrolled in and what you still
+ * owe. Sharing a type would have meant one screen reading fields that are
+ * always null for it.
+ */
+export interface StudentDashboardSummary {
+  /** Null when the principal's student record cannot be found. The screen says so. */
+  student: {
+    id: string;
+    /** The printed identifier, e.g. `ST-2026-007` - not the internal id. */
+    studentId: string;
+    fullName: string;
+    program: string;
+    major: string;
+    yearLevel: number;
+  } | null;
+
+  /** The most recent programme membership: what they are on, and where they got to. */
+  standing: {
+    programName: string;
+    semesterCode: SemesterCode;
+    status: StudentProgramTerm["status"];
+  } | null;
+
+  /** Every course enrollment they hold, newest semester first. */
+  courses: StudentCourseRow[];
+  /** How many distinct semesters those span, so the tile can say what it counts. */
+  semesterCount: number;
+
+  /** What they still owe, unfinished first. Empty when their queue is clear. */
+  tasks: StudentTaskRow[];
+  /** Assignments with nothing left to do, for the "N of M" on the tile. */
+  taskTotal: number;
+
+  /** The semester the school is running, for labelling rather than filtering. */
+  currentSemesterCode: SemesterCode | null;
 }

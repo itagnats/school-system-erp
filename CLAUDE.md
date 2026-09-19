@@ -16,11 +16,64 @@ Dashboard, Curriculum, Course, Semester, Enrollment, Student, Cost, **Cost
 Catalogue**, **Invoices** and **Manage Evaluation** render real data from the BFF
 under `app/api/`. **Your Evaluation** is scaffolded — the queue and both form
 kinds work; its layout is deliberately plain, pending the user's design pass.
-`/reports/students/[studentId]` is still a placeholder (`AUD-002`) — the live
-report is under Student Reports.
+`/reports/students/[studentId]` is live as of 2026-09-19 and renders one
+student's own reports (`AUD-002` closed); the staff picker and results table
+stay at `/reports`.
 
 **Nothing has been seen in a browser** (`AUD-009`, open since 2026-09-07). Four
 screens have landed since. Do not describe how anything looks.
+
+**There is a demo sign-in and four app roles** (`direction.md` §3a, added
+2026-09-16). `/login` is a row of role cards - administrator, teacher, TA,
+student - and the choice lands in an unsigned `HttpOnly` cookie. One table in
+`lib/access/policy.ts` decides what each role reaches; the sidebar filters
+itself with it and `proxy.ts` enforces it. **Hiding a link is courtesy, the
+refusal is the rule**, and the allowlist falls closed - a path with no rule is
+denied to everybody.
+
+An **app role is not an evaluation role**: `inspector` is an evaluation role
+and not an app one, `administrator` the reverse. It is not authentication and
+every surface says so.
+
+A rule may also carry an **`owner`** list, which the other two columns cannot
+express: a student reaches `/students/<their own id>` and nobody else's, so the
+proxy lets them through and `requireOwnStudent` in `server/principal.ts`
+compares the ids. **Passing the proxy is not the same as being allowed** - the
+only place in PRIME where those come apart, and the reason is that the edge
+sees a path and never a record. The collection stays staff-only. The
+principal's `studentId` is resolved server-side from the demo persona's
+enrolment and is never carried in the cookie.
+
+**A student gets their own dashboard and their own profile** (2026-09-16).
+`/dashboard` branches on role: staff see the school, a student sees their
+programme, their courses and their evaluation queue - and it is deliberately
+**not** scoped to the active semester, because the seeded student holds nothing
+in it and an empty landing page demonstrates nothing. They may edit their own
+record (name, contact, major, year, skills); never their programme, which the
+update path has always ignored for everybody, and never DELETE.
+
+**And their own reports** (2026-09-19, `direction.md` §23).
+`/reports/students/<id>` is owner-scoped the same way, closing `AUD-002`;
+`/reports` stays staff-only because it is the picker and every subject's score.
+**Published setups only** - a closed evaluation is scored and not yet handed
+over. It is the same document staff open, not a trimmed one, and it is built
+during the server render rather than fetched.
+
+Two endpoints are guarded **in the handler** rather than by the table:
+`/api/evaluation/<id>/results` and `…/report/<subjectId>`. A rule matches by
+prefix and `/api/evaluation` must stay readable by everyone for the queue and
+the form, so those two inherited it and every signed-in student could read a
+cohort's grades (`AUD-029`, closed). There is no prefix that names a segment
+behind a dynamic id - when that happens, the check goes downstream and
+`server/principal.ts` is where it lives.
+
+**Every link on a screen goes somewhere the reader may open.** `DashboardScreen`,
+the breadcrumb trail, the back control and the programme history all take the
+role and drop the anchor where it would refuse. The two Develop pages are the
+deliberate exception - the System Guide documents the whole route tree.
+
+Next 16 renamed Middleware to **Proxy**: the file is `proxy.ts` at the root and
+`middleware.ts` is deprecated.
 
 **Enrollment is programme-first** (2026-09-16): `/enrollment` lists programme
 terms, `/enrollment/[programTermId]` shows that term's students and, below
@@ -131,6 +184,12 @@ grep -rn 'from "@/features/' features/    # expect exactly the two above
 
 Domains: `programs`, `courses`, `semesters`, `enrollment`, `students`, `costs`,
 `cost-catalogue`, `invoices`, `evaluation`, `question-bank`, `reports`, `dashboard`.
+
+**Identity is not a domain.** The access table lives in `lib/access/` and the
+session helpers in `lib/api/session.ts`, below `components/` - because
+`components/layout/` is where somebody switches role, and a component may never
+import from `features/`. `server/principal.ts` is the server-side half, read by
+the three layouts that render the shell.
 
 ### Data flow
 
@@ -438,6 +497,9 @@ Design System → App Shell → **Curriculum → Course → Semester → Enrollm
 Student Profile → Cost Management → Manage Evaluation** (all built) →
 demo persona switcher → Your Evaluation → the two form kinds (all built) →
 submission contracts → the computed leaderboard.
+
+The demo sign-in and the role-aware navigation landed out of order on
+2026-09-16, at the user's request.
 Score, grade and the individual report are built.
 
 An **evaluation setup** is the configuration for one course-semester

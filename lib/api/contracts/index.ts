@@ -16,3 +16,4 @@ export * from "./invoice";
 export * from "./program";
 export * from "./evaluation";
 export * from "./question";
+export * from "./session";

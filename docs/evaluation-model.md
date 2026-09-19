@@ -260,8 +260,20 @@ evaluation actually arrived. A final score built from two of the four roles is
 not the same claim as one built from all four, and the UI has to be able to say
 so.
 
-**Status: `calculateEvaluationScore` is not built yet.** It belongs in
-`features/evaluation/calculations/`, pure and unit-tested.
+**Status: built and tested**, in `lib/calculations/score.ts` rather than inside
+the feature — the report service reads it too, and a calculation two callers need
+sits below both of them. It is pure, and `tests/calculations/score.test.ts`
+covers it.
+
+One decision it carries that is easy to miss: **a score with no submissions is
+`null`**, never zero and never "not passed". Has-not-been-assessed and
+has-not-passed are different claims, and a zero would quietly turn the first into
+the second on every screen that renders it.
+
+The returned figures also stay **on the rating scale** — behavioural, ranking and
+total are means out of `scaleMax` — with `percent` derived from them. A pass mark
+of 4 out of 5 is 80%, which is a B; the two scales were not designed together and
+happen to agree.
 
 ---
 
@@ -354,12 +366,22 @@ Revised 2026-09-06, split by perspective rather than by feature:
 | --- | --- | --- |
 | Manage Evaluation | `/evaluation/manage` | teacher and administrator: groups, evaluator assignment, completion, the computed leaderboard |
 | Your Evaluation | `/evaluation` | the evaluator: forms assigned to you, and ones you have submitted |
-| Evaluation form | `/evaluation/[evaluationId]` | one form, of either kind |
+| Evaluation form | `/evaluation/[assignmentId]` | one form, of either kind |
+| Question bank | `/evaluation/manage/questions` | the wording asked over each criterion, maintained once and copied into a setup |
 
-There is no sign-in, so "you" comes from a **demo persona switcher** — a control
-that lets a reader act as a student, an inspector, a teacher or a TA. That is
-what makes the four roles and the no-self-evaluation rule visible rather than
-merely described.
+"You" comes from a **demo persona switcher** — `?as=<personaId>`, scoped to
+`/evaluation` — which lets a reader act as a student, an inspector, a teacher or
+a TA. That is what makes the four roles and the no-self-evaluation rule visible
+rather than merely described.
+
+**The persona is not the session, and the two are deliberately separate.** A
+demo sign-in and four *app* roles were added on 2026-09-16 (`direction.md` §3a),
+and an app role is not an evaluation role: `inspector` is an evaluation role and
+not an app one, `administrator` the reverse. A persona is also **not an
+authorisation boundary** — it is a URL parameter, and it says so on the screen.
+It is a parameter rather than context or local storage because local storage is
+unreadable during a server render, and anything depending on it breaks
+hydration.
 
 ## The blend
 
@@ -414,12 +436,24 @@ be checked against its parts.
 | Evaluation setup — types, seed, repository, service, contract, routes | **built** |
 | Manage Evaluation list and setup detail screens | **built** |
 | Evaluation groups | **built** — partitioned from each course-semester's enrollments |
-| `calculateEvaluationScore` | **not built** — needs submitted evaluations |
-| Self-evaluation guard | **not built** — the rule is rendered as locked, not yet enforced against a submission |
-| Demo persona switcher | **not built** — blocks Your Evaluation |
-| Evaluation forms, score, ranking, grade, report screens | **not built** |
-| `data/mock/evaluation.ts` | **built** — default blends, guidance, three setups |
+| `calculateEvaluationScore` | **built**, tested (`lib/calculations/score.ts`) |
+| Self-evaluation guard | **built** — refused structurally: an assessee's own role is never among its assessors, and the service pins `selfEvaluation: false`, so it cannot be switched on from a client |
+| Demo persona switcher | **built** — `?as=<personaId>`, scoped to `/evaluation` |
+| Your Evaluation — the queue and both form kinds | **built**, deliberately plain pending a design pass |
+| Score, grade and the individual report | **built** — Manage Evaluation → a setup → Results → a row's Report button, printed with `window.print()` |
+| Question bank — master questions, `/evaluation/manage/questions` | **built**; `copyQuestion` / `questionsForRelation` in `lib/calculations/question.ts` is the single implementation, shared by the seed and the server |
+| `data/mock/evaluation.ts` | **built** — default blends, guidance, setups |
+| Submission contracts | **not built** — nothing is written back, so a form's answers are shaped and discarded |
+| The computed leaderboard | **not built** — `calculateRanking` exists and nothing calls it over a cohort's final scores yet |
+| Pass/fail derived onto a programme enrolment | **not built** (`direction.md` §8) — the status stays progress, and the outcome has no derivation behind it |
 
-The types are further along than the logic, deliberately: they encode the
-"show the arithmetic" and "state the scope" constraints so that the calculations
-cannot be written in a way that hides them.
+The types were further along than the logic for most of this project's life, and
+deliberately so: they encode the "show the arithmetic" and "state the scope"
+constraints, so the calculations could not be written in a way that hides them.
+That gap has now closed everywhere except the three rows above.
+
+**Ratings are seeded from a hash** — per subject, role and criterion — because
+writes do not persist. Each subject has a standing it jitters around; varying
+only the ratings made every subject average to the same mean, and 28 of 28 then
+failed. A generated dataset can be correct in every single value and false in
+aggregate, which is the failure this project has hit often enough to name.

@@ -8,6 +8,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import type { DemoPrincipal } from "@/types";
 import { useBreadcrumbTrail } from "./use-breadcrumb-trail";
 
 /**
@@ -17,8 +18,8 @@ import { useBreadcrumbTrail } from "./use-breadcrumb-trail";
  * `useBreadcrumbTrail`, which `BackButton` reads too, so the two cannot
  * disagree about where up is.
  */
-export function AppBreadcrumbs() {
-  const trail = useBreadcrumbTrail();
+export function AppBreadcrumbs({ principal }: Readonly<{ principal: DemoPrincipal }>) {
+  const trail = useBreadcrumbTrail(principal);
 
   if (!trail) return null;
 

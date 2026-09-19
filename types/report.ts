@@ -86,6 +86,14 @@ export interface EvaluationResults {
 export interface StudentReport {
   /** Present for a student assessee; absent for a teacher or TA. */
   student?: StudentSummary;
+  /**
+   * The evaluation setup this report belongs to.
+   *
+   * A report is only identified by the pair - one subject has one per cohort -
+   * so carrying the setup id means a list of somebody's reports can be keyed
+   * and opened without threading a second value alongside each document.
+   */
+  setupId: string;
   subjectId: string;
   displayName: string;
   assesseeRole: EvaluationRole;
@@ -97,6 +105,17 @@ export interface StudentReport {
   evaluationName: string;
   shortName: string;
   evaluationGroupName?: string;
+
+  /**
+   * The rating scale the figures below sit on.
+   *
+   * Carried on the report rather than looked up beside it, because every reader
+   * of a score needs it: "4.08" is not a result until something says out of
+   * what. Added 2026-09-19 when a student's own list of reports needed to print
+   * the denominator, and it also fixed the radar, whose radius was a literal 5
+   * and would have flattered any setup scored on a different scale.
+   */
+  scaleMax: number;
 
   score: ScoreResult;
   rawScore: number | null;

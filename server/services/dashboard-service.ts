@@ -6,14 +6,20 @@ import type {
   DashboardEvaluationRow,
   DashboardSummary,
   RatingValue,
+  StudentCourseRow,
+  StudentDashboardSummary,
+  StudentTaskRow,
 } from "@/types";
 import {
   courseTable,
   enrollmentTable,
   evaluationSetupTable,
   semesterTable,
+  studentTable,
 } from "../repositories";
+import { evaluationQueue } from "./persona-service";
 import { evaluationResults } from "./report-service";
+import { studentProgramHistory } from "./student-service";
 
 /**
  * How many course rows the dashboard carries.
@@ -180,5 +186,128 @@ function evaluationProgress(semesterCode: string): {
     coveragePercent: coverage === null ? null : round(coverage, 1),
     averageScore: average === null ? null : round(average, 2),
     scaleMax,
+  };
+}
+
+/**
+ * The student's own dashboard (direction.md §3a).
+ *
+ * A separate read from `dashboardSummary` rather than a filtered one, because
+ * the two answer different questions. The staff dashboard asks how the school
+ * is doing - head counts, coverage, the busiest courses. This one asks what you
+ * are enrolled in and what you still owe, and every figure on it is about one
+ * person.
+ *
+ * **Deliberately not scoped to the active semester.** The staff dashboard
+ * measures one moment and says so; this one is a record. The seeded student
+ * holds enrollments in 202502 and 202602 while 202601 is active, so filtering
+ * to "now" would render the landing page empty for the only student who can
+ * sign in - a screen that is correct and demonstrates nothing. Every row
+ * carries its semester and the current one is marked, so nothing is disguised
+ * as current.
+ *
+ * `personaId` is what turns the evaluation queue into real work. It is the
+ * account's own persona, not a URL parameter: this is the dashboard, and
+ * reading somebody else's queue belongs to `/evaluation?as=`.
+ */
+export function studentDashboard(
+  studentId: string,
+  personaId?: string,
+): StudentDashboardSummary {
+  const active = semesterTable.find((row) => row.status === "active");
+  const currentSemesterCode = active?.code ?? null;
+
+  const student = studentTable.find((row) => row.id === studentId);
+  if (!student) {
+    // A principal whose record cannot be found gets an empty summary rather
+    // than an exception. The screen renders the reason; a 500 on the landing
+    // page would say nothing to the person who has to act on it.
+    return {
+      student: null,
+      standing: null,
+      courses: [],
+      semesterCount: 0,
+      tasks: [],
+      taskTotal: 0,
+      currentSemesterCode,
+    };
+  }
+
+  const coursesById = new Map(courseTable.map((row) => [row.id, row]));
+
+  const courses: StudentCourseRow[] = enrollmentTable
+    .filter((row) => row.studentId === student.id)
+    .flatMap((row) => {
+      const course = coursesById.get(row.courseId);
+      if (!course) return [];
+      return [
+        {
+          enrollmentId: row.id,
+          courseId: row.courseId,
+          courseCode: course.code,
+          courseName: course.name,
+          credits: course.credits,
+          semesterCode: row.semesterCode,
+          isCurrentSemester: row.semesterCode === currentSemesterCode,
+          status: row.status,
+        },
+      ];
+    })
+    // Newest semester first, then by code, so the most recent work is at the
+    // top - the opposite of the trend chart, which reads oldest to newest
+    // because a trend has a direction and a list of yours does not.
+    .sort(
+      (a, b) =>
+        b.semesterCode.localeCompare(a.semesterCode) ||
+        a.courseCode.localeCompare(b.courseCode),
+    );
+
+  const history = studentProgramHistory(student.id);
+  const latest = history[0];
+
+  const queue = personaId ? evaluationQueue(personaId) : undefined;
+  const assignments = queue?.assignments ?? [];
+
+  const tasks: StudentTaskRow[] = assignments
+    .map((assignment) => ({
+      assignmentId: assignment.id,
+      courseCode: assignment.courseCode,
+      shortName: assignment.shortName,
+      kind: assignment.kind,
+      assesseeRole: assignment.assesseeRole,
+      subjectCount: assignment.subjects.length,
+      completedCount: assignment.completedCount,
+      windowOpen: assignment.windowOpen,
+    }))
+    // Unfinished first, and within that the least started: the reason to look
+    // at this panel is to find what is still waiting.
+    .sort((a, b) => {
+      const aDone = a.completedCount >= a.subjectCount;
+      const bDone = b.completedCount >= b.subjectCount;
+      if (aDone !== bDone) return aDone ? 1 : -1;
+      return a.completedCount - b.completedCount;
+    });
+
+  return {
+    student: {
+      id: student.id,
+      studentId: student.studentId,
+      fullName: `${student.personal.firstName} ${student.personal.lastName}`,
+      program: student.academic.program,
+      major: student.academic.major,
+      yearLevel: student.academic.yearLevel,
+    },
+    standing: latest
+      ? {
+          programName: latest.programName,
+          semesterCode: latest.semesterCode,
+          status: latest.status,
+        }
+      : null,
+    courses,
+    semesterCount: new Set(courses.map((row) => row.semesterCode)).size,
+    tasks,
+    taskTotal: assignments.length,
+    currentSemesterCode,
   };
 }

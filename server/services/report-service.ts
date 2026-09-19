@@ -408,6 +408,7 @@ export function studentReport(
 
   return {
     student: student ? toSummary(student) : undefined,
+    setupId: setup.id,
     subjectId,
     displayName: subject.displayName,
     assesseeRole: assessee.role,
@@ -418,6 +419,7 @@ export function studentReport(
     evaluationName: setup.name,
     shortName: setup.shortName,
     evaluationGroupName: subject.groupName,
+    scaleMax: setup.scaleMax,
     score,
     rawScore: rawScoreFor(subjectId, assessee, setup),
     ...rankOf(subjectId, assessee, setup, subjects),
@@ -519,4 +521,66 @@ export function assesseeRoleOptions(setupId: string): EvaluationRole[] {
   if (!setup) return [];
   const present = new Set(setup.assessees.map((entry) => entry.role));
   return EVALUATION_ROLES.filter((role) => present.has(role));
+}
+
+/* -------------------------------------------------------------------------- */
+/* A student's own reports (direction.md §23, added 2026-09-19)               */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The student a report subject belongs to, where it belongs to one at all.
+ *
+ * A student subject id is an **enrollment** id and a staff subject id is
+ * synthetic (`staff-<setupId>-<role>`), so this returns nothing for staff - and
+ * "nothing" is the right answer rather than a failure: a teacher's report is
+ * owned by no student, so no student may claim it.
+ *
+ * Exported for `server/principal.ts`, which needs it to answer whether a
+ * principal owns the subject a report names. It is the same hop
+ * `account-service.ts` makes to find the profile a persona owns.
+ */
+export function subjectOwner(subjectId: string): string | undefined {
+  return enrollmentTable.find((row) => row.id === subjectId)?.studentId;
+}
+
+/**
+ * Every report one student may open about themselves.
+ *
+ * **Published setups only** - the user's call on 2026-09-19, recorded in §23.
+ * A `closed` setup is scored and not yet handed over, and an `open` one is
+ * still being submitted; releasing a report is a deliberate act, and window
+ * status is where that act is recorded. Staff keep the wider view they already
+ * have through `reportableSetups`, which stops at `draft`.
+ *
+ * Newest semester first, because the reason to open this page is usually the
+ * most recent result.
+ *
+ * Returns whole documents rather than summary rows. The page renders them on
+ * the server and hands them to the dialog, so a student's own report needs no
+ * API call at all - which is also what keeps the list and the document from
+ * ever disagreeing, since one call produced both. It is bounded by how many
+ * published cohorts one person is in; the seeded student has two.
+ */
+export function ownStudentReports(studentId: string): StudentReport[] {
+  const subjectIds = new Set(
+    enrollmentTable.filter((row) => row.studentId === studentId).map((row) => row.id),
+  );
+  if (subjectIds.size === 0) return [];
+
+  return evaluationSetupTable
+    .filter((setup) => setup.status === "published" && setup.assessees.length > 0)
+    .flatMap((setup) => {
+      const mine = groupsInScope(setup)
+        .flatMap((group) => group.memberEnrollmentIds)
+        .find((enrollmentId) => subjectIds.has(enrollmentId));
+      if (!mine) return [];
+
+      const report = studentReport(setup.id, mine);
+      return report ? [report] : [];
+    })
+    .sort(
+      (a, b) =>
+        b.semesterCode.localeCompare(a.semesterCode) ||
+        a.courseCode.localeCompare(b.courseCode),
+    );
 }

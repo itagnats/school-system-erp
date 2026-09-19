@@ -235,7 +235,9 @@ export function ReportDocument({
             description="Across every assessor that was asked it"
             data={radarData}
             unit="Mean rating"
-            max={5}
+            // The scale, never the data: auto-scaling would make a weak profile
+            // fill the frame exactly like a strong one (§23).
+            max={report.scaleMax}
             format="decimal"
             height={260}
           />

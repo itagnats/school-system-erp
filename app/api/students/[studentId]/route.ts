@@ -1,8 +1,40 @@
 import { NextResponse } from "next/server";
 import { studentUpdateSchema } from "@/lib/api/contracts";
 import { handleItem, handleRemoval, jsonError, notFound } from "@/server/http";
+import { currentPrincipal, mayReadStudent, mayWriteStudent } from "@/server/principal";
 import { parseBody, readJson } from "@/server/validation";
 import { deleteStudent, getStudent, updateStudent } from "@/server/services";
+
+/**
+ * The owner half of an owner-scoped rule (direction.md §3a).
+ *
+ * `/api/students` is marked `owner: ["student"]`, which gets a student past
+ * `proxy.ts` to *a* profile and settles nothing about whose. These two handlers
+ * are where it is settled, and they are the reason the marking is safe: the
+ * proxy refuses a role, and only code that can see the record can refuse a
+ * person.
+ *
+ * Returns the refusal, or nothing when the caller may proceed. `fieldErrors`
+ * carries the reason because the client keeps its own prose for `message` and
+ * reads only that key.
+ */
+async function refuseUnlessAllowed(
+  studentId: string,
+  intent: "read" | "write",
+): Promise<Response | undefined> {
+  const principal = await currentPrincipal();
+  if (!principal) return jsonError(401, "Sign in to continue", { status: "Sign in to continue" });
+
+  const allowed =
+    intent === "read"
+      ? mayReadStudent(principal, studentId)
+      : mayWriteStudent(principal, studentId);
+
+  if (allowed) return undefined;
+  return jsonError(403, "That profile is not yours", {
+    status: "That profile is not yours",
+  });
+}
 
 /** GET /api/students/:studentId - the full profile. */
 export async function GET(
@@ -10,6 +42,10 @@ export async function GET(
   { params }: { params: Promise<{ studentId: string }> },
 ) {
   const { studentId } = await params;
+
+  const refused = await refuseUnlessAllowed(studentId, "read");
+  if (refused) return refused;
+
   return handleItem(request, () => getStudent(studentId), "Student");
 }
 
@@ -21,12 +57,22 @@ export async function GET(
  * means unchanged or cleared. A 422 comes back with `fieldErrors` keyed by the
  * form's own field name, which is what puts each message under the input that
  * caused it.
+ *
+ * A student may send this for **their own** profile, every section of it - the
+ * user's decision on 2026-09-16, taken knowing it lets them rewrite their own
+ * programme and year level, which no real school permits. It is recorded in
+ * direction.md §3a as a divergence rather than left to be discovered here.
+ * Deletion is not part of it: `ownerMethods` stops at `PATCH`, so a student's
+ * `DELETE` never reaches this file.
  */
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ studentId: string }> },
 ) {
   const { studentId } = await params;
+
+  const refused = await refuseUnlessAllowed(studentId, "write");
+  if (refused) return refused;
 
   const parsed = parseBody(studentUpdateSchema, await readJson(request));
   if (!parsed.ok) {

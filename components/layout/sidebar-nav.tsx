@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { NAVIGATION, findActiveNavItem } from "@/config/navigation";
+import { findActiveNavItem, navigationFor } from "@/config/navigation";
 import { cn } from "@/lib/utils";
+import type { DemoPrincipal } from "@/types";
 
 /**
  * The navigation list itself, shared by the desktop sidebar and the mobile
@@ -12,14 +13,31 @@ import { cn } from "@/lib/utils";
  * The active item is a filled pink pill — the one solid shape in the
  * navigation — with a pink icon to match. Nothing else in the list carries
  * colour, so the eye finds the current page immediately.
+ *
+ * Filtered by role against `lib/access` (direction.md §3a). Hiding a link is
+ * courtesy, not enforcement — `proxy.ts` refuses the route whether or not the
+ * link was ever shown, and both read the same table so they cannot disagree. A
+ * section whose every item is filtered out drops its heading too, rather than
+ * leaving a label over nothing.
  */
-export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+export function SidebarNav({
+  principal,
+  onNavigate,
+}: Readonly<{ principal: DemoPrincipal; onNavigate?: () => void }>) {
   const pathname = usePathname();
-  const active = findActiveNavItem(pathname);
+
+  const sections = navigationFor(principal);
+  // Active state is resolved against the list this principal actually has, not
+  // against the whole table, so a student standing on their own profile
+  // highlights My Profile rather than a Student Profiles link they never got.
+  const active = findActiveNavItem(
+    pathname,
+    sections.flatMap((section) => section.items),
+  );
 
   return (
     <nav aria-label="Main" className="flex flex-col gap-4 px-2 py-3">
-      {NAVIGATION.map((section, index) => (
+      {sections.map((section, index) => (
         <div key={section.label ?? `section-${index}`} className="flex flex-col gap-0.5">
           {section.label ? (
             <h2 className="px-3 pb-1.5 text-[10px] font-medium tracking-[0.1em] text-sidebar-muted-foreground uppercase">

@@ -38,6 +38,13 @@ Everything under `server/` starts with `import "server-only"`, so a client
 component importing a repository fails at build time rather than shipping the
 whole seed to the browser.
 
+**`proxy.ts` sits in front of the whole diagram.** Every request — page or API —
+passes the role check and, on anything that changes state, a same-origin check,
+before a route handler or a server component runs. It is described in
+[architecture.md](architecture.md#access); what matters here is that a service is
+never the place authorisation is decided, and a route handler never has to
+remember to ask.
+
 ---
 
 ## Reads and writes
@@ -196,7 +203,9 @@ Ten files. Missing one is how a domain ends up half-wired:
 1. `types/<domain>.ts`
 2. `data/mock/<domain>.ts`
 3. `data/seed/generate.ts` — generation for volume
-4. `server/repositories/<domain>-repository.ts`
+4. `server/repositories/index.ts` — add the table. There is one file, not one
+   per domain: a repository here is a cloned array and a few accessors, and
+   fourteen files of three lines each would be filing rather than structure.
 5. `server/services/<domain>-service.ts`
 6. `lib/api/contracts/<domain>.ts`
 7. `app/api/<domain>/route.ts` and `[id]/route.ts`
@@ -214,22 +223,51 @@ Ten files. Missing one is how a domain ends up half-wired:
 | `types/` — including `PaginatedResult<T>` and `ListQuery` | **built** |
 | `lib/constants/query-keys.ts` — filter-aware keys, every domain | **built** |
 | `hooks/use-list-query-params.ts` — URL ⇄ list state | **built** |
-| `data/mock/*.ts` | **built** — eight files, hand-written fixtures |
+| `data/mock/*.ts` | **built** — 10 <!-- count:mockFiles --> files of hand-written fixtures |
 | `data/seed/` | **built** — seeded PRNG, deterministic generator |
-| `server/` | **built** — repositories, seven services, query, simulate, http, validation |
-| `app/api/` | **built** — thirteen route handlers, reads and writes |
-| `lib/api/contracts/` | **built** — one per domain, plus shared list shapes |
-| `features/*` | **built** for programs, courses, semesters, students, enrollment, costs, evaluation (the manage half) |
-| `features/reports` | vocabulary only; no services or screens |
+| `server/` | **built** — repositories, 14 <!-- count:services --> services, query, simulate, http, validation, principal |
+| `app/api/` | **built** — 33 <!-- count:routeHandlers --> route handlers, reads and writes |
+| `lib/api/contracts/` | **built** — one per domain, plus shared list shapes and the session |
+| `features/*` | **built** — all twelve |
 
-Writes exist for courses (`POST`, `PATCH`), cost sheets (`PATCH`), programme
-terms (`PATCH`) and evaluation setups (`PATCH`). They validate, run their
-business rules, return the correct status and shape — and store nothing.
+### Writes
 
-The evaluation setup write is the one where server-side validation is not
-ceremony: the enabled role weights must total 100, and an unbalanced blend
-raises no error downstream, it merely scales every score in the course by the
-same amount.
+Every non-GET method in the BFF, by domain:
 
-Still ahead: the evaluator half of evaluation, the reports domain, and the demo
-persona switcher that answers "who is you" on Your Evaluation.
+| Domain | Writes |
+| --- | --- |
+| Courses | `POST` a course · `PATCH` · `DELETE` |
+| Programme terms | `PATCH` · `DELETE` |
+| Students | `PATCH` · `DELETE` |
+| Enrolment | `POST` an enrolment, discriminated on `source` · `DELETE` a membership |
+| Cost sheets | `PATCH` the sheet · `POST` an item · `PATCH` and `DELETE` an item |
+| Programme cost sheets | `PATCH` |
+| Catalogue | `POST` a group · `PATCH` a group · `POST` an item · `PATCH` and `DELETE` an item |
+| Invoices | `PATCH` — the status transition |
+| Evaluation setups | `PATCH` |
+| Questions | `POST` · `PATCH` · `DELETE`, plus groups |
+| Session | `POST` to sign in, `DELETE` to sign out |
+
+They validate, run their business rules, return the correct status and shape —
+and store nothing. Four of them are worth reading as examples of a rule that only
+a server can hold:
+
+- **The evaluation setup blend must total 100.** An unbalanced blend raises no
+  error downstream; it merely scales every score in the course by the same
+  amount. Server-side validation here is not ceremony, it is the only place the
+  fault is visible.
+- **The kind of cost decides which sheet it may reach.** An indirect item on a
+  course sheet is a 422, and the reverse too — which makes double-counting
+  unrepresentable rather than merely detectable.
+- **A second programme term in the same semester is a 409**, and a term on
+  another programme a 422. One programme, one term per semester, is what makes
+  one invoice per student per semester representable.
+- **Deleting a catalogue item that sheets have copied is a 409.** A sheet takes a
+  snapshot rather than a reference, and its provenance must not point at nothing.
+
+The session write is the odd one out, and deliberately: it is the only write that
+changes anything that survives the response, because what it changes is a cookie
+rather than a row.
+
+Still ahead: submission contracts — the evaluation forms shape their answers and
+discard them — and the computed leaderboard.

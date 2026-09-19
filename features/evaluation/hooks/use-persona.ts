@@ -20,11 +20,15 @@ import { fetchPersonas, fetchQueue } from "../services/persona-service";
  *     depending on it renders differently on the two sides and breaks
  *     hydration - the failure class this project has already paid for.
  */
-export function usePersonaParam() {
+export function usePersonaParam(signedInPersonaId?: string) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const personaId = params.get("as") ?? undefined;
+  // The signed-in account's own persona is the default, so a student who signed
+  // in as a student opens their own queue rather than whichever persona the
+  // seed happens to list first (direction.md 3a). `?as=` still wins, because a
+  // pasted link is an explicit request to read as somebody else.
+  const personaId = params.get("as") ?? signedInPersonaId;
 
   const setPersona = useCallback(
     (next: string) => {

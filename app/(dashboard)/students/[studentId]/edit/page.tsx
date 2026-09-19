@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { StudentEditScreen } from "@/features/students/components/student-edit-screen";
+import { requireWritableStudent } from "@/server/principal";
 import { getStudent } from "@/server/services";
 
 interface PageParams {
@@ -32,6 +33,11 @@ export async function generateMetadata({ params }: PageParams): Promise<Metadata
  */
 export default async function Page({ params }: PageParams) {
   const { studentId } = await params;
+  // An administrator edits anybody; a student edits themselves. A teacher reads
+  // a profile and is refused here, which is the write column of the access
+  // table applied one page earlier than the save would apply it.
+  await requireWritableStudent(studentId);
+
   const student = getStudent(studentId);
   if (!student) notFound();
 

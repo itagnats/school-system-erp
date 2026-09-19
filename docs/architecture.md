@@ -23,10 +23,31 @@ components/data-viz    the only place recharts is imported
       ↓
 components/shared      application patterns; still no business rules
       ↓
+components/layout      the shell: sidebar, header, breadcrumbs, back control
+      ↓
 features/<domain>      business rules live here and nowhere above
       ↓
 app/*                  routing and composition only
 ```
+
+**Sideways is a direction too.** `features/*` is a row, not a stack, and one
+feature importing another is how a layered diagram quietly becomes a graph. That
+invariant held until 2026-09-12 and no longer does: `features/costs/` reaches
+into `features/cost-catalogue/` for a hook and a constants module, while
+`features/dashboard/` faced the same choice and duplicated four strings instead.
+It is recorded as a violation rather than an exception (`AUD-012`, open), and
+until it is settled the rule is: duplicate a handful of strings, or put the
+shared thing in a module **below** both features. Check it with
+
+```bash
+grep -rn 'from "@/features/' features/     # expect exactly the two known edges
+```
+
+**Identity is not a domain.** The role table lives in `lib/access/` and the
+session helpers in `lib/api/session.ts` — below `components/`, because
+`components/layout/` is where somebody switches role and a component may never
+import from a feature. `server/principal.ts` is the server-side half, read by
+the three layouts that render a shell.
 
 The rule that carries the most weight in review: **a generic component never
 learns domain vocabulary.** It takes a tone, a label or a render prop, and the
@@ -62,22 +83,36 @@ browser resolve it — which is what keeps a chart following the theme switch.
 ```
 app/
 ├── (dashboard)/          application routes, wrapped in the shell
+├── api/                  the BFF — one folder per domain
+├── login/                the demo sign-in card row
 ├── design-system/        living documentation, built from _sections/
+├── system-guide/         how the system works, derived from the services
 ├── layout.tsx            fonts, metadata, providers
 ├── globals.css           the token layer
 ├── error.tsx             route error boundary
 └── not-found.tsx
 
+proxy.ts                  role enforcement, before anything renders
+
 components/
-├── ui/                   26 primitives — shadcn on the Radix base, restyled
+├── ui/                   generic primitives — shadcn on the Radix base, restyled
 ├── decor/                sakura mark, corner petals, page wash
-├── data-viz/             three charts + frame, tooltip, tokens
+├── data-viz/             the charts, plus frame, tooltip and tokens
 ├── feedback/             loading, empty, error, skeletons, query boundary
 ├── forms/                form section and action layouts
 ├── data-table/           the single table implementation
 ├── shared/               page header, filters, status, stat card, panels
-├── layout/               shell, sidebar, header, breadcrumbs, theme toggle
+├── layout/               shell, sidebar, header, breadcrumbs, back, user menu
 └── providers/            theme and query providers
+
+server/
+├── repositories/         the in-memory store, seeded once per process
+├── services/             list, read and write logic behind the route handlers
+├── principal.ts          who the request is acting as
+├── http.ts               the response and error envelope
+├── query.ts              list parameters: search, sort, page
+├── simulate.ts           the ?_simulate switch for the four UI states
+└── validation.ts         server-side Zod parsing — the rule, not a convenience
 
 features/<domain>/
 ├── components/           UI specific to this feature
@@ -89,21 +124,33 @@ features/<domain>/
 └── constants.ts          status-to-tone maps, labels, option lists
 
 lib/
-├── api/                  fetch client, error mapping, wire contracts
+├── access/               the role table the sidebar and the proxy both read
+├── api/                  fetch client, error mapping, wire contracts, session
+├── barcode/              the Code 128 encoder on the invoice sheet
 ├── calculations/         cross-module business math
 ├── validations/          shared Zod primitives
 ├── constants/            query keys and route builders
 └── utils/                cn, formatting, URL helpers
 
+hooks/                    list query params, table wiring, mounted
 types/                    one file per domain — never a single giant types.ts
 config/                   app constants, navigation model, validated env
-data/mock/                fictional fixtures
-tests/                    unit tests over the calculation layer
+data/
+├── seed/                 the deterministic generator
+└── mock/                 fictional fixtures
+tests/                    calculations, contracts, access, barcode, docs
 docs/                     this folder
 ```
 
-Eight domains: `programs`, `courses`, `semesters`, `enrollment`, `students`,
-`costs`, `evaluation`, `reports`.
+The sizes, checked against the filesystem by `tests/docs/doc-counts.test.ts`:
+27 <!-- count:uiPrimitives --> primitives in `components/ui`,
+10 <!-- count:sharedComponents --> in `components/shared`,
+4 <!-- count:charts --> charts in `components/data-viz`, and
+13 <!-- count:types --> domain files under `types/`.
+
+Twelve <!-- count:features --> domains: `programs`, `courses`, `semesters`,
+`enrollment`, `students`, `costs`, `cost-catalogue`, `invoices`, `evaluation`,
+`question-bank`, `reports`, `dashboard`.
 
 ---
 
@@ -114,26 +161,90 @@ group layout.
 
 ```
 /                                    → redirects to /dashboard
-/dashboard
+/login                               the demo sign-in; the only public page
+/no-access                           where a refused navigation lands
+/dashboard                           branches on role: the school, or one student's own
+
 /programs                            /programs/[programTermId]
 /courses                             /courses/[courseId]
 /semesters                           /semesters/[semesterId]
-/enrollment
+/enrollment                          /enrollment/[programTermId]
 /students                            /students/[studentId]
-/costs                               /costs/[costSheetId]
-/evaluation                          /evaluation/[evaluationId]
-/evaluation/manage
+                                     /students/[studentId]/edit
+/invoices                            /invoices/[invoiceId]
+
+/costs                               programme cost list
+/costs/courses                       /costs/courses/[costSheetId]
+/costs/catalogue                     /costs/programmes/[programTermId]
+
+/evaluation                          /evaluation/[assignmentId]
+/evaluation/manage                   /evaluation/manage/[setupId]
+/evaluation/manage/questions
 /reports                             /reports/students/[studentId]
-/design-system
+
+/design-system                       /system-guide
 ```
 
-The evaluation area is split by perspective: `/evaluation/manage` is the teacher
-and administrator view, `/evaluation` is the evaluator's own queue. Ranking is
-not a route — an ordering is submitted inside a form, and the computed
+Three shapes in that list are decisions rather than layout.
+
+**Enrollment is programme-first.** `/enrollment` lists programme terms and
+`/enrollment/[programTermId]` shows that term's students, then the same term at
+course grain. A student is added from a term page and never from a flat list,
+because a term is what a student joins.
+
+**Cost Management leads with the programme.** `/costs` is the programme cost
+list, `/costs/courses` the course list — the only place the seven course sheets
+belonging to no programme can be found — and `/costs/catalogue` the master
+groups and items. Costing deliberately did not move inside the Programme module:
+those seven sheets would have had no route, and the catalogue belongs to neither
+programme nor course.
+
+**The evaluation area is split by perspective**: `/evaluation/manage` is the
+teacher and administrator view, `/evaluation` is the evaluator's own queue.
+Ranking is not a route — an ordering is submitted inside a form, and the computed
 leaderboard is a result shown under Manage.
 
 The route shape mirrors the domain model rather than the navigation menu, so a
 URL reads as a location in the data.
+
+**Every link on a screen goes somewhere the reader may open.** The dashboard,
+the breadcrumb trail, the back control and the programme history all take the
+role and drop the anchor where it would be refused — a dead link is a worse
+answer than plain text. The two Develop pages are the deliberate exception,
+because the System Guide documents the whole route tree including the parts the
+current role cannot reach.
+
+---
+
+## Access
+
+One table, one enforcement point (`direction.md` §3a, added 2026-09-16).
+
+`lib/access/policy.ts` maps each of the four app roles — administrator, teacher,
+TA, student — to the pages and the API methods it may reach. Two callers read
+it: the sidebar, which filters itself, and `proxy.ts`, which refuses. **Hiding a
+link is courtesy; the refusal is the rule**, and the allowlist falls closed, so a
+path with no entry is denied to everybody rather than allowed by default.
+
+Putting the check in the proxy rather than in each route handler is a deliberate
+trade, written out in `proxy.ts`: one table and one check, with no endpoint that
+quietly forgot to call a guard, at the cost of the check sitting beside the
+routes instead of inside them. For a real system each handler would re-verify a
+signed session. What makes it honest here is that the cookie **is** the claim —
+unsigned and self-asserted — so a second check would read the same unverified
+string and reach the same answer.
+
+**Passing the proxy is not the same as being allowed.** A rule may carry an
+`owner` list, which the other columns cannot express: a student reaches
+`/students/<their own id>` and nobody else's. The edge sees a path and never a
+record, so such requests are let through and `requireOwnStudent` in
+`server/principal.ts` compares the ids. It is the only place in PRIME where those
+two come apart, and every path beneath such a prefix owes that check
+(`AUD-026`).
+
+An **app role is not an evaluation role**: `inspector` is an evaluation role and
+not an app one, `administrator` the reverse. Next 16 renamed Middleware to
+**Proxy**, which is why the file is `proxy.ts`; `middleware.ts` is deprecated.
 
 ---
 
@@ -145,14 +256,28 @@ programmes; semester codes are `YYYYNN` (`202601`, `202602`).
 ```
 Program → Program Term → Courses          → Package price
                        → Program Enrollment → Student
+                                            → Invoice → Invoice Line
+                                                      → Collected / Outstanding
 
 Course → Semester → Enrollment → Student → Evaluation Group
                                         → 360° Evaluation → Score → Grade → Report
                                                                   → Ranking
 
-Course → Semester → Cost Sheet → Cost Group → Cost Item → Cost Option
-                                                        → Cost per Student
+Course → Semester → Course Cost Sheet   → DIRECT costs only
+Program Term     → Programme Cost Sheet → INDIRECT costs, shared by credits
+
+Catalogue Group → Catalogue Item ⇢ (copied onto) Cost Group → Cost Item
 ```
+
+**A student holds one programme, and one programme term per semester** (§7a).
+Enforced server-side: a second term in the same semester is a 409, a term on
+another programme a 422. It is what makes one invoice per student per semester
+representable at all.
+
+**Status is progress; outcome is derived** (§8). A programme enrolment is
+`pending | active | completed | withdrawn` — where the student is, never how
+they did. Pass and fail come from the grades and are never stored beside the
+status.
 
 **The programme chain is what a student actually buys.** A course has a cost but
 no price; a programme term has both, which is what lets the same data answer
@@ -227,14 +352,27 @@ Business math is pure, lives in `lib/calculations/` or a feature's
 `calculations/` folder, and is **never inline in JSX**. It is the layer with unit
 tests, because it is the part that can be wrong without looking wrong.
 
+There are 11 <!-- count:calculations --> modules under `lib/calculations/`, and
+each has a test file beside it:
+
 | Function | Where | Status |
 | --- | --- | --- |
 | `calculateGrade`, `gradeRange` | `lib/calculations/grade.ts` | built, tested |
 | `calculateRanking` | `lib/calculations/ranking.ts` | built, tested |
 | `clamp`, rounding helpers | `lib/calculations/number.ts` | built, tested |
-| `calculateEvaluationScore` | `features/evaluation/calculations/` | planned |
-| `calculateCostBreakdown`, `calculateTotalCost`, `calculateCostPerStudent` | `lib/calculations/cost.ts` | built, tested |
+| `calculateEvaluationScore` | `lib/calculations/score.ts` | built, tested |
+| `summariseWeights`, `normaliseWeights`, role toggles | `lib/calculations/evaluation-weights.ts` | built, tested |
+| Window state — open, closed, not yet open | `lib/calculations/evaluation-window.ts` | built, tested |
+| `copyQuestion`, `questionsForRelation` | `lib/calculations/question.ts` | built, tested |
+| `calculateCostBreakdown`, `calculateTotalCost`, `calculateCostPerStudent`, `distribute` | `lib/calculations/cost.ts` | built, tested |
 | `calculateProgramProfit`, `breakEvenPrice` | `lib/calculations/profit.ts` | built, tested |
+| Invoice lines, the package reconciliation, `CREDIT_RATE`, the payment payload | `lib/calculations/invoice.ts` | built, tested |
+| Enrolment expansion and the conflict rules | `lib/calculations/enrollment.ts` | built, tested |
+
+`server/` holds no business math of its own. Anything a route handler needs to
+decide lives in one of the modules above, because that is the half with tests
+around it — the reason `lib/calculations/enrollment.ts` exists rather than the
+expansion sitting inside the enrolment service.
 
 Two invariants worth stating out loud:
 
@@ -275,19 +413,32 @@ exists is worse than no document.
 | Layer | State |
 | --- | --- |
 | Token layer, theme, motion, accessibility docs | **built** |
-| `components/ui` (26), `shared` (11), `feedback`, `forms`, `data-table`, `data-viz`, `decor`, `layout` | **built** |
-| `/design-system` — 6 groups, ~60 anchored sections | **built** |
-| Routing | **built** — programme, course, semester, student, enrollment and cost screens render real data; evaluation and reports still render `ScaffoldPlaceholder` |
+| `components/ui`, `shared`, `feedback`, `forms`, `data-table`, `data-viz`, `decor`, `layout` | **built** |
+| `/design-system` — every token, primitive, overlay and pattern, anchored section by section | **built** |
+| `/system-guide` — the dataset, the domain as a mind map, the money chain re-derived, the route tree | **built**, and derived rather than written |
+| Routing | **built** — every application route renders real data. `/reports/students/[studentId]` was the last placeholder and became a student's own reports on 2026-09-19 (`AUD-002` closed); staff still reach any report from a results row under Manage Evaluation |
 | `types/`, `lib/api/`, `lib/constants/`, `hooks/` | **built** |
-| `lib/calculations/` | grade, ranking, number, cost, profit — all unit tested |
+| `lib/calculations/` | **built** — eleven modules, each with a test file |
 | `data/mock/`, `data/seed/` | **built** — deterministic generator |
-| `server/`, `app/api/` | **built** — the BFF, eleven route handlers |
-| `features/programs\|courses\|semesters\|students\|enrollment\|costs` | **built** |
-| `features/evaluation` | vocabulary and types only |
-| `features/reports` | README stub |
+| `server/`, `app/api/` | **built** — the BFF, 33 <!-- count:routeHandlers --> route handlers over 13 <!-- count:apiDomains --> domains |
+| `lib/access/`, `proxy.ts`, `server/principal.ts`, `/login` | **built** — the demo sign-in and four app roles (2026-09-16) |
+| All twelve `features/*` | **built** — `reports` is the thinnest, and its screens live under Manage Evaluation |
 
 Built so far: Curriculum → Course → Semester → Enrollment → Student Profile →
-Cost Management.
+Cost Management → Cost Catalogue → Invoices → Manage Evaluation → the demo
+persona switcher → Your Evaluation and the two form kinds → Score → Grade →
+Individual Report. The demo sign-in and the role-aware navigation landed out of
+order, at the user's request.
 
-What comes next: the demo persona switcher, then Manage Evaluation → Your
-Evaluation → the two form kinds → Score → Grade → Individual Report.
+What comes next: submission contracts, then the computed leaderboard, then the
+pass/fail derivation onto a programme enrolment (`direction.md` §8).
+
+Three things are open and worth knowing before working in this tree:
+
+- **Nothing has been seen in a browser** (`AUD-009`, open since 2026-09-07).
+  Every screen is verified by build, test and served markup. Do not describe how
+  anything looks.
+- **Two sideways feature imports** exist and are recorded, not sanctioned
+  (`AUD-012`).
+- **Writes are never persisted**, which is a deliberate constraint rather than a
+  gap — see [decisions/why-bff.md](decisions/why-bff.md).
