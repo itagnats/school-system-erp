@@ -90,7 +90,7 @@ export function StatesSection() {
             },
             {
               q: "Where am I?",
-              a: "One focus treatment for the whole application: a 2px ring in --ring at 2px offset, defined once in globals.css under :focus-visible. Never removed, never restyled per component.",
+              a: "One focus color, applied two ways. A primitive rings itself tightly; everything else takes the global :focus-visible rule in globals.css. Both read --ring, so there is exactly one focus color, and nothing removes focus without replacing it. Foundations → Accessibility has the measurements.",
             },
             {
               q: "Is something wrong?",

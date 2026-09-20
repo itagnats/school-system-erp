@@ -75,7 +75,7 @@ export function PrimitivesSection() {
     <div className="flex flex-col" style={{ gap: "var(--section-gap)" }}>
       <Section id="buttons"
         title="Buttons"
-        description="Black is the action color: a primary button is black on white, never red. One primary per screen; everything else is outline, secondary or ghost."
+        description="Sakura pink is the action color: a primary button is pink, and red is reserved for destroying something. One primary per screen; everything else is outline, secondary or ghost."
       >
         <div className="flex flex-col gap-4">
           <Demo
@@ -137,14 +137,6 @@ export function PrimitivesSection() {
                 Disabled
               </Button>
             </div>
-          </Demo>
-
-          <Demo
-            id="slider"
-            title="Slider"
-            note="For a value whose position in a range is the point. Named options belong in a radio group instead."
-          >
-            <SliderDemo />
           </Demo>
         </div>
       </Section>
@@ -257,6 +249,14 @@ export function PrimitivesSection() {
                 </div>
               ))}
             </RadioGroup>
+          </Demo>
+
+          <Demo
+            id="slider"
+            title="Slider"
+            note="For a value whose position in a range is the point. Named options belong in a radio group instead."
+          >
+            <SliderDemo />
           </Demo>
         </div>
       </Section>
