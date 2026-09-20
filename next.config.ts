@@ -44,6 +44,25 @@ const securityHeaders = [
   },
   { key: "X-DNS-Prefetch-Control", value: "off" },
   { key: "Content-Security-Policy", value: csp },
+  // HTTPS only, for two years, on this host and everything under it. Vercel
+  // terminates TLS but does not send this header, so without it the very first
+  // request of a session is still downgradeable.
+  //
+  // Omitted in development, where the dev server is plain http on localhost: a
+  // browser that has seen HSTS for localhost applies it to every other project
+  // on the machine, and the only way back is clearing it by hand.
+  //
+  // `preload` is deliberately absent. It is a submission to a browser-vendor
+  // list, not a header, and it commits every subdomain of the apex - a promise
+  // a portfolio deployment has no business making.
+  ...(isDev
+    ? []
+    : [
+        {
+          key: "Strict-Transport-Security",
+          value: "max-age=63072000; includeSubDomains",
+        },
+      ]),
 ];
 
 const nextConfig: NextConfig = {

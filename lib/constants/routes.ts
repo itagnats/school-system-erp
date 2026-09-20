@@ -49,4 +49,5 @@ export const routes = {
   reports: () => "/reports",
   studentReport: (studentId: string) => `/reports/students/${enc(studentId)}`,
   designSystem: () => "/design-system",
+  systemGuide: () => "/system-guide",
 } as const;

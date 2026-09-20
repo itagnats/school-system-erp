@@ -46,11 +46,15 @@ export interface EnrolmentDraft {
  * Ids are derived from the natural key, not from a counter.
  *
  * A running serial would be the obvious choice and is wrong here for the same
- * reason `AUD-013` is open against `copyCatalogueItem`: writes are not
+ * reason `AUD-013` was raised against `copyCatalogueItem`: writes are not
  * persisted, so the table never grows, so every create in a session would read
  * the same "next" serial and two enrolments made one after the other would
  * collide — in the query cache, and in React keys. Student, course and semester
  * already identify the row uniquely, so they are the discriminator.
+ *
+ * `copyCatalogueItem` closed it differently, and the difference is instructive:
+ * a sheet's copies live inside one parent that can be counted, so an ordinal
+ * within the sheet works there. An enrolment has no such parent.
  */
 export function programEnrollmentIdFor(studentId: string, semesterCode: SemesterCode): string {
   return `pen-${studentId}-${semesterCode}`;

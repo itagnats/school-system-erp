@@ -418,7 +418,7 @@ exists is worse than no document.
 | `/system-guide` — the dataset, the domain as a mind map, the money chain re-derived, the route tree | **built**, and derived rather than written |
 | Routing | **built** — every application route renders real data. `/reports/students/[studentId]` was the last placeholder and became a student's own reports on 2026-09-19 (`AUD-002` closed); staff still reach any report from a results row under Manage Evaluation |
 | `types/`, `lib/api/`, `lib/constants/`, `hooks/` | **built** |
-| `lib/calculations/` | **built** — eleven modules, each with a test file |
+| `lib/calculations/` | **built** — eleven <!-- count:calculations --> modules, each with a test file |
 | `data/mock/`, `data/seed/` | **built** — deterministic generator |
 | `server/`, `app/api/` | **built** — the BFF, 33 <!-- count:routeHandlers --> route handlers over 13 <!-- count:apiDomains --> domains |
 | `lib/access/`, `proxy.ts`, `server/principal.ts`, `/login` | **built** — the demo sign-in and four app roles (2026-09-16) |

@@ -56,7 +56,7 @@ export function ConfirmDialog({
     >
       <DialogContent className="sm:max-w-md" showCloseButton={!isPending}>
         <DialogHeader>
-          <DialogTitle className="text-[14px]">{title}</DialogTitle>
+          <DialogTitle className="text-base">{title}</DialogTitle>
           {description ? (
             <DialogDescription className="text-sm">{description}</DialogDescription>
           ) : null}

@@ -111,14 +111,37 @@ export function calculateInvoiceTotals(lines: readonly InvoiceLine[]): InvoiceTo
 }
 
 /**
+ * The statuses an invoice can still be paid against.
+ *
+ * Written as a value so the type layer can read it. `isOutstanding` used to be
+ * two `===` comparisons, which answered the question at runtime and told
+ * TypeScript nothing — so the maps keyed by *exclusion* from it could only be
+ * declared `Partial`, and a sixth status would have compiled into an unstamped
+ * barcode on a document nobody may pay (`AUD-018`).
+ */
+export const PAYABLE_STATUSES = ["issued", "overdue"] as const;
+
+/** An invoice that can still be settled. */
+export type PayableStatus = (typeof PAYABLE_STATUSES)[number];
+
+/**
+ * An invoice that cannot: it still prints its payment block, voided.
+ *
+ * Derived rather than listed, so adding a status to `InvoiceStatus` makes every
+ * `Record<NonPayableStatus, …>` fail to compile until it is handled. That is
+ * the check the old `Partial` could not make.
+ */
+export type NonPayableStatus = Exclude<InvoiceStatus, PayableStatus>;
+
+/**
  * Whether an invoice's total counts as money owed.
  *
  * Overdue is outstanding. Unpaid and late are the same claim on the money, and
  * only one of them is a comment on the payer — treating them differently here
  * would understate what is owed by exactly the invoices most worth chasing.
  */
-export function isOutstanding(status: InvoiceStatus): boolean {
-  return status === "issued" || status === "overdue";
+export function isOutstanding(status: InvoiceStatus): status is PayableStatus {
+  return (PAYABLE_STATUSES as readonly InvoiceStatus[]).includes(status);
 }
 
 /** Whether an invoice's total counts as money received. */

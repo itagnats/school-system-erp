@@ -584,7 +584,9 @@ function withGroupItems(
  * The copy is taken by `copyCatalogueItem`, the only implementation of the
  * snapshot rule. Adding the same catalogue item twice is allowed and
  * deliberate: two lecturers on one course are two lines rather than one line at
- * quantity two, because they may sit at different rates.
+ * quantity two, because they may sit at different rates. The sheet's existing
+ * ids go in with the source so the second line is a line and not an alias of
+ * the first - which it was until `AUD-013` closed on 2026-09-20.
  *
  * **The kind is checked here and nowhere else matters.** Putting a classroom on
  * a course sheet is how the old model double-counted; refusing it server-side
@@ -627,7 +629,13 @@ export function addItemToSheet(
     };
   }
 
-  const copy = copyCatalogueItem(source, { quantity: input.quantity });
+  // Every id already on the sheet, not just in this group: `updateSheetItem`
+  // and `removeSheetItem` search the whole sheet for a match, so an id that is
+  // unique within its group and repeated across two is still an alias.
+  const taken = found.sheet.groups.flatMap((entry) =>
+    entry.items.map((item) => item.id),
+  );
+  const copy = copyCatalogueItem(source, { quantity: input.quantity }, taken);
   return detailFor(
     found,
     withGroupItems(found.sheet.groups, group.id, [...group.items, copy]),

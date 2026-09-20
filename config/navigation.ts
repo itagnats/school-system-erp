@@ -37,26 +37,33 @@ export interface NavSection {
  * Sidebar structure from direction.md §3. This is the single source of truth
  * for navigation: the sidebar, the mobile drawer and the breadcrumb labels all
  * read it, so a route added here appears in every one of them.
+ *
+ * Every href is a `routes` builder rather than a literal. The builders exist so
+ * that "a path change is a one-file edit", and while this table spelled the
+ * same eleven paths out by hand it was a two-file edit with the second file
+ * easy to miss (`AUD-003`). The access table in `lib/access/policy.ts` is
+ * deliberately still literals: it matches *prefixes*, which are not routes, and
+ * several of them name no page at all.
  */
 export const NAVIGATION: NavSection[] = [
   {
     items: [
-      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Dashboard", href: routes.dashboard(), icon: LayoutDashboard },
     ],
   },
   {
     label: "Academic",
     items: [
-      { label: "Curriculum", href: "/programs", icon: GraduationCap },
-      { label: "Courses", href: "/courses", icon: BookOpen },
-      { label: "Semesters", href: "/semesters", icon: CalendarRange },
+      { label: "Curriculum", href: routes.programs(), icon: GraduationCap },
+      { label: "Courses", href: routes.courses(), icon: BookOpen },
+      { label: "Semesters", href: routes.semesters(), icon: CalendarRange },
     ],
   },
   {
     label: "Students",
     items: [
-      { label: "Enrollment", href: "/enrollment", icon: UserPlus },
-      { label: "Student Profiles", href: "/students", icon: Users },
+      { label: "Enrollment", href: routes.enrollment(), icon: UserPlus },
+      { label: "Student Profiles", href: routes.students(), icon: Users },
     ],
   },
   {
@@ -67,10 +74,10 @@ export const NAVIGATION: NavSection[] = [
       // The programme term is where a costing is finished, so it leads
       // (direction.md 11, revised 2026-09-16). A course sheet is a
       // contributing part and lists second.
-      { label: "Programme Costs", href: "/costs", icon: Receipt },
-      { label: "Course Costs", href: "/costs/courses", icon: Receipt },
-      { label: "Cost Catalogue", href: "/costs/catalogue", icon: Library },
-      { label: "Invoices", href: "/invoices", icon: FileSpreadsheet },
+      { label: "Programme Costs", href: routes.costs(), icon: Receipt },
+      { label: "Course Costs", href: routes.courseCosts(), icon: Receipt },
+      { label: "Cost Catalogue", href: routes.costCatalogue(), icon: Library },
+      { label: "Invoices", href: routes.invoices(), icon: FileSpreadsheet },
     ],
   },
   {
@@ -82,13 +89,13 @@ export const NAVIGATION: NavSection[] = [
     // submits inside a form, and the computed leaderboard is a result shown
     // under Manage.
     items: [
-      { label: "Manage Evaluation", href: "/evaluation/manage", icon: Settings2 },
-      { label: "Your Evaluation", href: "/evaluation", icon: ClipboardCheck },
+      { label: "Manage Evaluation", href: routes.evaluationManage(), icon: Settings2 },
+      { label: "Your Evaluation", href: routes.evaluation(), icon: ClipboardCheck },
     ],
   },
   {
     label: "Reports",
-    items: [{ label: "Student Reports", href: "/reports", icon: FileText }],
+    items: [{ label: "Student Reports", href: routes.reports(), icon: FileText }],
   },
   {
     // Its own named section rather than an unlabelled tail. The design system
@@ -97,8 +104,8 @@ export const NAVIGATION: NavSection[] = [
     // read as one more destination.
     label: "Develop",
     items: [
-      { label: "Design System", href: "/design-system", icon: Layers },
-      { label: "System Guide", href: "/system-guide", icon: Compass },
+      { label: "Design System", href: routes.designSystem(), icon: Layers },
+      { label: "System Guide", href: routes.systemGuide(), icon: Compass },
     ],
   },
 ];
@@ -188,10 +195,10 @@ function mayOffer(role: AppRole, href: string): boolean {
  * `anchor` is the staff href that decides which section an item belongs to, so
  * a section renamed or reordered carries its owner item with it.
  *
- * The hrefs come from `routes` rather than being written out. The static items
- * above are string literals, which is `AUD-003`; these two are not, because a
- * record path built by hand in a second place is exactly the drift that finding
- * is about.
+ * The hrefs come from `routes`, as the static items above now do too - that was
+ * `AUD-003`, closed 2026-09-20. `anchor` stays a literal on purpose: it is not
+ * a destination but a key into the table, and a builder call there would read
+ * as a link that is never followed.
  */
 const OWNED_ITEMS: ReadonlyArray<{
   anchor: string;

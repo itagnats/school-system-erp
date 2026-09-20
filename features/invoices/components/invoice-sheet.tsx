@@ -8,12 +8,12 @@ import type { InvoiceLine } from "@/types";
 import {
   INVOICE_CREDIT_REASON_LABEL,
   INVOICE_ISSUER,
-  INVOICE_NOT_PAYABLE_NOTE,
   INVOICE_PAY_INSTRUCTION,
   INVOICE_SHEET_DISCLAIMER,
-  INVOICE_STAMP,
   INVOICE_STATUS_LABEL,
   INVOICE_STATUS_TONE,
+  invoiceNotPayableNote,
+  invoiceStampFor,
 } from "../constants";
 import type { InvoiceDetailResponse } from "../types";
 import { PaymentBarcode } from "./payment-barcode";
@@ -171,7 +171,7 @@ export function InvoiceSheet({
         <p className="mt-1 mb-3 text-xs text-muted-foreground">
           {payable
             ? INVOICE_PAY_INSTRUCTION
-            : INVOICE_NOT_PAYABLE_NOTE[invoice.status]}
+            : invoiceNotPayableNote(invoice.status)}
         </p>
 
         {/* Printed whatever the status. The document is a record of what was
@@ -185,7 +185,7 @@ export function InvoiceSheet({
             total: totals.total,
           })}
           amountLabel={money(totals.total)}
-          stamp={payable ? undefined : INVOICE_STAMP[invoice.status]}
+          stamp={invoiceStampFor(invoice.status)}
         />
       </section>
 

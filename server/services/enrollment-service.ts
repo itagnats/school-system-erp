@@ -193,7 +193,7 @@ function resolveStudent(
         },
       };
     }
-    return { ok: true, student: createStudent(input.student, program.name, stamp) };
+    return { ok: true, student: createStudent(input.student, program, stamp) };
   }
 
   const existing = getStudent(input.studentId);
@@ -203,8 +203,13 @@ function resolveStudent(
 
   // One student belongs to one programme, so enrolling them onto another is a
   // contradiction with their own profile rather than a second enrolment.
-  // Programme name is the join the seed itself uses; the ids never meet.
-  if (existing.academic.program !== program.name) {
+  //
+  // Compared by id. This read `existing.academic.program !== program.name`
+  // until 2026-09-20, because the profile carried a name and nothing else - so
+  // a business rule was enforced through a display string, and renaming a
+  // programme would have started refusing its own students (`AUD-021`). The
+  // message below still names both, because a reader needs the name.
+  if (existing.academic.programId !== program.id) {
     return {
       ok: false,
       status: 422,

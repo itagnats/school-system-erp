@@ -1,4 +1,5 @@
 import { APP } from "@/config/app";
+import { isOutstanding, type NonPayableStatus } from "@/lib/calculations";
 import type { InvoiceCreditReason, InvoiceLineKind, InvoiceStatus, Option, StatusTone } from "@/types";
 
 /**
@@ -75,10 +76,16 @@ export const INVOICE_ISSUER = {
  * `isOutstanding` in `lib/calculations/invoice.ts`, which the revenue figures
  * already use and the tests already pin; a second list here would be a second
  * definition, free to drift, and the only symptom would be a live-looking
- * barcode on the wrong document. Hence `Partial` — the payable states are
- * absent by construction rather than present holding `null`.
+ * barcode on the wrong document.
+ *
+ * So the key type is `NonPayableStatus`, which is `InvoiceStatus` minus the
+ * statuses `isOutstanding` is built from — still one definition, now one the
+ * compiler can read. It was `Partial<Record<InvoiceStatus, string>>`, which
+ * said "some keys may be missing" when the intent was "exactly these keys are
+ * present": a sixth non-payable status would have compiled straight through
+ * into a live-looking barcode (`AUD-018`). Now it fails the build.
  */
-export const INVOICE_NOT_PAYABLE_NOTE: Partial<Record<InvoiceStatus, string>> = {
+export const INVOICE_NOT_PAYABLE_NOTE: Record<NonPayableStatus, string> = {
   draft: "Not yet issued. Do not pay against this document.",
   paid: "Settled. No payment is due.",
   cancelled: "Cancelled. Nothing is payable against this document.",
@@ -105,11 +112,28 @@ export interface InvoiceStamp {
  * opposite case: it has one job, and it is the one place on the sheet where
  * "this cannot be paid" has to be unmissable.
  */
-export const INVOICE_STAMP: Partial<Record<InvoiceStatus, InvoiceStamp>> = {
+export const INVOICE_STAMP: Record<NonPayableStatus, InvoiceStamp> = {
   draft: { label: "Draft", tone: "neutral" },
   paid: { label: "Paid", tone: "success" },
   cancelled: { label: "Cancelled", tone: "error" },
 };
+
+/**
+ * The stamp for a status, or nothing if the invoice is payable.
+ *
+ * The lookup lives here rather than at the call site so that "is this payable"
+ * is asked once, by `isOutstanding`, and the narrowing that follows from it is
+ * the compiler's rather than a reader's. A component indexing the map directly
+ * would have to be trusted to have checked first.
+ */
+export function invoiceStampFor(status: InvoiceStatus): InvoiceStamp | undefined {
+  return isOutstanding(status) ? undefined : INVOICE_STAMP[status];
+}
+
+/** The sentence above a voided payment block, or nothing if it is payable. */
+export function invoiceNotPayableNote(status: InvoiceStatus): string | undefined {
+  return isOutstanding(status) ? undefined : INVOICE_NOT_PAYABLE_NOTE[status];
+}
 
 /** What the payment block tells the payer to do. */
 export const INVOICE_PAY_INSTRUCTION =

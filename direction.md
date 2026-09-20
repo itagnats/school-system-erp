@@ -1184,7 +1184,7 @@ Evaluation Group B
 
 The evaluation group is the main context for peer evaluation.
 
-## Evaluation setup (added 2026-09-06)
+# 15a. Evaluation Setup (added 2026-09-06)
 
 Groups are membership. The **evaluation setup** beside them is configuration,
 and it belongs to one course-semester:
@@ -1442,7 +1442,7 @@ class of failure: the blend can total 100 and the setup still be unable to
 produce a score, since an empty question set contributes nothing to the half it
 is paid for.
 
-## The question bank (added 2026-09-16)
+# 18a. The Question Bank (added 2026-09-16)
 
 A criterion is a scoring dimension, not a question. `teamwork` is what the score
 is made of; *"How reliably did they carry their share of the group's work?"* is

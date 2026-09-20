@@ -134,7 +134,7 @@ export function programOptions(): string[] {
  */
 export function createStudent(
   input: NewStudentInput,
-  programName: string,
+  program: { id: string; name: string },
   stamp: string,
 ): Student {
   // Step past a suffix already in use. Two different emails can hash to the
@@ -156,7 +156,8 @@ export function createStudent(
       email: input.email,
     },
     academic: {
-      program: programName,
+      programId: program.id,
+      program: program.name,
       major: input.major,
       yearLevel: input.yearLevel,
       interests: [],
@@ -239,6 +240,12 @@ export function updateStudent(
           // and that is decided by enrolment (direction.md 7a), so letting a
           // profile form change it would put the profile and the membership
           // into a disagreement the seed itself relies on not existing.
+          //
+          // Both halves are carried over, and the compiler now insists: the
+          // section schema has neither field, so omitting `programId` is the
+          // error that stopped this edit. Before `AUD-021` there was only the
+          // name to preserve, and a forgotten line would have compiled.
+          programId: student.academic.programId,
           program: student.academic.program,
         },
         updatedAt: stamp,

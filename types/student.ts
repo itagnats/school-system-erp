@@ -14,6 +14,17 @@ export interface StudentPersonalInfo {
 }
 
 export interface StudentAcademicInfo {
+  /**
+   * The programme this student belongs to (direction.md §7a).
+   *
+   * The id is the join; `program` beside it is what a reader sees. Until
+   * 2026-09-20 there was only the name, and "one student belongs to one
+   * programme" was enforced by comparing it to `Program.name` - so renaming a
+   * programme would have started refusing its own students, and two programmes
+   * sharing a name would have let one enrol into the other (`AUD-021`).
+   */
+  programId: string;
+  /** The programme's display name. Never compared; see `programId`. */
   program: string;
   major: string;
   /** Year of study, 1-based. */

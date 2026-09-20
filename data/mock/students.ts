@@ -19,6 +19,7 @@ export const mockStudents: Student[] = [
       phone: "+66 2 000 0001",
     },
     academic: {
+      programId: "prg-it",
       program: "Information Technology",
       major: "Software Engineering",
       yearLevel: 2,
@@ -65,6 +66,7 @@ export const mockStudents: Student[] = [
       email: "student002@example.edu",
     },
     academic: {
+      programId: "prg-ds",
       program: "Data Science",
       major: "Applied Statistics",
       yearLevel: 3,

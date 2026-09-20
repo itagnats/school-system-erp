@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   courseEnrollmentIdFor,
+  demoStudentSerial,
   expandCurriculum,
   findEnrolmentConflict,
   programEnrollmentIdFor,
@@ -206,5 +207,52 @@ describe("findEnrolmentConflict", () => {
     );
 
     expect(conflict).toBeUndefined();
+  });
+});
+
+/**
+ * `AUD-022`. The serial had no test at all, while the two functions beside it
+ * had sixteen between them - and it is the one carrying a hand-rolled hash into
+ * a 1,000-wide space, which is a narrower space than it looks.
+ */
+describe("demoStudentSerial", () => {
+  it("keeps out of the seeded range", () => {
+    // Seeded students are ST-2026-001 upward. The N says "this came from a
+    // write", and a created student that could take ST-2026-042 would collide
+    // with a real row rather than with another create.
+    expect(demoStudentSerial("ada@example.com")).toMatch(/^ST-2026-N\d{3}$/);
+  });
+
+  it("is stable for one email", () => {
+    // The whole reason it hashes rather than counting: the table never grows,
+    // so "next free" would return the same number for every create in a
+    // session. Stability per email is what replaces that.
+    expect(demoStudentSerial("ada@example.com")).toBe(demoStudentSerial("ada@example.com"));
+  });
+
+  it("ignores case and surrounding space", () => {
+    // The service rejects a duplicate email before this is called, and it does
+    // so case-insensitively. If the hash disagreed, the same person could hold
+    // two ids.
+    expect(demoStudentSerial("  Ada@Example.COM ")).toBe(demoStudentSerial("ada@example.com"));
+  });
+
+  it("gives different emails different serials", () => {
+    const serials = new Set(
+      ["ada", "grace", "alan", "edsger", "barbara"].map((name) =>
+        demoStudentSerial(`${name}@example.com`),
+      ),
+    );
+    expect(serials.size).toBe(5);
+  });
+
+  it("moves on the next attempt, which is what makes the collision loop work", () => {
+    // `createStudent` steps past a taken suffix by incrementing `attempt`. That
+    // loop only terminates if a new attempt actually produces a new serial -
+    // untested until now, and unreachable in the running app, because nothing
+    // is persisted so the table never holds a created row.
+    const email = "ada@example.com";
+    const attempts = new Set([0, 1, 2, 3, 4].map((n) => demoStudentSerial(email, n)));
+    expect(attempts.size).toBe(5);
   });
 });

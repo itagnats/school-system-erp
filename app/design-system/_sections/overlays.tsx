@@ -78,7 +78,7 @@ export function OverlaysSection() {
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle className="text-[14px]">Rename evaluation group</DialogTitle>
+                <DialogTitle className="text-base">Rename evaluation group</DialogTitle>
                 <DialogDescription className="text-sm">
                   Group names are shown to students on their individual report.
                 </DialogDescription>
@@ -124,7 +124,7 @@ export function OverlaysSection() {
               </SheetTrigger>
               <SheetContent side={side} className="w-[22rem]">
                 <SheetHeader>
-                  <SheetTitle className="text-[14px]">Add student</SheetTitle>
+                  <SheetTitle className="text-base">Add student</SheetTitle>
                   <SheetDescription className="text-sm">
                     Existing profile, previous course, or a new student.
                   </SheetDescription>

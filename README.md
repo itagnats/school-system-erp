@@ -7,14 +7,18 @@ score, ranking, grade and individual reporting.
 PRIME is a portfolio project. The school, the courses and every student record
 are fictional.
 
-**Status: eleven modules built.** The design system, theme, application shell,
+**Status: twelve modules built.** The design system, theme, application shell,
 shared components, routing, domain types, the API layer and the test harness are
-in place, and there are twelve <!-- count:features --> folders under `features/`.
-Dashboard, Curriculum, Course, Semester, Enrollment, Student, Cost, Cost
-Catalogue, Invoices and Manage Evaluation render real data from the BFF under
-`app/api/`. Your Evaluation is built but deliberately plain, pending a design
-pass. Every application route renders real data: `/reports/students/[studentId]`
-was the last placeholder and is now a student's own reports, owner-scoped.
+in place. Dashboard, Curriculum, Course, Semester, Enrollment, Student, Cost,
+Cost Catalogue, Invoices, Manage Evaluation and the Question Bank render real
+data from the BFF under `app/api/`. Your Evaluation is built but deliberately
+plain, pending a design pass. Every application route renders real data:
+`/reports/students/[studentId]` was the last placeholder and is now a student's
+own reports, owner-scoped.
+
+There are twelve <!-- count:features --> folders under `features/`, which is the
+same number by coincidence rather than by mapping: Student Reports is built from
+`features/evaluation/`, and `features/reports/` holds a README and nothing else.
 
 Two honest caveats. **Nothing has been seen in a browser** — every screen has
 been verified by build, test and served markup, never by eye. And **writes are
@@ -177,7 +181,7 @@ nothing about enrollment.
 There are 33 <!-- count:routeHandlers --> route handlers under `app/api`, and the
 tests cover the part that can be wrong without looking wrong — the
 11 <!-- count:calculations --> calculation modules under `lib/calculations`,
-checked by 16 <!-- count:testFiles --> test files.
+checked by 18 <!-- count:testFiles --> test files.
 
 **Identity is not a domain.** The role table lives in `lib/access/` and the
 session helpers in `lib/api/session.ts`, below `components/` — because the
@@ -372,8 +376,9 @@ the layer above: where authorisation lives, and what it costs.
 
 ### The controls that do not depend on a session
 
-- security headers set in `next.config.ts`: `X-Content-Type-Options`,
-  `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` and a CSP with
+- security headers set in `next.config.ts`: `Strict-Transport-Security`,
+  `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`,
+  `Permissions-Policy`, `X-DNS-Prefetch-Control` and a CSP with
   `frame-ancestors 'none'`, `object-src 'none'` and `form-action 'self'`;
 - `poweredByHeader` disabled;
 - environment access centralised and validated in `config/env.ts`, which only

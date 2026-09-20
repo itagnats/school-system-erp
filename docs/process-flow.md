@@ -281,7 +281,7 @@ computed leaderboard are specified and unbuilt.
 Worth stating, because these are the decisions that are expensive to retrofit and
 they are already correct.
 
-- **Business math sits in the calculation layer**, never in JSX — eleven modules
+- **Business math sits in the calculation layer**, never in JSX — eleven <!-- count:calculations --> modules
   under `lib/calculations/` plus each feature's own, and it is the part under
   test, which is the priority `scaffold.md` §27 asks for.
 - **Null is not zero**, in every place it matters: `costPerStudent` with no
@@ -311,7 +311,7 @@ names the rule it changed.
 | --- | --- |
 | **F-2** · no student could enter the system through the UI — `/api/enrollment` and `/api/students` were `GET`-only, and every one of the 1,297 enrolments existed because the seed made it | Enrolment writes over all three §7 paths, plus profile editing and the first deletes (2026-09-15, 2026-09-16) |
 | **F-3** · Cost Management could not manage the cost structure — the update contract accepted `markupPercent` and `studentCount` only | The cost catalogue and sheet CRUD (2026-09-12); the allocation percentage the finding described no longer exists at all after the 2026-09-15 rebuild |
-| **F-4** · the flow was not walkable — seven of sixteen route builders had no caller, and student profile, semester detail and cost sheet detail each linked nowhere | Cross-links added module by module; the rule now is that **every link on a screen goes somewhere the reader may open**, so the dashboard, breadcrumbs, back control and programme history all drop an anchor the current role would be refused. `studentReport` is the one builder still unused, which is F-6 |
+| **F-4** · the flow was not walkable — seven of sixteen route builders had no caller, and student profile, semester detail and cost sheet detail each linked nowhere | Cross-links added module by module; the rule now is that **every link on a screen goes somewhere the reader may open**, so the dashboard, breadcrumbs, back control and programme history all drop an anchor the current role would be refused. `studentReport` was the one builder still unused; F-6 closed that on 2026-09-19 |
 | **F-7** · the coverage gap was invisible — 36 setups over 35 of 50 cohorts, with nothing saying so | Folded into F-5, where it belongs: the gap is invisible because there is no verb that would close it |
 | **F-8** · revenue was an entitlement presented as an earning — `packagePrice × enrolledCount` counted 143 pending members, ฿4.79M of ฿18.35M, 26% of booked revenue, from students who had not started | The invoice module. §13a was amended rather than merely obeyed, and `tests/calculations/profit.test.ts` pins it: *"does not count outstanding invoices as profit"* |
 

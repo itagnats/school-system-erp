@@ -325,3 +325,58 @@ export function calculateProgramCostBreakdown({
 export function calculateDirectTotal(sheet: CourseCostSheet): number {
   return calculateCourseDirect(sheet).directTotal;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Identifying a copy (direction.md §12a, AUD-013)                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Which copy of a catalogue item this is, on a sheet that already holds these
+ * ids. 1 for the first, 2 for the second, and so on.
+ *
+ * §12a says adding the same catalogue item twice is deliberate - two lecturers
+ * on one course are two lines, because they may sit at different rates. The
+ * two lines therefore need different ids, and the id used to be built from
+ * `WRITE_STAMP`, a frozen constant standing in for a clock. Every copy of one
+ * source came out identical, so `updateSheetItem` edited both and
+ * `removeSheetItem` deleted both, and React keyed them the same.
+ *
+ * The ordinal is the discriminator that replaces it: **deterministic**, because
+ * it is a function of what is already on the sheet rather than of the time, and
+ * **unique**, because it is chosen to be. Both properties are required and the
+ * previous id had only the first.
+ *
+ * It lives here rather than in the service because everything under `server/`
+ * imports `server-only` and is unreachable from the test harness.
+ */
+export function copyOrdinal(
+  catalogueItemId: string,
+  taken: Iterable<string>,
+): number {
+  const used = new Set(taken);
+  let ordinal = 1;
+  while (used.has(copyItemId(catalogueItemId, ordinal))) ordinal += 1;
+  return ordinal;
+}
+
+/**
+ * The sheet's id for its nth copy of a catalogue item.
+ *
+ * The first copy carries no ordinal, so the common case - one line per item -
+ * reads as `itm-cat-lecturer` rather than `itm-cat-lecturer-1`.
+ */
+export function copyItemId(catalogueItemId: string, ordinal: number): string {
+  return ordinal <= 1 ? `itm-${catalogueItemId}` : `itm-${catalogueItemId}-${ordinal}`;
+}
+
+/**
+ * The same ordinal applied to an option inside the copy.
+ *
+ * Two copies of an item with options would otherwise share their option ids
+ * too, and `selectedOptionId` on one line would name an option on the other.
+ * One ordinal for the whole copy keeps the item and its options consistent -
+ * the seed does the same thing with a per-sheet suffix.
+ */
+export function copyOptionId(optionId: string, ordinal: number): string {
+  return ordinal <= 1 ? optionId : `${optionId}-${ordinal}`;
+}

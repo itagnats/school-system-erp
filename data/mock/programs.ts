@@ -70,12 +70,3 @@ export const PROGRAM_COURSE_PREFIX: Record<string, string> = {
   "prg-ba": "BA",
   "prg-de": "DE",
 };
-
-/** Which programme a student belongs to, keyed by their academic programme. */
-export const PROGRAM_BY_ACADEMIC_NAME: Record<string, string> = {
-  "Information Technology": "prg-it",
-  "Data Science": "prg-ds",
-  "Computer Science": "prg-cs",
-  "Business Analytics": "prg-ba",
-  Design: "prg-de",
-};

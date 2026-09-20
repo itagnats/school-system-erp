@@ -20,7 +20,6 @@ import {
   PROGRAMME_FEE_LABEL,
 } from "@/data/mock/invoices";
 import {
-  PROGRAM_BY_ACADEMIC_NAME,
   PROGRAM_COURSE_PREFIX,
   mockPrograms,
 } from "@/data/mock/programs";
@@ -117,13 +116,20 @@ const SUBJECTS: ReadonlyArray<readonly [string, readonly string[]]> = [
   ],
 ];
 
-const PROGRAMS = [
-  "Information Technology",
-  "Data Science",
-  "Computer Science",
-  "Business Analytics",
-  "Design",
-] as const;
+/**
+ * The programmes a generated student can belong to.
+ *
+ * `mockPrograms` itself, rather than a list of names beside it. The names used
+ * to be written out here, which made the seed a second definition of the
+ * programme catalogue - and a student's programme a string that no `Program`
+ * row was ever joined to (`AUD-021`). The order is `mockPrograms`' own, so the
+ * name each draw produces is unchanged; what is new is that the id comes with
+ * it.
+ */
+const PROGRAM_CHOICES = mockPrograms.map((program) => ({
+  id: program.id,
+  name: program.name,
+}));
 
 const MAJORS = [
   "Software Engineering",
@@ -194,6 +200,33 @@ function generateCourses(rng: Random, semesters: Semester[]): Course[] {
   return courses.sort((a, b) => a.code.localeCompare(b.code));
 }
 
+/**
+ * A student's academic block.
+ *
+ * Its own function only so that the programme id and the programme name can
+ * come from **one** draw. Written inline, the object literal would have to call
+ * `rng.pick` twice and the two halves could name different programmes - which
+ * is the same disagreement `AUD-021` was about, reintroduced one layer down.
+ *
+ * It must stay where the old `academic:` literal was in the evaluation order.
+ * Hoisting the draw above `personal` reorders the PRNG stream, and the seed is
+ * a different dataset: measured, that moved programme memberships from 635 to
+ * 628 and course enrollments from 1,297 to 1,261. Nothing failed, and every
+ * number on every screen would have quietly changed.
+ */
+function generateAcademic(rng: Random): Student["academic"] {
+  const program = rng.pick(PROGRAM_CHOICES);
+  return {
+    programId: program.id,
+    program: program.name,
+    major: rng.pick(MAJORS),
+    yearLevel: rng.int(1, 4),
+    interests: rng.sample(INTERESTS, rng.int(1, 3)),
+    skills: rng.sample(SKILLS, rng.int(1, 4)),
+    certifications: rng.chance(0.3) ? ["Intro to Cloud Practitioner"] : [],
+  };
+}
+
 function generateStudents(rng: Random): Student[] {
   const students: Student[] = [...mockStudents];
 
@@ -213,14 +246,7 @@ function generateStudents(rng: Random): Student[] {
         email: `student${serial}@example.edu`,
         phone: rng.chance(0.6) ? `+66 2 000 ${serial}` : undefined,
       },
-      academic: {
-        program: rng.pick(PROGRAMS),
-        major: rng.pick(MAJORS),
-        yearLevel: rng.int(1, 4),
-        interests: rng.sample(INTERESTS, rng.int(1, 3)),
-        skills: rng.sample(SKILLS, rng.int(1, 4)),
-        certifications: rng.chance(0.3) ? ["Intro to Cloud Practitioner"] : [],
-      },
+      academic: generateAcademic(rng),
       experience: {
         projects: rng.chance(0.5)
           ? [
@@ -649,11 +675,13 @@ function generateProgramEnrollments(
 ): ProgramEnrollment[] {
   const byProgram = new Map<string, Student[]>();
   for (const student of students) {
-    const programId = PROGRAM_BY_ACADEMIC_NAME[student.academic.program];
-    if (!programId) continue;
-    const list = byProgram.get(programId);
+    // `programId`, not the display name through a lookup table. The table was
+    // the seed's own copy of the join `AUD-021` was raised about: a programme
+    // renamed in `mockPrograms` and not here would have silently emptied its
+    // cohort, and nothing would have failed.
+    const list = byProgram.get(student.academic.programId);
     if (list) list.push(student);
-    else byProgram.set(programId, [student]);
+    else byProgram.set(student.academic.programId, [student]);
   }
 
   const enrollments: ProgramEnrollment[] = [];

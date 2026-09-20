@@ -2,6 +2,7 @@ import "server-only";
 
 import { catalogueGroupTable, courseCostSheetTable, programCostSheetTable } from "@/server/repositories";
 import { matchesSearch, type ListQueryInput } from "@/server/query";
+import { copyItemId, copyOptionId, copyOrdinal } from "@/lib/calculations";
 import type {
   CatalogueGroupCreateInput,
   CatalogueGroupUpdateInput,
@@ -260,22 +261,42 @@ export function isBlocked(
  * Quantity may be overridden at the moment of copying, because the catalogue
  * carries defaults rather than truths. There is no allocation to override any
  * more — a share of the indirect pool is derived from the driver (§13).
+ *
+ * `taken` is every item id already on the destination sheet, and it is what
+ * makes two copies of one source distinguishable. The id was built out of
+ * `WRITE_STAMP` — a frozen constant, so every copy of a source got the same id
+ * and the second line was an alias of the first (`AUD-013`, closed 2026-09-20).
+ * `copyOrdinal` replaces the constant with a discriminator that is still
+ * deterministic: it is a function of the sheet, not of the clock.
  */
 export function copyCatalogueItem(
   source: CatalogueItem,
   overrides: { quantity?: number; selectedOptionId?: string },
+  taken: Iterable<string> = [],
 ): CostItem {
-  const selectedOptionId =
-    overrides.selectedOptionId ?? source.options[0]?.id ?? undefined;
+  const ordinal = copyOrdinal(source.id, taken);
+  const options = source.options.map((option) => ({
+    ...option,
+    id: copyOptionId(option.id, ordinal),
+  }));
+
+  // The override names an option on the *catalogue* item, so it is translated
+  // into this copy's numbering. An override naming nothing on the source falls
+  // back to the first option rather than being stored verbatim: a
+  // `selectedOptionId` that matches none of the copy's own options is a
+  // dangling reference the sheet would carry for the rest of its life.
+  const chosen = overrides.selectedOptionId
+    ? source.options.find((option) => option.id === overrides.selectedOptionId)
+    : undefined;
 
   return {
-    id: `itm-${source.id}-${WRITE_STAMP.slice(0, 10)}`,
+    id: copyItemId(source.id, ordinal),
     name: source.name,
     kind: source.kind,
     unitPrice: source.defaultUnitPrice,
     quantity: overrides.quantity ?? source.defaultQuantity,
-    options: source.options.map((option) => ({ ...option })),
-    selectedOptionId,
+    options,
+    selectedOptionId: chosen ? copyOptionId(chosen.id, ordinal) : options[0]?.id,
     note: source.note,
     catalogueItemId: source.id,
     copiedAt: WRITE_STAMP,

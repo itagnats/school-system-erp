@@ -5,6 +5,9 @@ import {
   calculateGroupBreakdowns,
   calculateProgramCostBreakdown,
   calculateStandaloneCourseCost,
+  copyItemId,
+  copyOptionId,
+  copyOrdinal,
   distribute,
   driverValue,
   effectiveUnitPrice,
@@ -406,3 +409,58 @@ describe("preferredPriceFor", () => {
 function roundTo(value: number): number {
   return Math.round(value * 100) / 100;
 }
+
+/**
+ * `AUD-013`. The copy's id used to be `itm-<source>-<WRITE_STAMP>`, and
+ * `WRITE_STAMP` is a frozen constant - so two copies of one catalogue item on
+ * one sheet were the same row twice. §12a says two of them is the supported
+ * case, which is what made it a bug rather than a curiosity.
+ */
+describe("identifying a copy of a catalogue item", () => {
+  it("gives the first copy a plain id", () => {
+    expect(copyItemId("cat-lecturer", 1)).toBe("itm-cat-lecturer");
+  });
+
+  it("numbers the ones after it", () => {
+    expect(copyItemId("cat-lecturer", 2)).toBe("itm-cat-lecturer-2");
+    expect(copyItemId("cat-lecturer", 3)).toBe("itm-cat-lecturer-3");
+  });
+
+  it("starts at one on an empty sheet", () => {
+    expect(copyOrdinal("cat-lecturer", [])).toBe(1);
+  });
+
+  it("steps past a copy the sheet already holds", () => {
+    expect(copyOrdinal("cat-lecturer", ["itm-cat-lecturer"])).toBe(2);
+    expect(copyOrdinal("cat-lecturer", ["itm-cat-lecturer", "itm-cat-lecturer-2"])).toBe(3);
+  });
+
+  it("ignores ids belonging to other items", () => {
+    // Two lecturers and one classroom on a sheet: the classroom must not push
+    // the lecturer's numbering along, or the ids stop being readable.
+    expect(copyOrdinal("cat-lecturer", ["itm-cat-room", "itm-cat-room-2"])).toBe(1);
+  });
+
+  it("fills a gap left by a removed line", () => {
+    // Deleting the first of two leaves `-2` behind. Reusing 1 is right: the
+    // ordinal is a discriminator among the ids present, not a running count of
+    // everything this sheet has ever held.
+    expect(copyOrdinal("cat-lecturer", ["itm-cat-lecturer-2"])).toBe(1);
+  });
+
+  it("is deterministic - the same sheet gives the same id twice", () => {
+    // The property the frozen timestamp had and the reason it was chosen. It
+    // has to survive the fix, or the server and client renders disagree.
+    const taken = ["itm-cat-lecturer"];
+    expect(copyItemId("cat-lecturer", copyOrdinal("cat-lecturer", taken))).toBe(
+      copyItemId("cat-lecturer", copyOrdinal("cat-lecturer", taken)),
+    );
+  });
+
+  it("carries the same ordinal into the options", () => {
+    // Otherwise the second copy's `selectedOptionId` names an option on the
+    // first, and changing one line's choice changes the other's.
+    expect(copyOptionId("opt-senior", 1)).toBe("opt-senior");
+    expect(copyOptionId("opt-senior", 2)).toBe("opt-senior-2");
+  });
+});

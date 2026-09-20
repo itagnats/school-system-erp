@@ -10,18 +10,25 @@ Reply in English even when the user writes in another language.
 
 ## Current state
 
-**Eleven modules built.** The token layer, theme, application shell, shared
+**Twelve modules built.** The token layer, theme, application shell, shared
 components, routing, domain types, API layer and test harness are in place.
 Dashboard, Curriculum, Course, Semester, Enrollment, Student, Cost, **Cost
-Catalogue**, **Invoices** and **Manage Evaluation** render real data from the BFF
-under `app/api/`. **Your Evaluation** is scaffolded — the queue and both form
-kinds work; its layout is deliberately plain, pending the user's design pass.
-`/reports/students/[studentId]` is live as of 2026-09-19 and renders one
-student's own reports (`AUD-002` closed); the staff picker and results table
-stay at `/reports`.
+Catalogue**, **Invoices**, **Manage Evaluation** and the **Question Bank**
+render real data from the BFF under `app/api/`. **Your Evaluation** is
+scaffolded — the queue and both form kinds work; its layout is deliberately
+plain, pending the user's design pass.
 
-**Nothing has been seen in a browser** (`AUD-009`, open since 2026-09-07). Four
-screens have landed since. Do not describe how anything looks.
+**Student Reports is live and has no feature folder of its own.** `/reports` is
+the staff picker and the results table; `/reports/students/[studentId]` renders
+one student's own reports, owner-scoped (`AUD-002` closed 2026-09-19). Both are
+built from `features/evaluation/`. `features/reports/` holds a README and
+nothing else, so the twelve folders under `features/` are not the twelve modules
+above — do not read the folder count as a module list.
+
+**Nothing has been seen in a browser** (`AUD-009`, open since 2026-09-07).
+Eleven routes have been added since, and the dashboard, `/costs` and the student
+report were rebuilt onto new models — so most of what exists is unseen. Do not
+describe how anything looks.
 
 **There is a demo sign-in and four app roles** (`direction.md` §3a, added
 2026-09-16). `/login` is a row of role cards - administrator, teacher, TA,
@@ -138,6 +145,18 @@ TypeScript or build error. Run `npm run verify` before reporting work finished.
 
 If `PageProps` / `LayoutProps` come back as unresolved names, run `npx next typegen` —
 those globals are generated into `.next/types` and are absent on a clean checkout.
+
+**A typecheck failure inside `.next/dev/types/` is not your code.** `next dev` can
+leave a corrupt `routes.d.ts` behind — a duplicated tail and a truncated route
+list, which surfaces as `TS1109 Expression expected` and `TS1160 Unterminated
+template literal` on lines nobody wrote. `tsconfig.json` includes
+`.next/dev/types/**/*.ts`, so a bad artifact fails the gate `scaffold.md` §32
+requires. **`npx next typegen` does not fix this** — it writes `.next/types`,
+which is a different directory. Delete the artifact instead:
+
+```bash
+rm -rf .next/dev/types      # then re-run npm run verify
+```
 
 ## Stack (installed)
 
@@ -545,7 +564,8 @@ what was *built*. Findings carry stable `AUD-nnn` ids and stay open until closed
 by evidence, and the file opens with the commands to re-run every check. **Read
 the open findings before starting work in an area** — `AUD-009` (nothing has
 been seen in a browser) is the one that shapes what to do next, and it now
-covers four screens that landed after it was raised.
+covers eleven routes added after it was raised plus three rebuilt onto new
+models.
 
 ## Design system
 
