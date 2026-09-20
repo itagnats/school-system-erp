@@ -54,6 +54,7 @@ export const NAV_GROUPS: NavGroup[] = [
       "components/ui — generic, no domain vocabulary. Everything that renders inline.",
     items: [
       { id: "buttons", label: "Button" },
+      { id: "form-controls", label: "Form controls" },
       { id: "input", label: "Input" },
       { id: "select", label: "Select" },
       { id: "textarea", label: "Textarea" },
@@ -61,6 +62,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "radio-group", label: "Radio group" },
       { id: "slider", label: "Slider" },
       { id: "form-bindings", label: "Form bindings" },
+      { id: "content", label: "Content" },
       { id: "card", label: "Card" },
       { id: "badge", label: "Badge" },
       { id: "avatar", label: "Avatar" },
@@ -68,6 +70,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "separator", label: "Separator" },
       { id: "skeleton", label: "Skeleton" },
       { id: "table-primitive", label: "Table" },
+      { id: "navigation", label: "Navigation" },
       { id: "tabs", label: "Tabs" },
       { id: "breadcrumb", label: "Breadcrumb" },
       { id: "scroll-area", label: "Scroll area" },
@@ -131,7 +134,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "architecture", label: "Architecture" },
       { id: "screen-anatomy", label: "Screen anatomy" },
       { id: "charts", label: "Charts" },
-      { id: "composition-dashboard", label: "Dashboard" },
     ],
   },
 ];

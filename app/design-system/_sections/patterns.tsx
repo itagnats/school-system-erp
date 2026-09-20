@@ -23,7 +23,7 @@ import {
   StatCardSkeleton,
   TableSkeleton,
 } from "@/components/feedback";
-import { FormActions, FormFieldWide, FormSection } from "@/components/forms";
+import { FormActions } from "@/components/forms";
 import {
   ConfirmDialog,
   DescriptionList,
@@ -37,8 +37,6 @@ import {
   StatusBadge,
 } from "@/components/shared";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { HttpError } from "@/lib/api";
 import { formatScore } from "@/lib/utils";
 import { Demo } from "../_components/demo";
@@ -546,50 +544,9 @@ const columns: PrimeColumnDef<DemoRow>[] = [
 
       <Section id="form-layout"
         title="Form layout"
-        description="FormSection groups fields under a heading; FormActions owns the submit row. The two are shown wired to React Hook Form and Zod under Primitives — this documents the action states."
+        description="FormActions owns the submit row and this documents its states. The layout itself — FormSection's heading column, and FormFieldWide for a field that spans both — is shown wired to React Hook Form and Zod under Primitives → Form bindings, so it is not rebuilt here out of dead inputs that cannot demonstrate what the layout is for."
       >
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Demo
-            title="Layout"
-            note="A label column beside the fields. Long forms are assembled from these rather than one continuous list."
-          >
-            <FormSection title="Course" description="Identity and weighting.">
-              <div className="grid gap-1.5">
-                <Label htmlFor="ds-form-code" className="text-sm">
-                  Course code
-                </Label>
-                <Input
-                  id="ds-form-code"
-                  defaultValue="IT101"
-                  style={{ height: "var(--field-h)" }}
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="ds-form-credits" className="text-sm">
-                  Credits
-                </Label>
-                <Input
-                  id="ds-form-credits"
-                  type="number"
-                  defaultValue="3"
-                  style={{ height: "var(--field-h)" }}
-                />
-              </div>
-              <FormFieldWide>
-                <div className="grid gap-1.5">
-                  <Label htmlFor="ds-form-desc" className="text-sm">
-                    Description
-                  </Label>
-                  <Input
-                    id="ds-form-desc"
-                    placeholder="Spans both columns"
-                    style={{ height: "var(--field-h)" }}
-                  />
-                </div>
-              </FormFieldWide>
-            </FormSection>
-          </Demo>
-
+        <div className="grid gap-4">
           <Demo
             title="Action states"
             note="Submitting locks both buttons and shows a spinner; passing isDirty={false} holds submit until something changes; a form-level error sits on the leading edge."

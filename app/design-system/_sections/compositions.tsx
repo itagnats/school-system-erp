@@ -1,19 +1,11 @@
 import type { ReactNode } from "react";
 import {
-  BookOpen,
-  ClipboardCheck,
-  Coins,
-  TrendingUp,
-  UsersRound,
-} from "lucide-react";
-import {
   CategoryBarChart,
   CriteriaRadarChart,
   ShareDonutChart,
   TrendAreaChart,
 } from "@/components/data-viz";
-import { Section, StatCard, StatusBadge } from "@/components/shared";
-import { Button } from "@/components/ui/button";
+import { Section } from "@/components/shared";
 import { Demo } from "../_components/demo";
 
 /**
@@ -25,7 +17,6 @@ import { Demo } from "../_components/demo";
  * that is what a reviewer opening an unfamiliar module has to infer.
  */
 interface Anatomy {
-  id: string;
   name: string;
   when: string;
   steps: { part: string; note: string; optional?: boolean }[];
@@ -33,7 +24,6 @@ interface Anatomy {
 
 const ANATOMIES: Anatomy[] = [
   {
-    id: "anatomy-list",
     name: "List screen",
     when: "The default landing screen for a domain: courses, students, cost sheets.",
     steps: [
@@ -53,7 +43,6 @@ const ANATOMIES: Anatomy[] = [
     ],
   },
   {
-    id: "anatomy-form",
     name: "Form screen",
     when: "Creating or editing one record.",
     steps: [
@@ -73,7 +62,6 @@ const ANATOMIES: Anatomy[] = [
     ],
   },
   {
-    id: "anatomy-detail",
     name: "Detail screen",
     when: "One record, read-mostly: a student profile, a course, an individual report.",
     steps: [
@@ -85,7 +73,6 @@ const ANATOMIES: Anatomy[] = [
     ],
   },
   {
-    id: "anatomy-confirm",
     name: "Destructive confirmation",
     when: "Any action that cannot be undone from the UI.",
     steps: [
@@ -99,9 +86,8 @@ const ANATOMIES: Anatomy[] = [
     ],
   },
   {
-    id: "anatomy-dashboard",
     name: "Dashboard",
-    when: "The overview screen. Rendered live below.",
+    when: "The overview screen.",
     steps: [
       { part: "PageHeader", note: "The only page that earns bloom, because it is the one that greets." },
       { part: "StatCard row", note: "Four at most. A fifth number means none of them is the headline." },
@@ -110,7 +96,6 @@ const ANATOMIES: Anatomy[] = [
     ],
   },
   {
-    id: "anatomy-empty",
     name: "First-run screen",
     when: "A domain with no records yet — the state every list screen starts in.",
     steps: [
@@ -122,7 +107,6 @@ const ANATOMIES: Anatomy[] = [
     ],
   },
   {
-    id: "anatomy-report",
     name: "Printable report",
     when: "The individual student report (direction.md §23).",
     steps: [
@@ -169,19 +153,9 @@ const CRITERIA_PROFILE = [
   { label: "Technical", value: 4.85 },
 ];
 
-const ACTIVITY = [
-  { who: "Student 014", what: "submitted peer evaluations for Group B", when: "12 minutes ago", tone: "success" as const, state: "Complete" },
-  { who: "Cost sheet 202602-02", what: "moved to review", when: "1 hour ago", tone: "warning" as const, state: "Pending" },
-  { who: "Student 007", what: "withdrew from IT101", when: "3 hours ago", tone: "error" as const, state: "Dropped" },
-  { who: "Group D", what: "inspector assignments generated", when: "Yesterday", tone: "info" as const, state: "Assigned" },
-];
-
 function AnatomyCard({ anatomy }: { anatomy: Anatomy }) {
   return (
-    <div
-      id={anatomy.id}
-      className="scroll-mt-[calc(var(--header-h)+1rem)] rounded-md border border-hairline bg-surface-sunken p-3.5"
-    >
+    <div className="rounded-md border border-hairline bg-surface-sunken p-3.5">
       <h4 className="text-sm font-medium text-foreground">{anatomy.name}</h4>
       <p className="mt-0.5 mb-3 text-xs text-muted-foreground">{anatomy.when}</p>
       <ol className="flex flex-col gap-1.5">
@@ -283,7 +257,7 @@ export function CompositionsSection() {
       >
         <div className="grid gap-3 lg:grid-cols-2">
           {ANATOMIES.map((anatomy) => (
-            <AnatomyCard key={anatomy.id} anatomy={anatomy} />
+            <AnatomyCard key={anatomy.name} anatomy={anatomy} />
           ))}
         </div>
       </Section>
@@ -383,128 +357,6 @@ export function CompositionsSection() {
         </div>
       </Section>
 
-      <Section
-        id="composition-dashboard"
-        title="A dashboard, composed"
-        description="The one full screen assembled on this page: header, four metrics, two charts answering two different questions, and what changed recently. Everything in it is a component documented above — nothing here is bespoke."
-      >
-        <div className="rounded-md border border-hairline bg-background p-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h3 className="text-lg font-semibold tracking-tight text-foreground">
-                IT101 · Second Semester 2026
-              </h3>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                29 students across four evaluation groups. Evaluation window closes in
-                6 days.
-              </p>
-            </div>
-            <div className="flex shrink-0 gap-2">
-              <Button variant="outline" size="sm">
-                Export
-              </Button>
-              <Button size="sm">Open report</Button>
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard
-              tone="pink"
-              label="Students enrolled"
-              value="29"
-              icon={UsersRound}
-              hint="4 groups"
-            />
-            <StatCard
-              tone="lavender"
-              label="Evaluations submitted"
-              value="87%"
-              icon={ClipboardCheck}
-              hint="of 116 expected"
-            />
-            <StatCard
-              tone="blue"
-              label="Cohort average"
-              value="81.3"
-              icon={TrendingUp}
-              trend="up"
-              trendValue="+2.2"
-            />
-            <StatCard
-              tone="green"
-              label="Cost per student"
-              value="¥9,655"
-              icon={Coins}
-              trend="up"
-              trendValue="+8.6%"
-              trendIsGood={false}
-            />
-          </div>
-
-          <div className="mt-4 grid gap-4 lg:grid-cols-2">
-            <div className="rounded-lg border border-hairline bg-card p-3.5 shadow-xs">
-              <TrendAreaChart
-                title="Cohort average by semester"
-                description="Weighted final score, all groups"
-                data={COHORT_TREND}
-                unit="Average score"
-                format="decimal"
-                height={170}
-              />
-            </div>
-            <div className="rounded-lg border border-hairline bg-card p-3.5 shadow-xs">
-              <ShareDonutChart
-                title="Cost composition"
-                description="Direct and shared, this semester"
-                data={COST_SPLIT}
-                unit="Cost"
-                valuePrefix="¥"
-                height={170}
-              />
-            </div>
-          </div>
-
-          <div className="mt-4 rounded-lg border border-hairline bg-card shadow-xs">
-            <header className="flex items-center justify-between px-3.5 py-2.5 hairline-b">
-              <h4 className="text-base font-medium text-foreground">
-                Recent activity
-              </h4>
-              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <BookOpen className="size-3.5" aria-hidden />
-                IT101
-              </span>
-            </header>
-            <ul>
-              {ACTIVITY.map((item) => (
-                <li
-                  key={item.who}
-                  className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3.5 py-2.5 hairline-b last:border-b-0"
-                >
-                  <span className="text-xs font-medium text-foreground">
-                    {item.who}
-                  </span>
-                  <span className="min-w-0 flex-1 text-xs text-muted-foreground">
-                    {item.what}
-                  </span>
-                  <StatusBadge tone={item.tone} label={item.state} />
-                  <span className="w-24 shrink-0 text-right text-xs text-muted-foreground">
-                    {item.when}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        <p className="mt-3 max-w-prose text-xs text-muted-foreground">
-          The real version of this screen is not here. It belongs to
-          <code className="mx-1">features/*</code>, reads from the API layer through a
-          feature hook, and implements all four data states. This is the composition
-          only — a fake dashboard that lived permanently in the design system would be
-          a component that exists solely for the showcase, which is the thing this
-          system is trying not to accumulate.
-        </p>
-      </Section>
     </div>
   );
 }

@@ -67,50 +67,22 @@ export default function DesignSystemPage() {
         }
       />
 
+      {/* Each group states what it is for directly above itself, in the blurb
+          the nav already carries, so this panel says only the thing no group
+          heading can: what is deliberately absent. */}
       <Section
         className="mb-6"
         title="How to read this page"
-        description="One document rather than tabs, so every component is on screen and in the server-rendered HTML. Each heading is linkable."
+        description="One document rather than tabs, so every component is on screen and in the server-rendered HTML. Each heading is linkable, and every group says what it is for directly above itself."
       >
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {[
-            {
-              group: "Foundations",
-              detail:
-                "Tokens, and the two things made out of them that are easy to treat as afterthoughts: motion and accessibility.",
-            },
-            {
-              group: "Primitives & Overlays",
-              detail:
-                "components/ui. Generic, no domain vocabulary. Overlays are the only surfaces allowed a shadow.",
-            },
-            {
-              group: "Patterns",
-              detail:
-                "components/shared. Reusable application patterns, still free of business rules.",
-            },
-            {
-              group: "States",
-              detail:
-                "Every condition a control can be in, in one place, so two components never disagree about what disabled looks like.",
-            },
-            {
-              group: "Compositions",
-              detail:
-                "How the parts assemble into screens, plus the layer diagram and the chart rules.",
-            },
-            {
-              group: "Not here",
-              detail:
-                "Feature screens. Those live in features/* and read real data; a permanent fake one in the design system is a component that exists only for the showcase.",
-            },
-          ].map((item) => (
-            <div key={item.group}>
-              <p className="text-xs font-medium text-foreground">{item.group}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">{item.detail}</p>
-            </div>
-          ))}
-        </div>
+        <p className="max-w-prose text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">Not here: feature screens.</span>{" "}
+          Those live in <code>features/*</code> and read real data. A permanent fake one
+          in the design system is a component that exists only for the showcase, and it
+          drifts from the real thing without anything noticing — which is what happened
+          to the rating scale and the card-tone swatches before they were replaced with
+          the live components on 2026-09-20.
+        </p>
       </Section>
 
       {/* One document, not tabs: every component is on screen and in the

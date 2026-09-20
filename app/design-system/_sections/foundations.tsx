@@ -1,6 +1,6 @@
+import { Flower2 } from "lucide-react";
 import { PetalCorner, SakuraMark } from "@/components/decor";
-import { Section } from "@/components/shared";
-import { cn } from "@/lib/utils";
+import { Section, StatCard, type StatTone } from "@/components/shared";
 import { Demo, SpecRow } from "../_components/demo";
 import { Swatch } from "../_components/swatch";
 
@@ -34,14 +34,24 @@ const STATUS_TOKENS = [
 
 const RAMP_STEPS = ["50", "100", "200", "300", "400", "500", "600", "700", "800", "900"];
 
-// Class names are spelled out rather than interpolated: Tailwind scans source
-// text, so a template-built name is invisible to it and never generated.
-const CARD_TONES = [
-  { label: "Pink", surface: "bg-tone-pink", accent: "text-tone-pink-accent" },
-  { label: "Lavender", surface: "bg-tone-lavender", accent: "text-tone-lavender-accent" },
-  { label: "Blue", surface: "bg-tone-blue", accent: "text-tone-blue-accent" },
-  { label: "Green", surface: "bg-tone-green", accent: "text-tone-green-accent" },
-] as const;
+/**
+ * The four tones, shown on the component that takes them.
+ *
+ * This grid used to hand-build a card out of the tone utilities. That copy had
+ * drifted: it chipped the icon with `bg-white/70`, which `StatCard` had already
+ * moved off because white has no dark value and composited to a near-white pill
+ * at about 1.5:1 on the dusk grounds. Documenting a token on a replica of the
+ * component means the documentation can be wrong about the component.
+ */
+const CARD_TONES: StatTone[] = ["pink", "lavender", "blue", "green"];
+
+const TONE_LABEL: Record<StatTone, string> = {
+  plain: "Plain",
+  pink: "Pink",
+  lavender: "Lavender",
+  blue: "Blue",
+  green: "Green",
+};
 
 export function FoundationsSection() {
   return (
@@ -271,36 +281,18 @@ export function FoundationsSection() {
       <Section
         id="card-tones"
         title="Card tones"
-        description="Four pastel grounds a stat card can take, each with an accent for its icon chip. A tone is grouping, not meaning: it makes a row of metrics read as a set. Anything that has to communicate a state uses a status badge instead."
+        description="Four pastel grounds a stat card can take, each with an accent for its icon chip. Rendered by StatCard itself rather than by a copy of it, so a tone cannot be documented as something the component does not do. A tone is grouping, not meaning: it makes a row of metrics read as a set, and anything that has to communicate a state uses a status badge instead."
       >
         <div className="flex flex-col gap-3">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {CARD_TONES.map((t) => (
-              <div
-                key={t.label}
-                className={cn(
-                  "flex items-center justify-between gap-3 rounded-lg border border-hairline p-4 shadow-xs",
-                  t.surface,
-                )}
-              >
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground">{t.label}</p>
-                  <p
-                    data-numeric
-                    className="mt-2 text-2xl leading-none font-semibold text-foreground"
-                  >
-                    128
-                  </p>
-                </div>
-                <span
-                  className={cn(
-                    "flex size-8 shrink-0 items-center justify-center rounded-md bg-white/70",
-                    t.accent,
-                  )}
-                >
-                  <SakuraMark className="size-4" />
-                </span>
-              </div>
+            {CARD_TONES.map((tone) => (
+              <StatCard
+                key={tone}
+                tone={tone}
+                label={TONE_LABEL[tone]}
+                value="128"
+                icon={Flower2}
+              />
             ))}
           </div>
           <p className="max-w-prose text-xs text-muted-foreground">

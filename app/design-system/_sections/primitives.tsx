@@ -44,7 +44,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Slider } from "@/components/ui/slider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -59,7 +58,10 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { RatingScale } from "@/features/evaluation/components/rating-scale";
+import { RATING_LABEL, RATING_VALUES } from "@/features/evaluation/constants";
 import { formatCurrency, initials } from "@/lib/utils";
+import type { RatingValue } from "@/types";
 import { Demo } from "../_components/demo";
 import { FormDemo } from "./form-demo";
 
@@ -143,7 +145,7 @@ export function PrimitivesSection() {
 
       <Section id="form-controls"
         title="Form controls"
-        description="All fields sit at --field-h. Labels are always present, because a placeholder is not a label."
+        description="All fields sit at --field-h. Labels are always present, because a placeholder is not a label. Invalid, read-only and disabled are in the States group, which owns every condition a control can be in — repeating one of them here is how two parts of a design system end up disagreeing."
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <Demo id="input" title="Input">
@@ -156,26 +158,6 @@ export function PrimitivesSection() {
                 placeholder="IT101"
                 style={{ height: "var(--field-h)" }}
               />
-            </div>
-          </Demo>
-
-          <Demo
-            title="Input, invalid"
-            note="aria-invalid drives the treatment, so the error is announced and not only shown."
-          >
-            <div className="grid gap-1.5">
-              <Label htmlFor="ds-credits" className="text-sm text-destructive">
-                Credits
-              </Label>
-              <Input
-                id="ds-credits"
-                defaultValue="-3"
-                aria-invalid
-                style={{ height: "var(--field-h)" }}
-              />
-              <p className="text-xs font-medium text-destructive">
-                Credits must be a positive number.
-              </p>
             </div>
           </Demo>
 
@@ -228,23 +210,21 @@ export function PrimitivesSection() {
             </div>
           </Demo>
 
-          <Demo id="radio-group" title="Radio group" note="The 1-5 evaluation scale from direction.md §18.">
+          <Demo
+            id="radio-group"
+            title="Radio group"
+            note="The 1-5 evaluation scale from direction.md §18, read from RATING_LABEL rather than retyped — this demo used to carry its own copy of the words and had capitalized two of them differently."
+          >
             <RadioGroup defaultValue="4" className="flex flex-col gap-1.5">
-              {[
-                ["1", "Needs Improvement"],
-                ["2", "Developing"],
-                ["3", "Good"],
-                ["4", "Very Good"],
-                ["5", "Excellent"],
-              ].map(([value, label]) => (
+              {RATING_VALUES.map((value) => (
                 <div key={value} className="flex items-center gap-2">
-                  <RadioGroupItem value={value} id={`ds-rate-${value}`} />
+                  <RadioGroupItem value={String(value)} id={`ds-rate-${value}`} />
                   <Label htmlFor={`ds-rate-${value}`} className="text-sm">
                     <span className="text-muted-foreground" data-numeric>
                       {value}
                     </span>
                     {"  "}
-                    {label}
+                    {RATING_LABEL[value]}
                   </Label>
                 </div>
               ))}
@@ -501,14 +481,19 @@ export function PrimitivesSection() {
 }
 
 /**
- * A playable 1-5 scale, matching what Your Evaluation renders.
+ * The rating scale, as Your Evaluation renders it.
  *
- * **This is a replica, not the live component.** The real one is
- * `features/evaluation/components/rating-scale.tsx`, and it stays there because
- * it knows evaluation vocabulary - criteria names and the words behind each
- * number - which `components/ui` must not learn. This page replicates feature
- * compositions rather than importing them, the same way the worked dashboard
- * below does. Change one and change the other.
+ * This is the real `RatingScale` from `features/evaluation`, not a copy. It was
+ * a 70-line replica here until 2026-09-20, on the reasoning that the design
+ * system must not learn domain vocabulary - but that rule is about
+ * `components/ui`, and `app/*` sits *above* `features/*` in the layer chain, so
+ * importing it breaks nothing.
+ *
+ * The replica had already drifted in the way a replica does: it announced
+ * `aria-valuetext` as "Very good" where the real component announces
+ * "4, Very good" - the exact detail the real component's own docstring exists to
+ * argue for. A design system demonstrating an accessibility decision incorrectly
+ * is worse than one not demonstrating it.
  *
  * Two behaviors are worth playing with rather than reading about, which is why
  * this demo is interactive:
@@ -518,16 +503,25 @@ export function PrimitivesSection() {
  *     look answered;
  *   - **dragging back to zero clears it**, which the button row this replaced
  *     could not do at all.
+ *
+ * The two instances take different criteria because `RatingScale` derives its
+ * control id from the criterion, and the same one twice would be a duplicate id.
  */
 function SliderDemo() {
-  const [value, setValue] = useState(0);
+  const [value, setValue] = useState<RatingValue | undefined>(undefined);
 
   return (
     <div className="grid max-w-sm gap-4">
-      <RatingScaleReplica value={value} onChange={setValue} />
+      <RatingScale
+        criterion="participation"
+        value={value}
+        scaleMax={5}
+        disabled={false}
+        onChange={setValue}
+      />
 
       <div className="flex items-center gap-2">
-        <Button size="xs" variant="outline" onClick={() => setValue(0)}>
+        <Button size="xs" variant="outline" onClick={() => setValue(undefined)}>
           Clear
         </Button>
         <span className="text-xs text-muted-foreground">
@@ -538,69 +532,16 @@ function SliderDemo() {
       {/* Disabled is the state a closed evaluation window renders in, so it is
           worth seeing beside the live one rather than only in the matrix. */}
       <div className="border-t border-hairline pt-3">
-        <RatingScaleReplica value={4} disabled onChange={() => {}} />
+        <RatingScale
+          criterion="teamwork"
+          value={4}
+          scaleMax={5}
+          disabled
+          onChange={() => {}}
+        />
         <p className="mt-1.5 text-[10px] text-muted-foreground">
           Disabled — a closed window is read-only
         </p>
-      </div>
-    </div>
-  );
-}
-
-const RATING_WORDS = [
-  "Not rated",
-  "Needs improvement",
-  "Developing",
-  "Good",
-  "Very good",
-  "Excellent",
-] as const;
-
-function RatingScaleReplica({
-  value,
-  disabled = false,
-  onChange,
-}: Readonly<{ value: number; disabled?: boolean; onChange: (value: number) => void }>) {
-  const rated = value > 0;
-  const id = disabled ? "ds-rate-disabled" : "ds-rate-live";
-
-  return (
-    <div>
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <Label htmlFor={id} className="text-sm font-medium">
-          Participation
-        </Label>
-        <p className={rated ? "text-xs font-medium text-foreground" : "text-xs text-muted-foreground"}>
-          {rated ? (
-            <>
-              <span data-numeric>{value}</span> — {RATING_WORDS[value]}
-            </>
-          ) : (
-            "Not rated"
-          )}
-        </p>
-      </div>
-
-      <Slider
-        id={id}
-        className="mt-2.5"
-        min={0}
-        max={5}
-        step={1}
-        value={[value]}
-        disabled={disabled}
-        aria-label="Participation, 1 to 5"
-        thumbProps={{ "aria-valuetext": RATING_WORDS[value] }}
-        onValueChange={([next]) => onChange(next)}
-      />
-
-      <div className="mt-1.5 flex justify-between text-[10px] text-muted-foreground">
-        <span>
-          <span data-numeric>1</span> Needs improvement
-        </span>
-        <span>
-          <span data-numeric>5</span> Excellent
-        </span>
       </div>
     </div>
   );

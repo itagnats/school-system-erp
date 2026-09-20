@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { FormActions, FormSection } from "@/components/forms";
+import { FormActions, FormFieldWide, FormSection } from "@/components/forms";
 import { Section } from "@/components/shared";
 import {
   Form,
@@ -173,13 +173,18 @@ export function FormDemo() {
                 control={form.control}
                 name="description"
                 render={({ field }) => (
-                  <FormItem className="sm:col-span-full">
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea rows={3} placeholder="Optional" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                  // FormFieldWide rather than a hand-written sm:col-span-full:
+                  // the helper exists for exactly this, and writing its class
+                  // out is how the helper ends up with no callers.
+                  <FormFieldWide>
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea rows={3} placeholder="Optional" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  </FormFieldWide>
                 )}
               />
             </FormSection>
