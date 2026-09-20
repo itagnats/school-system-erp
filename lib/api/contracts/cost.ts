@@ -53,6 +53,20 @@ export const programCostListItemSchema = z.object({
   packagePrice: z.number(),
   missingCostSheets: z.number().int().nonnegative(),
   updatedAt: z.string(),
+  /**
+   * The P&L (§13a, revised 2026-09-20), moved here when profitability left
+   * the Academic menu. `attributedCost` is the basis `netProfit` is measured
+   * against and is not the same figure as `totalCost` above — the sheet total
+   * carries the markup and every curriculum course, the attributed cost
+   * charges each course only for the members who took it.
+   */
+  listRevenue: z.number(),
+  revenue: z.number(),
+  collected: z.number(),
+  outstanding: z.number(),
+  attributedCost: z.number(),
+  netProfit: z.number(),
+  marginPercent: z.number().nullable(),
 });
 
 export const programCostListSchema = paginatedSchema(programCostListItemSchema);

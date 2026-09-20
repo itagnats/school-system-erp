@@ -24,14 +24,8 @@ export const TERM_STATUS_OPTIONS: Option<ProgramTermStatus>[] = (
   ["planning", "open", "closed"] as const
 ).map((value) => ({ value, label: TERM_STATUS_LABEL[value] }));
 
-/**
- * Color for a profit figure.
- *
- * Never the only signal: every place this is used states the sign in the number
- * itself, so a reader who cannot distinguish the colors still reads a minus.
- */
-export function profitToneClass(netProfit: number): string {
-  if (netProfit > 0) return "text-success";
-  if (netProfit < 0) return "text-error";
-  return "text-muted-foreground";
-}
+// `profitToneClass` lived here until 2026-09-20 and now lives in
+// `features/costs/constants.ts`. Profitability left the Academic menu with
+// §13a, and this file had no caller for it afterwards — the same move
+// `AUD-012` made for the drift constants, and for the same reason: a helper
+// belongs to the screens that use it, not to the screen it was born on.

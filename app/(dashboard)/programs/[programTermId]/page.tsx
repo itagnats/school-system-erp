@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/shared";
-import { ProgramCostPanel } from "@/features/costs/components/program-cost-panel";
 import { ProgramTermPanel } from "@/features/programs/components/program-term-panel";
 import { AddStudentDialog } from "@/features/enrollment/components/add-student-dialog";
 import {
   courseSemesterOptions,
-  getProgramCostSheetByTerm,
   getProgramTerm,
   openProgramTermOptions,
 } from "@/server/services";
@@ -46,9 +44,6 @@ export default async function Page({ params }: Readonly<PageParams>) {
   const { programTermId } = await params;
   const detail = getProgramTerm(programTermId);
   if (!detail) notFound();
-  // Read here rather than inside the panel so the page decides what it shows:
-  // a term with no cost sheet renders the rest of itself rather than an error.
-  const costing = getProgramCostSheetByTerm(programTermId);
   // Present only while the term is open. A planning or closed term would have
   // the button refused by the server, and an action that cannot succeed is
   // worse than no action.
@@ -70,7 +65,6 @@ export default async function Page({ params }: Readonly<PageParams>) {
         }
       />
       <ProgramTermPanel initial={detail} />
-      {costing ? <ProgramCostPanel detail={costing} /> : null}
     </>
   );
 }

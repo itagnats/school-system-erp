@@ -1,6 +1,6 @@
 import { readFilter } from "@/server/query";
 import { handleList } from "@/server/http";
-import { listProgramCostSheets } from "@/server/services";
+import { listProgramCostSheets, programProfitLookup } from "@/server/services";
 
 /**
  * GET /api/program-costs - the index of Cost Management (direction.md 11).
@@ -10,11 +10,16 @@ import { listProgramCostSheets } from "@/server/services";
  */
 export async function GET(request: Request) {
   return handleList(request, (query, params) =>
-    listProgramCostSheets({
-      ...query,
-      programId: readFilter(params, "programId"),
-      semester: readFilter(params, "semester"),
-      status: readFilter(params, "status"),
-    }),
+    listProgramCostSheets(
+      {
+        ...query,
+        programId: readFilter(params, "programId"),
+        semester: readFilter(params, "semester"),
+        status: readFilter(params, "status"),
+      },
+      // The P&L is joined on here rather than inside the cost service, which
+      // cannot reach the program service without closing an import cycle.
+      programProfitLookup(),
+    ),
   );
 }

@@ -439,9 +439,46 @@ export interface ProgramCostListItem {
   updatedAt: string;
 }
 
+/**
+ * The P&L half of a program cost row, joined on by the BFF (§13a, revised
+ * 2026-09-20).
+ *
+ * **It is not built here, and the reason is a cycle.** `programTermProfit`
+ * lives in `program-service` and needs `programCostBreakdownFor` from this
+ * file; having this file reach back for the profit would close the loop.
+ * Recomputing it here instead would be worse — two implementations of "did
+ * this term make money" is how two screens come to disagree. So the route
+ * handler calls both services and joins them, which is what a BFF is for.
+ *
+ * **Two cost bases meet on the joined row and they are not the same number.**
+ * `totalCost` above is the sheet: direct + indirect + markup for the whole
+ * term. `netProfit` and `marginPercent` here are measured against
+ * `attributedCost` — each curriculum course at its own cost per student, for
+ * the program members who actually took it — which is what §13a defines
+ * profit on, and what these figures meant on the Curriculum screen they came
+ * from.
+ *
+ * Measured on the seed 2026-09-20: **17 of 19 terms agree to the satang and
+ * 2 do not** — BSC-IT 202601 by -51,797 and BSC-CS 202502 by -14,673, both
+ * terms where members skipped curriculum courses so the attributed cost is
+ * the lower figure. So the gap is rare and large rather than common and
+ * small, which is the shape most likely to read as a bug on the two rows it
+ * touches. `attributedCost` is carried explicitly so it is readable rather
+ * than inferred from two totals that look like they should match.
+ */
+export interface ProgramCostProfit {
+  listRevenue: number;
+  revenue: number;
+  collected: number;
+  outstanding: number;
+  attributedCost: number;
+  netProfit: number;
+  marginPercent: number | null;
+}
+
 const PROGRAM_SORTABLE: Record<
   string,
-  (row: ProgramCostListItem) => string | number
+  (row: ProgramCostListRow) => string | number
 > = {
   programCode: (s) => s.programCode,
   semesterCode: (s) => s.semesterCode,
@@ -454,12 +491,31 @@ const PROGRAM_SORTABLE: Record<
   costPerStudent: (s) => s.costPerStudent ?? -1,
   preferredPrice: (s) => s.preferredPrice ?? -1,
   packagePrice: (s) => s.packagePrice,
+  revenue: (s) => s.revenue,
+  collected: (s) => s.collected,
+  netProfit: (s) => s.netProfit,
+  // Null sorts below every real margin rather than beside zero: nothing
+  // collected is not a thin margin, it is no answer yet.
+  marginPercent: (s) => s.marginPercent ?? Number.NEGATIVE_INFINITY,
   updatedAt: (s) => s.updatedAt,
 };
 
-function buildProgramListItems(): ProgramCostListItem[] {
+/** A cost row with its P&L joined on. What the list screen actually renders. */
+export type ProgramCostListRow = ProgramCostListItem & ProgramCostProfit;
+
+/**
+ * Where the P&L comes from.
+ *
+ * Passed in rather than imported so this file never reaches back into
+ * `program-service`, which already depends on it. The caller supplies
+ * `programTermProfit`; the alternative — recomputing profit here — would put a
+ * second answer to "did this term make money" in the tree.
+ */
+export type ProgramProfitLookup = (programTermId: string) => ProgramCostProfit;
+
+function buildProgramListItems(profitFor: ProgramProfitLookup): ProgramCostListRow[] {
   const programsById = new Map(programTable.map((program) => [program.id, program]));
-  const items: ProgramCostListItem[] = [];
+  const items: ProgramCostListRow[] = [];
 
   for (const sheet of programCostSheetTable) {
     const term = programTermTable.find((entry) => entry.id === sheet.programTermId);
@@ -469,6 +525,7 @@ function buildProgramListItems(): ProgramCostListItem[] {
     if (!breakdown) continue;
 
     items.push({
+      ...profitFor(term.id),
       id: sheet.id,
       programTermId: term.id,
       programId: term.programId,
@@ -495,8 +552,9 @@ function buildProgramListItems(): ProgramCostListItem[] {
 
 export function listProgramCostSheets(
   query: ProgramCostQuery,
-): PaginatedResult<ProgramCostListItem> {
-  const filtered = buildProgramListItems().filter((item) => {
+  profitFor: ProgramProfitLookup,
+): PaginatedResult<ProgramCostListRow> {
+  const filtered = buildProgramListItems(profitFor).filter((item) => {
     if (query.programId && item.programId !== query.programId) return false;
     if (query.semester && item.semesterCode !== query.semester) return false;
     if (query.status && item.status !== query.status) return false;

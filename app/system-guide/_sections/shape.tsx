@@ -6,6 +6,7 @@ import {
   listEnrollments,
   listInvoices,
   listProgramCostSheets,
+  programProfitLookup,
   listProgramTerms,
   listSemesters,
   listStudents,
@@ -34,7 +35,7 @@ export function ShapeSection() {
     { label: "Students", value: listStudents(COUNT_ONLY).total },
     { label: "Course enrollments", value: listEnrollments(COUNT_ONLY).total },
     { label: "Invoices", value: listInvoices(COUNT_ONLY).total },
-    { label: "Program cost sheets", value: listProgramCostSheets(COUNT_ONLY).total },
+    { label: "Program cost sheets", value: listProgramCostSheets(COUNT_ONLY, programProfitLookup()).total },
   ];
 
   const routeCount = NAVIGATION.reduce((sum, group) => sum + group.items.length, 0);

@@ -8,7 +8,7 @@ import {
 } from "@/features/courses/constants";
 import { COST_STATUS_LABEL, COST_STATUS_TONE } from "@/features/costs/constants";
 import { routes } from "@/lib/constants";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import { costSheetsForCourse, getCourse, programTermsForCourse } from "@/server/services";
 
 interface PageParams {
@@ -133,12 +133,12 @@ export default async function Page({ params }: PageParams) {
                     label={COST_STATUS_LABEL[sheet.status]}
                   />
                 </div>
-                <span className="text-sm text-muted-foreground" data-numeric>
-                  {formatCurrency(sheet.totalCost, sheet.currency)} total
-                  {sheet.costPerStudent !== null
-                    ? `, ${formatCurrency(sheet.costPerStudent, sheet.currency)} per student`
-                    : ""}
-                </span>
+                {/* The link and the status, not the totals (§13a, revised
+                    2026-09-20). Which semesters this course has been costed
+                    in is an academic fact about the course; what those
+                    costings say is read on the sheet itself, under Cost
+                    Management. */}
+                <span className="text-sm text-muted-foreground">Open the sheet</span>
               </li>
             ))}
           </ul>

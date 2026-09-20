@@ -968,6 +968,10 @@ Do not reproduce every production cost-management workflow.
 *Revised 2026-09-12, when §13b introduced invoices. Revenue used to be the
 product below; it is now what was actually invoiced.*
 
+*Revised 2026-09-20: this section says what the figures are and no longer says
+where they are read. **Profitability belongs to Cost Management.** See "Where
+this is read" at the end.*
+
 ```text
 Package price x Enrolled students = List revenue    (what the price implies)
 Sum of invoice totals              = Revenue        (what was billed)
@@ -1009,6 +1013,43 @@ Three things must not be hidden:
 
 The break-even package price should be shown beside the margin: it answers
 "what would this have to cost" rather than only "what did we make".
+
+## Where this is read
+
+*Added 2026-09-20.*
+
+**Every figure in this section is read under Cost Management, and none of it
+appears in the Academic menu.** Curriculum, Courses and Semesters describe what
+the school offers; `/costs` and `/costs/programs/<termId>` judge it.
+
+The Academic menu keeps exactly one money field, the **package price**, because
+§4a lists it as a curriculum attribute: it is part of what the offer *is*,
+where invoiced, collected, attributed cost, net profit and margin are all
+verdicts on it. A program term page may link to its costing and must not
+restate it.
+
+This cost the demo its neatest moment, and the trade was made deliberately. The
+curriculum screen used to lead with "Revenue against cost" and put the repricing
+control directly beneath the margin, so moving the price moved the margin in
+front of the reader. The argument against was simpler than the argument for: a
+reader in the Academic menu is not asking a money question, and **two menus that
+both answer it are two answers that can drift.** Repricing now links across
+instead.
+
+Two consequences worth stating, because both were found by measuring rather
+than by reading the code:
+
+- **the figures must not be sent to the academic screens either.** The program
+  term summary carried a full P&L, and it feeds the Enrollment list as well as
+  the Curriculum list — so the wire was putting money on a Students-menu screen
+  that had never rendered it. Not sending a figure is the only reliable way to
+  keep it off a screen;
+- **the program cost row now carries two cost totals, and they are different
+  questions.** The sheet total is direct + indirect + markup for the whole term;
+  the attributed cost charges each curriculum course only for the members who
+  took it, and is the basis net profit is measured on. On the seed they agree to
+  the satang on 17 of 19 terms and diverge on 2. They are labeled separately for
+  those 2.
 
 ---
 

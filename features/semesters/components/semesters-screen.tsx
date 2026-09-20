@@ -1,15 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import { Pencil, Plus } from "lucide-react";
+import { useState } from "react";
 import {
   DataTable,
   DataTableColumnHeader,
+  DataTableRowActions,
   DataTableViewOptions,
   type HideableColumn,
   type PrimeColumnDef,
 } from "@/components/data-table";
 import { EmptyState } from "@/components/feedback";
 import { FilterBar, FilterSelect, SearchInput, StatusBadge } from "@/components/shared";
+import { Button } from "@/components/ui/button";
 import { useListTable } from "@/hooks";
 import { routes } from "@/lib/constants";
 import { formatDate } from "@/lib/utils";
@@ -21,10 +25,29 @@ import {
 } from "../constants";
 import { useSemesters } from "../hooks/use-semesters";
 import type { SemesterListRow } from "../types";
+import { SemesterFormDialog } from "./semester-form-dialog";
 
-/** The semester list (direction.md §5). */
+/**
+ * The semester list (direction.md §5), with create and edit (§1, 2026-09-20).
+ *
+ * Semesters were read-only to the service until then - no `POST`, no `PATCH`,
+ * no write half anywhere - against a §1 titled "Course & Semester Management".
+ * `AUD-032`.
+ */
 export function SemestersScreen({ yearOptions }: { yearOptions: number[] }) {
   const table = useListTable({ sort: "code", direction: "desc" });
+  const [editing, setEditing] = useState<SemesterListRow | undefined>(undefined);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  function openCreate() {
+    setEditing(undefined);
+    setDialogOpen(true);
+  }
+
+  function openEdit(semester: SemesterListRow) {
+    setEditing(semester);
+    setDialogOpen(true);
+  }
 
   const status = table.getFilter("status");
   const academicYear = table.getFilter("academicYear");
@@ -50,11 +73,17 @@ export function SemestersScreen({ yearOptions }: { yearOptions: number[] }) {
         activeCount={table.activeCount}
         onClear={table.clearAll}
         actions={
-          <DataTableViewOptions
-            columns={OPTIONAL_COLUMNS}
-            visibility={table.columnVisibility}
-            onVisibilityChange={table.setColumnVisibility}
-          />
+          <>
+            <DataTableViewOptions
+              columns={OPTIONAL_COLUMNS}
+              visibility={table.columnVisibility}
+              onVisibilityChange={table.setColumnVisibility}
+            />
+            <Button size="sm" onClick={openCreate} className="gap-1.5">
+              <Plus className="size-3.5" aria-hidden />
+              New semester
+            </Button>
+          </>
         }
       >
         <SearchInput
@@ -79,7 +108,7 @@ export function SemestersScreen({ yearOptions }: { yearOptions: number[] }) {
       </FilterBar>
 
       <DataTable
-        columns={columns}
+        columns={buildColumns({ onEdit: openEdit })}
         isLoading={query.isPending}
         isFetching={query.isFetching}
         error={query.error}
@@ -93,6 +122,16 @@ export function SemestersScreen({ yearOptions }: { yearOptions: number[] }) {
           />
         }
         {...table.tableProps(query.data)}
+      />
+
+      <SemesterFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        semester={editing}
+        // The latest year on record, so a new semester opens somewhere
+        // sensible. Reading a clock here would be non-deterministic on a
+        // screen the server renders.
+        defaultAcademicYear={yearOptions[0] ?? 2026}
       />
     </>
   );
@@ -109,7 +148,12 @@ const OPTIONAL_COLUMNS: HideableColumn[] = [
   { id: "enrollmentCount", label: "Enrollments" },
 ];
 
-const columns: PrimeColumnDef<SemesterListRow>[] = [
+function buildColumns({
+  onEdit,
+}: {
+  onEdit: (semester: SemesterListRow) => void;
+}): PrimeColumnDef<SemesterListRow>[] {
+  return [
   {
     accessorKey: "code",
     header: ({ column }) => <DataTableColumnHeader column={column} title="Code" />,
@@ -158,4 +202,26 @@ const columns: PrimeColumnDef<SemesterListRow>[] = [
     ),
     meta: { width: "8rem" },
   },
-];
+  {
+    id: "actions",
+    header: "",
+    cell: ({ row }) => (
+      // Edit only. There is no delete: a semester with one enrollment, cost
+      // sheet or program term against it cannot go, and every seeded one has
+      // all three - so the action would exist to be refused. `closed` is what
+      // means a semester is over.
+      <DataTableRowActions
+        label={row.original.code}
+        actions={[
+          {
+            label: "Edit semester",
+            icon: Pencil,
+            onSelect: () => onEdit(row.original),
+          },
+        ]}
+      />
+    ),
+    meta: { align: "right", width: "4rem" },
+  },
+  ];
+}

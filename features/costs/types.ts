@@ -107,4 +107,20 @@ export interface ProgramCostRow {
   packagePrice: number;
   missingCostSheets: number;
   updatedAt: string;
+  /**
+   * The P&L, which used to live on the Curriculum list (§13a, revised
+   * 2026-09-20). Academic screens describe the offer; this is where it is
+   * judged.
+   *
+   * `attributedCost` rather than `totalCost` is what `netProfit` is measured
+   * against, and the two are different numbers on purpose — see the note on
+   * `ProgramCostProfit` in the cost service.
+   */
+  listRevenue: number;
+  revenue: number;
+  collected: number;
+  outstanding: number;
+  attributedCost: number;
+  netProfit: number;
+  marginPercent: number | null;
 }

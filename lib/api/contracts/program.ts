@@ -2,12 +2,16 @@ import { z } from "zod";
 import { paginatedSchema } from "./list";
 
 /**
- * A program term reaches a table as its money figures, not its curriculum.
+ * A program term as the academic record: what it gathers, and what it charges.
  *
- * The course list, the roster and the per-course cost attribution are on the
- * detail endpoint: a table needs to answer "did this make money", and shipping
- * the whole curriculum per row so the browser could count it would move the
- * join back into the client.
+ * The course list, the roster and the per-course attribution are on the detail
+ * endpoint — shipping the whole curriculum per row so the browser could count
+ * it would move the join back into the client.
+ *
+ * **The P&L is deliberately absent** (§13a, revised 2026-09-20). This shape is
+ * read by the Curriculum list and the Enrollment list, neither of which is a
+ * money screen; profitability is served by the program cost endpoint instead.
+ * Not sending a figure is the only reliable way to keep it off a screen.
  */
 export const programTermSummarySchema = z.object({
   id: z.string(),
@@ -19,17 +23,8 @@ export const programTermSummarySchema = z.object({
   courseCount: z.number().int().nonnegative(),
   enrolledCount: z.number().int().nonnegative(),
   currency: z.string(),
+  /** What the package charges. The only money a curriculum row carries. */
   packagePrice: z.number(),
-  /** Package price x head count — what the price implies (direction.md §13a). */
-  listRevenue: z.number(),
-  /** What the invoices say. Lower than listRevenue by the credits given. */
-  revenue: z.number(),
-  collected: z.number(),
-  outstanding: z.number(),
-  totalCost: z.number(),
-  netProfit: z.number(),
-  marginPercent: z.number().nullable(),
-  coursesMissingCostSheet: z.number().int().nonnegative(),
 });
 
 export const programTermListSchema = paginatedSchema(programTermSummarySchema);

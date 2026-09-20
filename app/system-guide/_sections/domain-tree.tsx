@@ -11,6 +11,7 @@ import {
   listSemesters,
   listStudents,
   programEnrollmentCount,
+  programProfitLookup,
 } from "@/server/services";
 
 /**
@@ -132,7 +133,7 @@ function buildNodes(): MapNode[] {
     {
       id: "program-sheet",
       label: "Program cost sheet",
-      count: listProgramCostSheets(COUNT_ONLY).total,
+      count: listProgramCostSheets(COUNT_ONLY, programProfitLookup()).total,
       note: "Indirect costs — classroom, utilities, activities — borne once by the term and shared across its curriculum by credit hours.",
       x: 500,
       y: 394,

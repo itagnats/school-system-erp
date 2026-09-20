@@ -5,6 +5,7 @@ import { formatCurrency, formatPercent } from "@/lib/utils";
 import {
   getProgramCostSheetByTerm,
   listProgramCostSheets,
+  programProfitLookup,
 } from "@/server/services";
 
 /**
@@ -22,13 +23,16 @@ import {
 export function MoneySection() {
   // The busiest term, so the example has several courses and a real spread
   // rather than a two-course edge case.
-  const busiest = listProgramCostSheets({
-    search: "",
-    page: 1,
-    pageSize: 1,
-    sort: "totalCost",
-    direction: "desc",
-  }).items[0];
+  const busiest = listProgramCostSheets(
+    {
+      search: "",
+      page: 1,
+      pageSize: 1,
+      sort: "totalCost",
+      direction: "desc",
+    },
+    programProfitLookup(),
+  ).items[0];
   const detail = busiest ? getProgramCostSheetByTerm(busiest.programTermId) : undefined;
 
   if (!detail) {

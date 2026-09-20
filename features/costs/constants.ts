@@ -65,3 +65,21 @@ export const DRIFT_TONE: Record<CatalogDrift, StatusTone> = {
   differs: "warning",
   orphaned: "error",
 };
+
+/**
+ * Color for a profit figure.
+ *
+ * Never the only signal: every place this is used states the sign in the
+ * number itself, so a reader who cannot distinguish the colors still reads a
+ * minus.
+ *
+ * Moved here from `features/programs/constants.ts` on 2026-09-20, when
+ * profitability left the Academic menu (direction.md 13a). Programs had no
+ * caller left, so this is a move rather than a second copy - the same shape as
+ * the DRIFT_LABEL move above.
+ */
+export function profitToneClass(netProfit: number): string {
+  if (netProfit > 0) return "text-success";
+  if (netProfit < 0) return "text-error";
+  return "text-muted-foreground";
+}

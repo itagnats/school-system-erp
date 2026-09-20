@@ -3,8 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/shared";
 import { ProgramCostScreen } from "@/features/costs/components/program-cost-screen";
+import { ProgramProfitPanel } from "@/features/costs/components/program-profit-panel";
 import { routes } from "@/lib/constants";
-import { getProgramCostSheetByTerm } from "@/server/services";
+import { getProgramCostSheetByTerm, programProfitFor } from "@/server/services";
 
 interface PageParams {
   params: Promise<{ programTermId: string }>;
@@ -34,12 +35,16 @@ export default async function Page({ params }: Readonly<PageParams>) {
   const { programTermId } = await params;
   const detail = getProgramCostSheetByTerm(programTermId);
   if (!detail) notFound();
+  // What the term earned, which moved here from the curriculum screen on
+  // 2026-09-20 (direction.md 13a). Read separately from the cost sheet
+  // because it is a different join - invoices and the roster, not sheet lines.
+  const profit = programProfitFor(programTermId);
 
   return (
     <>
       <PageHeader
         title={`${detail.programCode} - ${detail.semesterCode}`}
-        description="Indirect costs for the program term, and how they reach each course."
+        description="What this term earned against what it cost, and how the indirect pool reaches each course."
         meta={
           <Link
             href={routes.programTerm(programTermId)}
@@ -49,6 +54,7 @@ export default async function Page({ params }: Readonly<PageParams>) {
           </Link>
         }
       />
+      {profit ? <ProgramProfitPanel profit={profit} /> : null}
       <ProgramCostScreen initial={detail} />
     </>
   );

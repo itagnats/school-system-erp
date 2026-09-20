@@ -5,9 +5,11 @@ import type { ProgramQueryParams } from "../types";
 
 /**
  * The detail response is not parsed against a contract: it nests the roster and
- * a per-course cost attribution, and writing that schema belongs with the
- * curriculum editor that will need it for validation rather than only for
- * checking the wire.
+ * the curriculum, and writing that schema belongs with the curriculum editor
+ * that will need it for validation rather than only for checking the wire.
+ *
+ * `profit` left this shape on 2026-09-20 (direction.md 13a). The curriculum
+ * screen is academic; what a term earned is read under Cost Management.
  */
 export interface ProgramTermDetailResponse {
   program: { id: string; code: string; name: string; credential: string; description: string };
@@ -20,7 +22,7 @@ export interface ProgramTermDetailResponse {
     currency: string;
     status: "planning" | "open" | "closed";
   };
-  profit: import("@/types").ProgramProfit;
+  curriculum: import("@/types").ProgramCurriculumEntry[];
   roster: import("@/types").ProgramRosterEntry[];
 }
 

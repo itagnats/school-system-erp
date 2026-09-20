@@ -72,6 +72,26 @@ export interface ProgramEnrollment {
 /* -------------------------------------------------------------------------- */
 
 /** One course line in a term's cost, so the total can show its working. */
+/**
+ * One course in a term's curriculum, as the Academic screens read it
+ * (direction.md §4a: "which courses, in teaching order").
+ *
+ * The academic twin of `ProgramCourseCost`. That one answers what a course
+ * contributed to the cost of the term; this one answers what the term
+ * teaches. They were the same object until 2026-09-20, which is why the
+ * curriculum table on a program term used to be priced.
+ */
+export interface ProgramCurriculumEntry {
+  courseId: string;
+  courseCode: string;
+  courseName: string;
+  credits: number;
+  /** Place in the teaching order, 1-based. The order is `courseIds` itself. */
+  position: number;
+  /** Program members taking this course this term. */
+  headCount: number;
+}
+
 export interface ProgramCourseCost {
   courseId: string;
   courseCode: string;
@@ -135,19 +155,18 @@ export interface ProgramTermSummary {
   courseCount: number;
   enrolledCount: number;
   currency: string;
+  /**
+   * What the package costs a student (direction.md §4a).
+   *
+   * The only money on this row, and it is here because a price is part of
+   * what a curriculum *is*. Everything that judges the price — invoiced,
+   * collected, attributed cost, net profit, margin — moved to
+   * `ProgramCostRow` when profitability left the Academic menu (§13a,
+   * revised 2026-09-20). This shape feeds the Curriculum list *and* the
+   * Enrollment list, so shipping a P&L on it put money on two screens that
+   * never asked for one.
+   */
   packagePrice: number;
-  /** packagePrice x enrolledCount, kept beside the invoiced figure. */
-  listRevenue: number;
-  /** Invoiced, per §13b. Lower than listRevenue by the credits given. */
-  revenue: number;
-  collected: number;
-  outstanding: number;
-  totalCost: number;
-  /** collected - totalCost. */
-  netProfit: number;
-  marginPercent: number | null;
-  /** Courses with no cost sheet, so the cost above is lower than the real one. */
-  coursesMissingCostSheet: number;
 }
 
 export interface ProgramRosterEntry {

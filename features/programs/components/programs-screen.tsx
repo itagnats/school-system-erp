@@ -12,22 +12,23 @@ import { EmptyState } from "@/components/feedback";
 import { FilterBar, FilterSelect, SearchInput, StatusBadge } from "@/components/shared";
 import { useListTable } from "@/hooks";
 import { routes } from "@/lib/constants";
-import { formatCurrency, formatPercent } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import type { Option, ProgramTermStatus, ProgramTermSummary, SemesterCode } from "@/types";
-import {
-  TERM_STATUS_LABEL,
-  TERM_STATUS_OPTIONS,
-  TERM_STATUS_TONE,
-  profitToneClass,
-} from "../constants";
+import { TERM_STATUS_LABEL, TERM_STATUS_OPTIONS, TERM_STATUS_TONE } from "../constants";
 import { useProgramTerms } from "../hooks/use-program-terms";
 
 /**
- * Curriculum and profitability (direction.md §4a, §13a).
+ * The curriculum list (direction.md §4a).
  *
- * A row is one program term rather than one program, because the money
- * question is always asked of a semester: the same curriculum priced the same
- * way makes or loses money depending on how many people took it.
+ * A row is one program term rather than one program, because the term is what
+ * gathers courses into a package, carries the price, and is what a student
+ * enrols in.
+ *
+ * **Profitability is not here** (§13a, revised 2026-09-20). Invoiced,
+ * collected, attributed cost, net profit and margin all read under Cost
+ * Management. What survives is the **package price**, because §4a lists it as
+ * a curriculum attribute: it is what the package *is*, not what it earned.
+ * Academic screens describe the offer; the money screens judge it.
  */
 export function ProgramsScreen({ semesterOptions }: { semesterOptions: SemesterCode[] }) {
   const table = useListTable({ sort: "programCode" });
@@ -114,10 +115,6 @@ const OPTIONAL_COLUMNS: HideableColumn[] = [
   { id: "courseCount", label: "Courses" },
   { id: "enrolledCount", label: "Students" },
   { id: "packagePrice", label: "Package" },
-  { id: "revenue", label: "Invoiced" },
-  { id: "collected", label: "Collected" },
-  { id: "totalCost", label: "Cost" },
-  { id: "marginPercent", label: "Margin" },
 ];
 
 const columns: PrimeColumnDef<ProgramTermSummary>[] = [
@@ -169,103 +166,6 @@ const columns: PrimeColumnDef<ProgramTermSummary>[] = [
       </span>
     ),
     meta: { align: "right", width: "9rem" },
-  },
-  {
-    accessorKey: "revenue",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Invoiced" align="right" />
-    ),
-    cell: ({ row }) => (
-      <span className="text-muted-foreground" data-numeric>
-        {formatCurrency(row.original.revenue, row.original.currency)}
-      </span>
-    ),
-    meta: { align: "right", width: "10rem" },
-  },
-  {
-    accessorKey: "collected",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Collected" align="right" />
-    ),
-    cell: ({ row }) => (
-      // The figure net profit is measured against, so it sits beside the
-      // invoiced total rather than only on the detail page.
-      <span data-numeric>
-        {formatCurrency(row.original.collected, row.original.currency)}
-      </span>
-    ),
-    meta: { align: "right", width: "10rem" },
-  },
-  {
-    accessorKey: "totalCost",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Cost" align="right" />
-    ),
-    cell: ({ row }) => (
-      <span className="text-muted-foreground" data-numeric>
-        {formatCurrency(row.original.totalCost, row.original.currency)}
-      </span>
-    ),
-    meta: { align: "right", width: "10rem" },
-  },
-  {
-    accessorKey: "netProfit",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Net profit" align="right" />
-    ),
-    cell: ({ row }) => {
-      // A term whose invoices are all drafts has billed nothing, so its "net
-      // profit" is the cost carried and not a result. Showing the negative
-      // figure without saying so makes a planning term read as a failing one.
-      if (row.original.revenue === 0) {
-        return <span className="text-muted-foreground">Not billed</span>;
-      }
-      // The sign is in the number as well as in the color, so the figure still
-      // reads for someone who cannot tell the two tones apart.
-      return (
-        <span
-          className={`font-medium ${profitToneClass(row.original.netProfit)}`}
-          data-numeric
-        >
-          {formatCurrency(row.original.netProfit, row.original.currency)}
-        </span>
-      );
-    },
-    meta: { align: "right", width: "11rem" },
-  },
-  {
-    accessorKey: "marginPercent",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Margin" align="right" />
-    ),
-    cell: ({ row }) => {
-      const { marginPercent: margin, coursesMissingCostSheet } = row.original;
-      if (margin === null) {
-        return (
-          <span className="text-muted-foreground">
-            {row.original.revenue === 0 ? "Not billed" : "Nothing collected"}
-          </span>
-        );
-      }
-      return (
-        <span className="inline-flex items-center gap-1.5">
-          <span className={profitToneClass(margin)} data-numeric>
-            {formatPercent(margin, 1)}
-          </span>
-          {coursesMissingCostSheet > 0 ? (
-            // A margin computed from an incomplete cost is flattering, not
-            // accurate. Saying so beats showing a number that looks finished.
-            <span
-              className="text-[10px] text-warning-soft-foreground"
-              title={`${coursesMissingCostSheet} course(s) have no cost sheet, so cost is understated`}
-            >
-              partial
-            </span>
-          ) : null}
-        </span>
-      );
-    },
-    meta: { align: "right", width: "8rem" },
   },
   {
     accessorKey: "status",

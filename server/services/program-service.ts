@@ -12,7 +12,7 @@ import {
 } from "@/server/repositories";
 import { matchesSearch, paginate, sortRows, type ListQueryInput } from "@/server/query";
 import type { RemovalResult } from "@/server/http";
-import { programCostBreakdownFor } from "./cost-service";
+import { programCostBreakdownFor, type ProgramCostProfit } from "./cost-service";
 import { invoicedRevenueForTerm } from "./invoice-service";
 import { toSummary } from "./student-service";
 import type { ProgramTermUpdateInput } from "@/lib/api/contracts";
@@ -20,6 +20,7 @@ import type {
   EnrollmentTermOption,
   PaginatedResult,
   Program,
+  ProgramCurriculumEntry,
   ProgramProfit,
   ProgramTermStatus,
   ProgramRosterEntry,
@@ -28,11 +29,20 @@ import type {
 } from "@/types";
 
 /**
- * Program reads, including the revenue side (direction.md §4a, §13a).
+ * Program reads (direction.md §4a), and the profit calculation Cost
+ * Management reads from (§13a).
  *
- * This is the service that makes cost management mean something. A cost sheet
- * on its own answers "what did this course cost"; a program term answers
- * "did we make money", which is the question a school actually asks.
+ * A cost sheet on its own answers "what did this course cost"; a program term
+ * answers "did we make money", which is the question a school actually asks.
+ * This file still computes that answer — `programTermProfit` and
+ * `programProfitLookup` — because the join needs the curriculum, the roster
+ * and the invoices, and this is where those meet.
+ *
+ * **It no longer puts the answer on a program screen.** Since 2026-09-20 the
+ * shapes these reads return to the Academic menu carry the package price and
+ * nothing else about money; the P&L is served to `/costs`. Keeping the
+ * calculation here and the display there is deliberate: one implementation,
+ * one place it belongs on screen.
  */
 
 export interface ProgramQuery extends ListQueryInput {
@@ -48,12 +58,6 @@ const SORTABLE: Record<string, (row: ProgramTermSummary) => string | number> = {
   courseCount: (p) => p.courseCount,
   enrolledCount: (p) => p.enrolledCount,
   packagePrice: (p) => p.packagePrice,
-  listRevenue: (p) => p.listRevenue,
-  revenue: (p) => p.revenue,
-  collected: (p) => p.collected,
-  outstanding: (p) => p.outstanding,
-  netProfit: (p) => p.netProfit,
-  marginPercent: (p) => p.marginPercent ?? Number.NEGATIVE_INFINITY,
   /**
    * Enrollment usefulness: open terms, then the ones that will open, then
    * history - and the newest semester first inside each band.
@@ -109,33 +113,50 @@ function studentIdsInTerm(term: ProgramTerm): string[] {
 }
 
 /**
- * Profit for one program term.
+ * Program members taking each course of a term's curriculum.
  *
- * The head count per course is a genuine join rather than the term head count
- * reused: a student enrolled in the program has not necessarily enrolled in
- * every course of its curriculum, and charging the program for absent
- * students would overstate cost.
+ * A genuine join rather than the term head count reused: a student enrolled in
+ * the program has not necessarily enrolled in every course of its curriculum,
+ * and charging the program for absent students would overstate cost.
+ *
+ * Shared by the profit calculation and the curriculum table, which both need
+ * it and would otherwise each write the join (§4a, §13a).
+ */
+function courseHeadCounts(
+  term: ProgramTerm,
+  memberIds: ReadonlySet<string>,
+): Map<string, number> {
+  const counts = new Map<string, number>(term.courseIds.map((id) => [id, 0]));
+
+  for (const enrollment of enrollmentTable) {
+    if (enrollment.semesterCode !== term.semesterCode) continue;
+    if (!memberIds.has(enrollment.studentId)) continue;
+    const current = counts.get(enrollment.courseId);
+    if (current === undefined) continue;
+    counts.set(enrollment.courseId, current + 1);
+  }
+
+  return counts;
+}
+
+/**
+ * Profit for one program term.
  */
 export function programTermProfit(term: ProgramTerm): ProgramProfit {
   const memberIds = new Set(studentIdsInTerm(term));
   const coursesById = new Map(courseTable.map((course) => [course.id, course]));
   const costPerStudent = costPerStudentByCourse(term);
+  const headCounts = courseHeadCounts(term, memberIds);
 
   const courses = term.courseIds.map((courseId) => {
     const course = coursesById.get(courseId);
-    const headCount = enrollmentTable.filter(
-      (enrollment) =>
-        enrollment.courseId === courseId &&
-        enrollment.semesterCode === term.semesterCode &&
-        memberIds.has(enrollment.studentId),
-    ).length;
 
     return {
       courseId,
       courseCode: course?.code ?? courseId,
       courseName: course?.name ?? "Unknown course",
       costPerStudent: costPerStudent.get(courseId) ?? null,
-      headCount,
+      headCount: headCounts.get(courseId) ?? 0,
     };
   });
 
@@ -151,6 +172,61 @@ export function programTermProfit(term: ProgramTerm): ProgramProfit {
   });
 }
 
+/**
+ * The whole profit record for one term, by id.
+ *
+ * What the program cost *detail* page renders. `programProfitLookup` returns
+ * the flat slice a table row needs; this returns the bands, the counts and the
+ * per-course attribution a reader gets room for on a detail page.
+ */
+export function programProfitFor(programTermId: string): ProgramProfit | undefined {
+  const term = programTermTable.find((entry) => entry.id === programTermId);
+  return term ? programTermProfit(term) : undefined;
+}
+
+/**
+ * The P&L slice Cost Management renders, keyed by program term (§13a, revised
+ * 2026-09-20).
+ *
+ * Handed to `listProgramCostSheets` as a function rather than imported by it,
+ * because `programTermProfit` already depends on `programCostBreakdownFor` and
+ * an import in the other direction would close a cycle. The term map is built
+ * once and closed over, so the caller pays one pass rather than one lookup per
+ * row.
+ */
+export function programProfitLookup(): (programTermId: string) => ProgramCostProfit {
+  const termsById = new Map(programTermTable.map((term) => [term.id, term]));
+
+  return (programTermId: string) => {
+    const term = termsById.get(programTermId);
+    if (!term) {
+      // A cost sheet whose term has gone is a broken row, not a free term.
+      // Zeroes would read as "billed nothing and cost nothing", which is a
+      // claim; null margin says the question has no answer here.
+      return {
+        listRevenue: 0,
+        revenue: 0,
+        collected: 0,
+        outstanding: 0,
+        attributedCost: 0,
+        netProfit: 0,
+        marginPercent: null,
+      };
+    }
+
+    const profit = programTermProfit(term);
+    return {
+      listRevenue: profit.listRevenue,
+      revenue: profit.revenue,
+      collected: profit.collected,
+      outstanding: profit.outstanding,
+      attributedCost: profit.totalCost,
+      netProfit: profit.netProfit,
+      marginPercent: profit.marginPercent,
+    };
+  };
+}
+
 function buildSummaries(): ProgramTermSummary[] {
   const programsById = new Map(programTable.map((program) => [program.id, program]));
 
@@ -159,7 +235,10 @@ function buildSummaries(): ProgramTermSummary[] {
     const program = programsById.get(term.programId);
     if (!program) continue;
 
-    const profit = programTermProfit(term);
+    // The head count is a membership fact, so it is counted here rather than
+    // read off a profit calculation. Calling `programTermProfit` for it would
+    // join invoices and cost sheets to build a list that shows neither
+    // (§13a, revised 2026-09-20).
     summaries.push({
       id: term.id,
       programId: program.id,
@@ -168,17 +247,9 @@ function buildSummaries(): ProgramTermSummary[] {
       semesterCode: term.semesterCode,
       status: term.status,
       courseCount: term.courseIds.length,
-      enrolledCount: profit.enrolledCount,
+      enrolledCount: new Set(studentIdsInTerm(term)).size,
       currency: term.currency,
       packagePrice: term.packagePrice,
-      listRevenue: profit.listRevenue,
-      revenue: profit.revenue,
-      collected: profit.collected,
-      outstanding: profit.outstanding,
-      totalCost: profit.totalCost,
-      netProfit: profit.netProfit,
-      marginPercent: profit.marginPercent,
-      coursesMissingCostSheet: profit.coursesMissingCostSheet,
     });
   }
   return summaries;
@@ -195,10 +266,20 @@ export function listProgramTerms(query: ProgramQuery): PaginatedResult<ProgramTe
   return paginate(sorted, query.page, query.pageSize);
 }
 
+/**
+ * One program term as the Academic menu reads it (§4a).
+ *
+ * **No `profit`.** It carried one until 2026-09-20, and both readers of this
+ * shape are academic screens — the curriculum page and the enrollment term
+ * page — so a P&L was being computed and shipped to two screens that show no
+ * money (§13a). Profitability is served to Cost Management by
+ * `programTermProfit` and `programProfitLookup` instead.
+ */
 export interface ProgramTermDetail {
   program: Program;
   term: ProgramTerm;
-  profit: ProgramProfit;
+  /** The curriculum in teaching order, with the take-up of each course. */
+  curriculum: ProgramCurriculumEntry[];
   roster: ProgramRosterEntry[];
 }
 
@@ -212,9 +293,32 @@ export function getProgramTerm(programTermId: string): ProgramTermDetail | undef
   return {
     program,
     term,
-    profit: programTermProfit(term),
+    curriculum: termCurriculum(term),
     roster: programRoster(term),
   };
+}
+
+/**
+ * The curriculum in teaching order (§4a).
+ *
+ * `courseIds` *is* the order, so the position is the index rather than a
+ * stored field - there is no second place for it to disagree with.
+ */
+function termCurriculum(term: ProgramTerm): ProgramCurriculumEntry[] {
+  const coursesById = new Map(courseTable.map((course) => [course.id, course]));
+  const headCounts = courseHeadCounts(term, new Set(studentIdsInTerm(term)));
+
+  return term.courseIds.map((courseId, index) => {
+    const course = coursesById.get(courseId);
+    return {
+      courseId,
+      courseCode: course?.code ?? courseId,
+      courseName: course?.name ?? "Unknown course",
+      credits: course?.credits ?? 0,
+      position: index + 1,
+      headCount: headCounts.get(courseId) ?? 0,
+    };
+  });
 }
 
 /** Who is under this program term. */
@@ -258,11 +362,13 @@ export function programTermsForCourse(courseId: string): ProgramTermSummary[] {
 }
 
 /**
- * Adjust the price or the status of a term, and recompute.
+ * Adjust the price or the status of a term.
  *
- * Nothing is stored - see docs/decisions/why-bff.md - but the response carries
- * the recalculated profit, so the screen shows the consequence of the price
- * rather than merely acknowledging the change.
+ * Nothing is stored - see docs/decisions/why-bff.md. The response used to
+ * carry the recalculated profit so the screen could show the consequence of a
+ * new price; since 2026-09-20 the consequence is read under Cost Management
+ * (§13a) and this returns the academic record only. The screen links there
+ * rather than answering the question itself.
  */
 export function updateProgramTerm(
   programTermId: string,
@@ -280,7 +386,10 @@ export function updateProgramTerm(
   return {
     program: current.program,
     term: next,
-    profit: programTermProfit(next),
+    // Rebuilt from `next` rather than reused: repricing does not move the
+    // curriculum today, but reusing the old array would make that a silent
+    // assumption the moment curriculum editing lands.
+    curriculum: termCurriculum(next),
     roster: current.roster,
   };
 }
