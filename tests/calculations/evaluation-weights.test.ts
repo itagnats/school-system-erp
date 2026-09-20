@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   addAssessee,
-  normaliseWeights,
+  normalizeWeights,
   relationIsPossible,
   relationsWithoutQuestions,
   removeAssessee,
@@ -9,7 +9,7 @@ import {
   setAssessorEnabled,
   setAssessorRankingShare,
   setAssessorWeight,
-  summariseWeights,
+  summarizeWeights,
   threeSixtySharePercent,
   unbalancedAssessees,
 } from "@/lib/calculations";
@@ -75,7 +75,7 @@ describe("isGradedRole", () => {
 
 describe("relationIsPossible", () => {
   it("allows peer assessment - a matching pair is not self-assessment", () => {
-    // The centre of the whole feature (direction.md 16). An earlier version of
+    // The center of the whole feature (direction.md 16). An earlier version of
     // this rule refused every matching pair, which killed peer assessment and
     // made the server reject its own seed data. "Nobody assesses themselves" is
     // about people; peers share a role.
@@ -120,15 +120,15 @@ describe("threeSixtySharePercent", () => {
   });
 });
 
-describe("summariseWeights", () => {
+describe("summarizeWeights", () => {
   it("reports each assessee's own blend as balanced", () => {
     const [student, teacher] = setup();
 
-    expect(summariseWeights(student.assessors).totalPercent).toBe(100);
-    expect(summariseWeights(student.assessors).enabledAssessorCount).toBe(4);
+    expect(summarizeWeights(student.assessors).totalPercent).toBe(100);
+    expect(summarizeWeights(student.assessors).enabledAssessorCount).toBe(4);
     // The teacher card totals 100 across two assessors, entirely separately.
-    expect(summariseWeights(teacher.assessors).totalPercent).toBe(100);
-    expect(summariseWeights(teacher.assessors).enabledAssessorCount).toBe(2);
+    expect(summarizeWeights(teacher.assessors).totalPercent).toBe(100);
+    expect(summarizeWeights(teacher.assessors).enabledAssessorCount).toBe(2);
   });
 
   it("derives the effective form split from the per-assessor shares", () => {
@@ -136,7 +136,7 @@ describe("summariseWeights", () => {
     assessees = setAssessorRankingShare(assessees, "student", "teacher", 30);
     assessees = setAssessorRankingShare(assessees, "student", "inspector", 30);
 
-    const summary = summariseWeights(assessees[0].assessors);
+    const summary = summarizeWeights(assessees[0].assessors);
 
     // 360 = 30*.6 + 20*.7 + 35*.7 + 15*1 = 18 + 14 + 24.5 + 15 = 71.5
     expect(summary.effective360Percent).toBe(71.5);
@@ -150,7 +150,7 @@ describe("summariseWeights", () => {
   it("reports a shortfall rather than silently rescaling", () => {
     const assessees = setAssessorWeight(setup(), "student", "teacher", 15);
 
-    const summary = summariseWeights(assessees[0].assessors);
+    const summary = summarizeWeights(assessees[0].assessors);
     expect(summary.totalPercent).toBe(80);
     expect(summary.remainingPercent).toBe(20);
     expect(summary.balanced).toBe(false);
@@ -159,7 +159,7 @@ describe("summariseWeights", () => {
   it("reports an over-allocated card as a negative remainder", () => {
     const assessees = setAssessorWeight(setup(), "student", "teacher", 60);
 
-    expect(summariseWeights(assessees[0].assessors).remainingPercent).toBe(-25);
+    expect(summarizeWeights(assessees[0].assessors).remainingPercent).toBe(-25);
   });
 });
 
@@ -215,11 +215,11 @@ describe("editing addresses the assessee-assessor pair", () => {
 });
 
 describe("setAssessorEnabled", () => {
-  it("renormalises the survivors within that card only", () => {
+  it("renormalizes the survivors within that card only", () => {
     const assessees = setAssessorEnabled(setup(), "student", "ta", false);
     const student = assessees[0].assessors;
 
-    expect(summariseWeights(student).totalPercent).toBe(100);
+    expect(summarizeWeights(student).totalPercent).toBe(100);
 
     const byRole = new Map(student.map((a) => [a.role, a]));
     expect(byRole.get("student")?.weightPercent).toBeCloseTo(35.29, 2);
@@ -227,7 +227,7 @@ describe("setAssessorEnabled", () => {
     // The teacher absorbs the rounding residue so the figures total 100 exactly.
     expect(byRole.get("teacher")?.weightPercent).toBeCloseTo(41.18, 2);
     // The teacher card is untouched.
-    expect(summariseWeights(assessees[1].assessors).totalPercent).toBe(100);
+    expect(summarizeWeights(assessees[1].assessors).totalPercent).toBe(100);
   });
 
   it("leaves a disabled assessor its weight and question set", () => {
@@ -243,7 +243,7 @@ describe("setAssessorEnabled", () => {
     const off = setAssessorEnabled(setup(), "student", "ta", false);
     const backOn = setAssessorEnabled(off, "student", "ta", true);
 
-    expect(summariseWeights(backOn[0].assessors).balanced).toBe(true);
+    expect(summarizeWeights(backOn[0].assessors).balanced).toBe(true);
   });
 
   it("does not divide by zero when every assessor is switched off", () => {
@@ -254,16 +254,16 @@ describe("setAssessorEnabled", () => {
 
     const student = assessees[0].assessors;
     expect(student.every((a) => Number.isFinite(a.weightPercent))).toBe(true);
-    expect(summariseWeights(student).totalPercent).toBe(0);
+    expect(summarizeWeights(student).totalPercent).toBe(0);
   });
 
   it("spreads evenly when the enabled assessors all sit at zero", () => {
     const zeroed = studentAssessee().assessors.map((a) => ({ ...a, weightPercent: 0 }));
 
-    const normalised = normaliseWeights(zeroed);
+    const normalized = normalizeWeights(zeroed);
 
-    expect(summariseWeights(normalised).totalPercent).toBe(100);
-    expect(normalised.every((a) => a.weightPercent === 25)).toBe(true);
+    expect(summarizeWeights(normalized).totalPercent).toBe(100);
+    expect(normalized.every((a) => a.weightPercent === 25)).toBe(true);
   });
 });
 
@@ -280,7 +280,7 @@ describe("setAssessorWeight clamping", () => {
     const assessees = setAssessorWeight(setup(), "student", "ta", Number.NaN);
 
     expect(assessees[0].assessors.find((a) => a.role === "ta")?.weightPercent).toBe(0);
-    expect(Number.isFinite(summariseWeights(assessees[0].assessors).totalPercent)).toBe(
+    expect(Number.isFinite(summarizeWeights(assessees[0].assessors).totalPercent)).toBe(
       true,
     );
   });
@@ -330,7 +330,7 @@ describe("relationsWithoutQuestions", () => {
     expect(relationsWithoutQuestions(assessees[0])).toEqual(["ta"]);
     // The card still totals 100, which is why this needs its own check: a
     // balanced blend can still be unable to produce a score.
-    expect(summariseWeights(assessees[0].assessors).balanced).toBe(true);
+    expect(summarizeWeights(assessees[0].assessors).balanced).toBe(true);
   });
 
   it("does not flag an assessor that only submits an ordering", () => {

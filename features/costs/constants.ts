@@ -1,4 +1,10 @@
-import type { CostKind, CostSheetStatus, Option, StatusTone } from "@/types";
+import type {
+  CatalogDrift,
+  CostKind,
+  CostSheetStatus,
+  Option,
+  StatusTone,
+} from "@/types";
 
 export const COST_STATUS_TONE: Record<CostSheetStatus, StatusTone> = {
   draft: "neutral",
@@ -29,4 +35,33 @@ export const COST_KIND_LABEL: Record<CostKind, string> = {
 export const COST_KIND_TONE: Record<CostKind, StatusTone> = {
   direct: "accent",
   indirect: "info",
+};
+
+/**
+ * How a sheet line stands against the catalog (direction.md §12a).
+ *
+ * Drift is a property of *a sheet line*, not of the catalog: it is computed on
+ * read by `catalogDriftFor` and says whether this sheet's copy has fallen
+ * behind the master. It lived in `features/cost-catalog/constants.ts` until
+ * 2026-09-20 and was one of the two cross-feature imports `AUD-012` recorded —
+ * yet the catalog screen never read it and the only consumer was
+ * `sheet-groups-panel.tsx` here. Moving it deleted the edge outright rather
+ * than trading it for a duplicate.
+ *
+ * `current` is deliberately unlabeled on screen: most lines match, and a badge
+ * on every row would make the two that do not harder to find rather than
+ * easier.
+ */
+export const DRIFT_LABEL: Record<CatalogDrift, string> = {
+  none: "One-off",
+  current: "From catalog",
+  differs: "Differs from catalog",
+  orphaned: "Catalog entry removed",
+};
+
+export const DRIFT_TONE: Record<CatalogDrift, StatusTone> = {
+  none: "neutral",
+  current: "success",
+  differs: "warning",
+  orphaned: "error",
 };

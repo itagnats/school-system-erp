@@ -21,8 +21,8 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { HttpError } from "@/lib/api";
-import type { CatalogueItem, CostKind } from "@/types";
-import { useCatalogueMutations } from "../hooks/use-catalogue";
+import type { CatalogItem, CostKind } from "@/types";
+import { useCatalogMutations } from "../hooks/use-catalog";
 
 /**
  * Create or edit a master cost item (direction.md §12a).
@@ -33,10 +33,10 @@ import { useCatalogueMutations } from "../hooks/use-catalogue";
  *
  * There is no allocation field any more (revised 2026-09-15). The kind now
  * decides which sheet the item can reach — direct onto a course, indirect onto a
- * programme term — and a share of the indirect pool is derived from the driver
+ * program term — and a share of the indirect pool is derived from the driver
  * rather than typed here.
  */
-export function CatalogueItemDialog({
+export function CatalogItemDialog({
   groupId,
   groupName,
   item,
@@ -46,7 +46,7 @@ export function CatalogueItemDialog({
   groupId: string;
   groupName: string;
   /** Absent when creating. */
-  item?: CatalogueItem;
+  item?: CatalogItem;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }>) {
@@ -80,10 +80,10 @@ function ItemForm({
 }: Readonly<{
   groupId: string;
   groupName: string;
-  item?: CatalogueItem;
+  item?: CatalogItem;
   onDone: () => void;
 }>) {
-  const mutation = useCatalogueMutations();
+  const mutation = useCatalogMutations();
 
   const [name, setName] = useState(item?.name ?? "");
   const [kind, setKind] = useState<CostKind>(item?.kind ?? "direct");
@@ -122,7 +122,7 @@ function ItemForm({
         </DialogHeader>
 
         <form
-          id="catalogue-item-form"
+          id="catalog-item-form"
           className="grid gap-4"
           onSubmit={(event) => {
             event.preventDefault();
@@ -147,7 +147,7 @@ function ItemForm({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="direct">Direct — wholly this course</SelectItem>
-                  <SelectItem value="indirect">Indirect — borne by the programme</SelectItem>
+                  <SelectItem value="indirect">Indirect — borne by the program</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -201,7 +201,7 @@ function ItemForm({
           <Button variant="ghost" onClick={onDone}>
             Cancel
           </Button>
-          <Button type="submit" form="catalogue-item-form" loading={mutation.isPending}>
+          <Button type="submit" form="catalog-item-form" loading={mutation.isPending}>
             {item ? "Save changes" : "Create item"}
           </Button>
         </DialogFooter>

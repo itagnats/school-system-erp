@@ -5,7 +5,7 @@ import { listProgramTerms } from "@/server/services";
 /**
  * GET /api/programs
  *
- * A row is one programme term, not one programme: the money question is always
+ * A row is one program term, not one program: the money question is always
  * asked of a semester, so the term is the unit worth listing.
  */
 export async function GET(request: Request) {

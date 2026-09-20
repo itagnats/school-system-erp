@@ -37,11 +37,11 @@ export const queryKeys = {
     detail: (id: string) => ["costs", "detail", id] as const,
   },
   /**
-   * Programme cost sheets, keyed by the programme term.
+   * Program cost sheets, keyed by the program term.
    *
    * A separate group from `costs`: the two sheets are different records with
    * different shapes, and one key space would let a course detail and a
-   * programme detail overwrite each other in the cache.
+   * program detail overwrite each other in the cache.
    */
   programCosts: {
     all: ["program-costs"] as const,
@@ -49,10 +49,10 @@ export const queryKeys = {
     detail: (programTermId: string) =>
       ["program-costs", "detail", programTermId] as const,
   },
-  catalogue: {
-    all: ["catalogue"] as const,
-    list: (filters?: unknown) => ["catalogue", "list", filters ?? null] as const,
-    group: (id: string) => ["catalogue", "group", id] as const,
+  catalog: {
+    all: ["catalog"] as const,
+    list: (filters?: unknown) => ["catalog", "list", filters ?? null] as const,
+    group: (id: string) => ["catalog", "group", id] as const,
   },
   invoices: {
     all: ["invoices"] as const,

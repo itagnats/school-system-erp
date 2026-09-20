@@ -44,7 +44,7 @@ export function useUpdateProgramTerm(id: string) {
     mutationFn: (input: ProgramTermUpdateInput) => updateProgramTerm(id, input),
     onSuccess: (detail) => {
       queryClient.setQueryData(queryKeys.programs.detail(id), detail);
-      toast.success("Programme term repriced");
+      toast.success("Program term repriced");
     },
     onError: () => {
       toast.error("That price could not be applied. Please try again.");

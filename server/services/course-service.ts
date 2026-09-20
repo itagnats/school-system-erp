@@ -92,9 +92,9 @@ export type WriteResult<T> =
  * status code.
  */
 function codeTaken(code: string, exceptId?: string): boolean {
-  const normalised = code.trim().toUpperCase();
+  const normalized = code.trim().toUpperCase();
   return courseTable.some(
-    (course) => course.id !== exceptId && course.code.toUpperCase() === normalised,
+    (course) => course.id !== exceptId && course.code.toUpperCase() === normalized,
   );
 }
 
@@ -162,7 +162,7 @@ function seedNow(): string {
  * Remove a course (decided 2026-09-16).
  *
  * Refused while a curriculum lists it, anyone is enrolled in it, or a cost
- * sheet records what it cost. The curriculum is the important one: a programme
+ * sheet records what it cost. The curriculum is the important one: a program
  * term prices a package of named courses, and deleting one out from under it
  * would leave an invoice billing a course that does not exist.
  *
@@ -180,7 +180,7 @@ export function deleteCourse(courseId: string): RemovalResult | undefined {
   const sheets = courseCostSheetTable.filter((sheet) => sheet.courseId === courseId).length;
 
   const holds: string[] = [];
-  if (curricula > 0) holds.push(`${curricula} programme term${curricula === 1 ? "" : "s"}`);
+  if (curricula > 0) holds.push(`${curricula} program term${curricula === 1 ? "" : "s"}`);
   if (enrolled > 0) holds.push(`${enrolled} enrollment${enrolled === 1 ? "" : "s"}`);
   if (sheets > 0) holds.push(`${sheets} cost sheet${sheets === 1 ? "" : "s"}`);
 

@@ -4,7 +4,7 @@ import type { InvoiceStatus, ProgramEnrollment, ProgramTermStatus } from "@/type
  * Invoicing policy (direction.md §13b).
  *
  * There are no hand-written invoice rows here, for the same reason there are no
- * hand-written evaluation groups: an invoice is **derived from a programme
+ * hand-written evaluation groups: an invoice is **derived from a program
  * enrollment**, so writing one by hand would produce a document that either
  * duplicates a generated one or bills a student for a term they are not in.
  * What is hand-written is the policy the generator applies.
@@ -17,7 +17,7 @@ export const ISSUE_LEAD_DAYS = 30;
 export const PAYMENT_TERM_DAYS = 30;
 
 /**
- * The statuses each programme-enrollment status can produce, weighted by
+ * The statuses each program-enrollment status can produce, weighted by
  * repetition.
  *
  * Keyed by the *enrollment* rather than the term, because what a student owes
@@ -47,4 +47,4 @@ export const INVOICE_STATUS_BY_MEMBERSHIP: Record<
 export const DRAFT_ONLY_TERM_STATUS: ProgramTermStatus = "planning";
 
 /** Label for the line that reconciles the course lines with the package price. */
-export const PROGRAMME_FEE_LABEL = "Programme fee";
+export const PROGRAM_FEE_LABEL = "Program fee";

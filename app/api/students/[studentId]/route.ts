@@ -60,7 +60,7 @@ export async function GET(
  *
  * A student may send this for **their own** profile, every section of it - the
  * user's decision on 2026-09-16, taken knowing it lets them rewrite their own
- * programme and year level, which no real school permits. It is recorded in
+ * program and year level, which no real school permits. It is recorded in
  * direction.md §3a as a divergence rather than left to be discovered here.
  * Deletion is not part of it: `ownerMethods` stops at `PATCH`, so a student's
  * `DELETE` never reaches this file.
@@ -91,7 +91,7 @@ export async function PATCH(
 /**
  * DELETE /api/students/:studentId
  *
- * Refused with 409 while any enrolment or invoice still points at the profile.
+ * Refused with 409 while any enrollment or invoice still points at the profile.
  * The reason travels in `fieldErrors.status`, because the client keeps its own
  * vetted prose for the banner and reads only that key out of the body - a 409
  * whose explanation sits in `message` shows the user nothing.

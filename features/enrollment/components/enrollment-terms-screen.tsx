@@ -18,15 +18,15 @@ import {
   TERM_STATUS_OPTIONS,
   TERM_STATUS_TONE,
 } from "../constants";
-import { useEnrolmentTerms } from "../hooks/use-enrolment-terms";
+import { useEnrollmentTerms } from "../hooks/use-enrollment-terms";
 
 /**
- * Enrollment, entered from the programme (direction.md §7a, decided
+ * Enrollment, entered from the program (direction.md §7a, decided
  * 2026-09-16).
  *
- * A student joins a programme term, so the first question this screen answers
+ * A student joins a program term, so the first question this screen answers
  * is which term — and the students follow from it. The previous version opened
- * on 1,500 course-enrollment rows spanning every programme and semester, which
+ * on 1,500 course-enrollment rows spanning every program and semester, which
  * is a searchable index rather than a place to do anything.
  *
  * Same rows as the Curriculum screen, read through a different lens. Curriculum
@@ -34,19 +34,19 @@ import { useEnrolmentTerms } from "../hooks/use-enrolment-terms";
  * taking anyone. Neither set of columns belongs on the other screen, which is
  * what makes two views of one list worth having rather than a duplicate.
  */
-export function EnrolmentTermsScreen({
+export function EnrollmentTermsScreen({
   semesterOptions,
 }: Readonly<{ semesterOptions: SemesterCode[] }>) {
-  // Open terms first, then planning, then history - see the `enrolment` sort
-  // key in the programme service. Sorting by semester put five planning terms
+  // Open terms first, then planning, then history - see the `enrollment` sort
+  // key in the program service. Sorting by semester put five planning terms
   // above every term a student can actually be enrolled into, which is how you
   // end up hunting for a button that is one screen further down.
-  const table = useListTable({ sort: "enrolment" });
+  const table = useListTable({ sort: "enrollment" });
 
   const status = table.getFilter("status");
   const semester = table.getFilter("semester");
 
-  const query = useEnrolmentTerms({
+  const query = useEnrollmentTerms({
     search: table.search,
     page: table.page,
     pageSize: table.pageSize,
@@ -77,8 +77,8 @@ export function EnrolmentTermsScreen({
         <SearchInput
           value={table.search}
           onValueChange={table.setSearch}
-          placeholder="Search programme or semester"
-          aria-label="Search programme terms"
+          placeholder="Search program or semester"
+          aria-label="Search program terms"
           className="w-full max-w-xs"
         />
         <FilterSelect
@@ -105,8 +105,8 @@ export function EnrolmentTermsScreen({
         emptyState={
           <EmptyState
             variant="no-results"
-            title="No programme terms match these filters"
-            description="A programme only has a term in the semesters its courses are offered in."
+            title="No program terms match these filters"
+            description="A program only has a term in the semesters its courses are offered in."
           />
         }
         {...table.tableProps(query.data)}
@@ -116,7 +116,7 @@ export function EnrolmentTermsScreen({
 }
 
 /**
- * Programme and semester together are the row's identity, and status says
+ * Program and semester together are the row's identity, and status says
  * whether anyone can be enrolled into it, so none of the three can be hidden.
  */
 const OPTIONAL_COLUMNS: HideableColumn[] = [
@@ -127,10 +127,10 @@ const OPTIONAL_COLUMNS: HideableColumn[] = [
 const columns: PrimeColumnDef<ProgramTermSummary>[] = [
   {
     accessorKey: "programCode",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Programme" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Program" />,
     cell: ({ row }) => (
       <Link
-        href={routes.enrolmentTerm(row.original.id)}
+        href={routes.enrollmentTerm(row.original.id)}
         className="font-medium text-primary hover:underline"
       >
         {row.original.programCode}

@@ -15,7 +15,7 @@ import type { Question, QuestionGroup, SetupQuestion } from "@/types";
  * The question bank (direction.md §18a).
  *
  * A setup takes a **copy** of a question, never a reference - the same rule the
- * cost catalogue follows and for the same reason. An answered question is
+ * cost catalog follows and for the same reason. An answered question is
  * evidence of what somebody was asked, so rewording here must change what the
  * *next* setup copies and nothing else. A reference would let a report quote an
  * answer to a question that was never put.

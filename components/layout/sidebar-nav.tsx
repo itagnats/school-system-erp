@@ -12,7 +12,7 @@ import type { DemoPrincipal } from "@/types";
  *
  * The active item is a filled pink pill — the one solid shape in the
  * navigation — with a pink icon to match. Nothing else in the list carries
- * colour, so the eye finds the current page immediately.
+ * color, so the eye finds the current page immediately.
  *
  * Filtered by role against `lib/access` (direction.md §3a). Hiding a link is
  * courtesy, not enforcement — `proxy.ts` refuses the route whether or not the

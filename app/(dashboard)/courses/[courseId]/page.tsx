@@ -74,13 +74,13 @@ export default async function Page({ params }: PageParams) {
       </Section>
 
       <Section
-        title="Part of these programmes"
+        title="Part of these programs"
         description="A course can be taught into several curricula, which is why its cost is charged per student rather than per sheet."
         className="mt-4"
       >
         {terms.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            This course is not in any programme curriculum yet.
+            This course is not in any program curriculum yet.
           </p>
         ) : (
           <ul className="grid gap-2">

@@ -26,7 +26,7 @@ export async function PATCH(
  * DELETE /api/questions/:questionId
  *
  * **409 once a setup has copied it** (direction.md §18a), the same answer the
- * cost catalogue gives. The copies would survive the delete; their provenance
+ * cost catalog gives. The copies would survive the delete; their provenance
  * would not, and "what was this person actually asked" is the question the bank
  * exists to answer. Archive it instead - an archived question stays out of new
  * setups and leaves the answered ones intact.

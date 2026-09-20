@@ -71,7 +71,7 @@ export function questionsForRelation(
 /**
  * Whether a setup's copy still says what the bank says.
  *
- * Computed on read and never stored, for the reason catalogue drift is: a
+ * Computed on read and never stored, for the reason catalog drift is: a
  * stored comparison is a stored value that goes stale, which is the failure the
  * snapshot rule exists to avoid.
  *

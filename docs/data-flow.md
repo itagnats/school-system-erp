@@ -42,7 +42,7 @@ whole seed to the browser.
 passes the role check and, on anything that changes state, a same-origin check,
 before a route handler or a server component runs. It is described in
 [architecture.md](architecture.md#access); what matters here is that a service is
-never the place authorisation is decided, and a route handler never has to
+never the place authorization is decided, and a route handler never has to
 remember to ask.
 
 ---
@@ -237,12 +237,12 @@ Every non-GET method in the BFF, by domain:
 | Domain | Writes |
 | --- | --- |
 | Courses | `POST` a course · `PATCH` · `DELETE` |
-| Programme terms | `PATCH` · `DELETE` |
+| Program terms | `PATCH` · `DELETE` |
 | Students | `PATCH` · `DELETE` |
-| Enrolment | `POST` an enrolment, discriminated on `source` · `DELETE` a membership |
+| Enrollment | `POST` an enrollment, discriminated on `source` · `DELETE` a membership |
 | Cost sheets | `PATCH` the sheet · `POST` an item · `PATCH` and `DELETE` an item |
-| Programme cost sheets | `PATCH` |
-| Catalogue | `POST` a group · `PATCH` a group · `POST` an item · `PATCH` and `DELETE` an item |
+| Program cost sheets | `PATCH` |
+| Catalog | `POST` a group · `PATCH` a group · `POST` an item · `PATCH` and `DELETE` an item |
 | Invoices | `PATCH` — the status transition |
 | Evaluation setups | `PATCH` |
 | Questions | `POST` · `PATCH` · `DELETE`, plus groups |
@@ -259,10 +259,10 @@ a server can hold:
 - **The kind of cost decides which sheet it may reach.** An indirect item on a
   course sheet is a 422, and the reverse too — which makes double-counting
   unrepresentable rather than merely detectable.
-- **A second programme term in the same semester is a 409**, and a term on
-  another programme a 422. One programme, one term per semester, is what makes
+- **A second program term in the same semester is a 409**, and a term on
+  another program a 422. One program, one term per semester, is what makes
   one invoice per student per semester representable.
-- **Deleting a catalogue item that sheets have copied is a 409.** A sheet takes a
+- **Deleting a catalog item that sheets have copied is a 409.** A sheet takes a
   snapshot rather than a reference, and its provenance must not point at nothing.
 
 The session write is the odd one out, and deliberately: it is the only write that

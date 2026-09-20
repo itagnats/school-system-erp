@@ -2,7 +2,7 @@
 
 Soft Japanese spring at comfortable density. A barely-pink ground, white cards
 held by pale pink borders and low pink-tinted shadows, generous rounding, sakura
-pink as the action colour, and a decorative petal layer behind the page.
+pink as the action color, and a decorative petal layer behind the page.
 
 Tokens live in `app/globals.css`. The living documentation is **`/design-system`**
 — one scrollable page, ~60 anchored sections, built from
@@ -21,14 +21,14 @@ The border and the shadow are **both** load-bearing: the pink border alone is a
 edge. This is a deliberate trade — a pink hairline that met the 3:1 non-text
 floor would no longer read as a hairline.
 
-**2. Sakura pink is the action colour.** A primary button is pink; ink is
+**2. Sakura pink is the action color.** A primary button is pink; ink is
 reserved for text. `--primary` is `#de2871`, a step deeper than the pink the eye
 expects, because white lettering on a lighter pink cannot clear 4.5:1.
 
 **3. Pink is allowed to be everywhere.** No once-per-screen rule. The ground,
 the borders, the table headers and the shadows are all faintly pink, and the
 accent is a deeper step of the same ramp rather than a separate hue. Status is
-still never signalled by colour alone — the label states it in words.
+still never signalled by color alone — the label states it in words.
 
 **4. Corners are generous, never square.** `--radius` is 10px and the scale
 derives from it: a panel is `rounded-lg`, a control `rounded-md`, anything that
@@ -48,10 +48,10 @@ nothing on a PRIME screen moves on its own.
 Two raw ramps, which never leave `globals.css`:
 
 - **`--sakura-*` (桜)** does four specific jobs — 200 is the card border, 300 the
-  decorative petal, 600 the action colour, 700 the deepest pink still safe as
+  decorative petal, 600 the action color, 700 the deepest pink still safe as
   text.
 - **`--hai-*` (灰)** is the neutral, warmed toward violet rather than left a true
-  grey, so nothing on the page reads cold against the pink.
+  gray, so nothing on the page reads cold against the pink.
 
 Feature and component code uses **semantic** tokens only:
 
@@ -80,7 +80,7 @@ converge, because the lightened pink already reads on the dusk ground.
 
 ### The three-places rule
 
-A new **colour** token must be added in all three places — `@theme inline`,
+A new **color** token must be added in all three places — `@theme inline`,
 `:root`, and `.dark` — or dark mode breaks silently. A token defined only in
 `:root` compiles, renders correctly in light, and is wrong in dark with no error
 anywhere.
@@ -194,7 +194,7 @@ the entire light palette to undo them. Printing with dark mode on used to produc
 
 Every text pair clears **4.5:1**, checked against the *tinted* grounds as well as
 white — `--surface-sunken` costs about 0.4 of a ratio point and the card tones
-about 0.8. `--muted-foreground` is `#615f6e` rather than the lighter grey it
+about 0.8. `--muted-foreground` is `#615f6e` rather than the lighter gray it
 looks like it wants to be, for exactly this reason.
 
 The figures on `/design-system#a11y-contrast` are **computed, not asserted** — a
@@ -216,13 +216,13 @@ Documented on the page rather than only in prose — `/design-system` carries
 sections for focus, keyboard maps, label and error wiring, the measured contrast
 table, and non-visual encodings.
 
-- Status is never carried by colour alone; the label states it in words.
+- Status is never carried by color alone; the label states it in words.
 - A card tone is never the only signal for a state.
 - Form errors are wired through `aria-describedby` and `aria-invalid` via the
   `components/ui/form.tsx` bindings.
 - A clickable table row is keyboard operable.
 - A tooltip is supplementary only — unreachable on touch, absent in print.
-- **One focus colour, two mechanisms**, both reading `--ring`: the shadcn
+- **One focus color, two mechanisms**, both reading `--ring`: the shadcn
   primitives carry `focus-visible:ring-3` plus a `--ring` border, which sits
   tight against a rounded control; everything else falls back to the global
   `:focus-visible` outline in `globals.css`.
@@ -230,7 +230,7 @@ table, and non-visual encodings.
   `#main-content` on a `tabIndex={-1}` `<main>`.
 - Charts are `aria-hidden` and `ChartFrame` renders an `sr-only` table of the
   same numbers, because a screen reader crawling an SVG produces a stream of
-  unlabelled paths.
+  unlabeled paths.
 
 ---
 

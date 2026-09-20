@@ -11,7 +11,7 @@ import type {
  * Deliberately a second copy of the map in `features/evaluation/constants.ts`
  * rather than an import. No feature in this application imports another — it is
  * a one-line grep to check and it currently holds everywhere — and the
- * dashboard, which summarises every domain, is exactly the module that would
+ * dashboard, which summarizes every domain, is exactly the module that would
  * quietly end the invariant. Four strings are the price.
  *
  * If these ever need to agree by construction, the place to move them is a
@@ -36,13 +36,13 @@ export const WINDOW_STATUS_TONE: Record<EvaluationWindowStatus, StatusTone> = {
  *
  * A third copy of a small map, and deliberate for the same reason the window
  * statuses above are a second one: no feature in this application imports
- * another (`AUD-012`), and the dashboard - which summarises every domain - is
+ * another (`AUD-012`), and the dashboard - which summarizes every domain - is
  * precisely the module that would end that invariant if any module did. Six
  * strings and six tones are the price.
  *
  * Kept identical to `features/enrollment/constants.ts` on purpose, including
- * `dropped` and `cancelled` sharing the error tone and never the label: colour
- * cannot carry the difference between a student who left and an enrolment that
+ * `dropped` and `cancelled` sharing the error tone and never the label: color
+ * cannot carry the difference between a student who left and an enrollment that
  * was never taken up.
  */
 export const ENROLLMENT_STATUS_TONE: Record<EnrollmentStatus, StatusTone> = {
@@ -64,7 +64,7 @@ export const ENROLLMENT_STATUS_LABEL: Record<EnrollmentStatus, string> = {
 };
 
 /**
- * Where a student got to on a programme term (`direction.md` §8).
+ * Where a student got to on a program term (`direction.md` §8).
  *
  * **Status is progress, never outcome.** None of these says whether the student
  * passed - that derives from the grades and is not built yet - so the labels

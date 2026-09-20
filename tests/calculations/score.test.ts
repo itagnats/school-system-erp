@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   calculateEvaluationScore,
   rankingScoreFor,
-  summariseWeights,
+  summarizeWeights,
   type RoleSubmission,
 } from "@/lib/calculations";
 import type { AssesseeConfig } from "@/types";
@@ -80,17 +80,17 @@ describe("rankingScoreFor", () => {
 describe("calculateEvaluationScore", () => {
   it("reproduces the identity the report shows", () => {
     const result = score(flat(2.83, 3.0));
-    const summary = summariseWeights(studentAssessee().assessors);
+    const summary = summarizeWeights(studentAssessee().assessors);
 
-    expect(result.behaviouralScore).toBe(2.83);
+    expect(result.behavioralScore).toBe(2.83);
     expect(result.rankingScore).toBe(3);
-    expect(result.behaviouralSharePercent).toBe(summary.effective360Percent);
+    expect(result.behavioralSharePercent).toBe(summary.effective360Percent);
     expect(result.rankingSharePercent).toBe(summary.effectiveRankingPercent);
 
-    // total = (share360 x behavioural + shareRank x ranking) / 100, which is
+    // total = (share360 x behavioral + shareRank x ranking) / 100, which is
     // exactly the line the report prints above the figure.
     const expected =
-      (result.behaviouralSharePercent * 2.83 + result.rankingSharePercent * 3.0) / 100;
+      (result.behavioralSharePercent * 2.83 + result.rankingSharePercent * 3.0) / 100;
     expect(result.totalScore).toBeCloseTo(expected, 2);
   });
 
@@ -127,7 +127,7 @@ describe("missing evidence", () => {
   it("returns null rather than zero when nothing has been submitted", () => {
     const result = score(flat(null, null));
 
-    expect(result.behaviouralScore).toBeNull();
+    expect(result.behavioralScore).toBeNull();
     expect(result.rankingScore).toBeNull();
     expect(result.totalScore).toBeNull();
     expect(result.percent).toBeNull();
@@ -146,9 +146,9 @@ describe("missing evidence", () => {
 
     const result = score(partial);
 
-    // The teacher said 5, so the score is 5 - renormalised over what exists,
+    // The teacher said 5, so the score is 5 - renormalized over what exists,
     // not averaged against three zeros.
-    expect(result.behaviouralScore).toBe(5);
+    expect(result.behavioralScore).toBe(5);
     expect(result.totalScore).toBe(5);
     expect(result.passed).toBe(true);
   });
@@ -169,7 +169,7 @@ describe("missing evidence", () => {
       { role: "teacher", threeSixtyScore: 4.5, rankingScore: null, evaluationCount: 7 },
     ]);
 
-    expect(result.behaviouralScore).toBe(4.5);
+    expect(result.behavioralScore).toBe(4.5);
     expect(result.rankingScore).toBeNull();
     expect(result.totalScore).toBe(4.5);
   });
@@ -179,7 +179,7 @@ describe("missing evidence", () => {
       { role: "student", threeSixtyScore: null, rankingScore: 2, evaluationCount: 4 },
     ]);
 
-    expect(result.behaviouralScore).toBeNull();
+    expect(result.behavioralScore).toBeNull();
     expect(result.rankingScore).toBe(2);
     expect(result.totalScore).toBe(2);
   });
@@ -203,7 +203,7 @@ describe("configuration drives the score", () => {
     expect(result.roles.some((role) => role.role === "teacher")).toBe(false);
   });
 
-  it("gives a ranking-only role no behavioural weight", () => {
+  it("gives a ranking-only role no behavioral weight", () => {
     const assessee: AssesseeConfig = {
       role: "student",
       selfEvaluation: false,
@@ -217,11 +217,11 @@ describe("configuration drives the score", () => {
       assessee,
     );
 
-    expect(result.behaviouralSharePercent).toBe(0);
+    expect(result.behavioralSharePercent).toBe(0);
     expect(result.rankingSharePercent).toBe(100);
     // The 5 it somehow rated is not counted: its configuration asks only for an
     // ordering.
-    expect(result.behaviouralScore).toBeNull();
+    expect(result.behavioralScore).toBeNull();
     expect(result.totalScore).toBe(2);
   });
 

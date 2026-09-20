@@ -17,7 +17,7 @@ import { SheetGroupsPanel } from "./sheet-groups-panel";
 import type { ProgramCostSheetDetailResponse } from "../types";
 
 /**
- * The programme term's cost sheet (direction.md §11-13).
+ * The program term's cost sheet (direction.md §11-13).
  *
  * The screen the whole revision was for. Indirect costs are entered once here
  * and shared across the curriculum by credit hours; the distribution table
@@ -46,7 +46,7 @@ export function ProgramCostScreen({
   return (
     <>
       <Section
-        title="How the programme cost is reached"
+        title="How the program cost is reached"
         description="Indirect costs are borne once by the term and shared across the curriculum by credit hours; each course adds its own direct costs on top."
         actions={
           <StatusBadge
@@ -71,11 +71,11 @@ export function ProgramCostScreen({
             label={`Markup, ${formatPercent(b.markupPercent)}`}
             value={money(b.markupAmount)}
           />
-          <Figure label="Total programme cost" value={money(b.totalCost)} strong />
+          <Figure label="Total program cost" value={money(b.totalCost)} strong />
         </dl>
 
         <div className="mt-4 grid gap-3 rounded-lg border border-hairline bg-surface-sunken p-4 sm:grid-cols-3">
-          <Figure label="Students on the programme" value={String(b.studentCount)} />
+          <Figure label="Students on the program" value={String(b.studentCount)} />
           <Figure
             label="Cost per student"
             value={

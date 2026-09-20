@@ -13,7 +13,7 @@ import {
   isCollected,
   isOutstanding,
   paymentReference,
-  programmeFeeAmount,
+  programFeeAmount,
 } from "@/lib/calculations";
 import type { InvoiceLine } from "@/types";
 
@@ -35,13 +35,13 @@ describe("courseLineAmount", () => {
   });
 });
 
-describe("programmeFeeAmount", () => {
+describe("programFeeAmount", () => {
   it("is the gap between the course lines and the package price", () => {
-    expect(programmeFeeAmount(35100, 33600)).toBe(1500);
+    expect(programFeeAmount(35100, 33600)).toBe(1500);
   });
 
   it("is zero when the courses account for the whole package", () => {
-    expect(programmeFeeAmount(33600, 33600)).toBe(0);
+    expect(programFeeAmount(33600, 33600)).toBe(0);
   });
 });
 
@@ -73,7 +73,7 @@ describe("calculateInvoiceTotals", () => {
       course(12600, "l1"),
       course(12600, "l2"),
       course(8400, "l3"),
-      { id: "l4", kind: "fee", description: "Programme fee", amount: 1500 },
+      { id: "l4", kind: "fee", description: "Program fee", amount: 1500 },
       credit(-8400),
     ]);
 
@@ -117,7 +117,7 @@ describe("revenue predicates", () => {
   });
 
   it("excludes a draft and a cancelled invoice from revenue entirely", () => {
-    // An unsent document must not inflate a programme's revenue.
+    // An unsent document must not inflate a program's revenue.
     expect(isBilled("draft")).toBe(false);
     expect(isBilled("cancelled")).toBe(false);
     expect(isBilled("issued")).toBe(true);

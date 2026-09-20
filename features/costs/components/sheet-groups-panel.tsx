@@ -16,17 +16,17 @@ import {
 import {
   DRIFT_LABEL,
   DRIFT_TONE,
-} from "@/features/cost-catalogue/constants";
+} from "../constants";
 import { formatCurrency, formatPercent } from "@/lib/utils";
 import type {
-  CatalogueComparison,
+  CatalogComparison,
   CostGroup,
   CostGroupBreakdown,
   CostItem,
   CostKind,
 } from "@/types";
 import { useSheetContents } from "../hooks/use-cost-sheet-mutations";
-import { AddFromCatalogueDialog } from "./add-from-catalogue-dialog";
+import { AddFromCatalogDialog } from "./add-from-catalog-dialog";
 
 /**
  * What is on the sheet, group by group (direction.md §12, §12a).
@@ -35,8 +35,8 @@ import { AddFromCatalogueDialog } from "./add-from-catalogue-dialog";
  * could not be changed, so "cost management" could recalculate a sheet and
  * never edit one.
  *
- * Each line shows where its rate came from. A line copied from the catalogue
- * whose catalogue price has since moved is marked — not corrected, because the
+ * Each line shows where its rate came from. A line copied from the catalog
+ * whose catalog price has since moved is marked — not corrected, because the
  * sheet owns its copy and a background correction is exactly what the snapshot
  * rule exists to prevent.
  */
@@ -56,7 +56,7 @@ export function SheetGroupsPanel({
   groups: readonly CostGroup[];
   /** The server's recomputed totals for those same groups. */
   breakdowns: readonly CostGroupBreakdown[];
-  drift: readonly CatalogueComparison[];
+  drift: readonly CatalogComparison[];
   /** Where a write's response lands in the cache. */
   detailKey: readonly unknown[];
 }>) {
@@ -90,13 +90,13 @@ export function SheetGroupsPanel({
           actions={
             <Button size="xs" onClick={() => setAddingTo(group)}>
               <Plus aria-hidden className="size-3.5" />
-              Add from catalogue
+              Add from catalog
             </Button>
           }
         >
           {group.items.length === 0 ? (
             <p className="p-4 text-sm text-muted-foreground">
-              Nothing costed in this group yet. Add an item from the catalogue.
+              Nothing costed in this group yet. Add an item from the catalog.
             </p>
           ) : (
             <Table>
@@ -128,7 +128,7 @@ export function SheetGroupsPanel({
       ))}
 
       {addingTo ? (
-        <AddFromCatalogueDialog
+        <AddFromCatalogDialog
           sheetId={sheetId}
           group={addingTo}
           kind={kind}
@@ -153,7 +153,7 @@ function SheetItemRow({
   currency: string;
   detailKey: readonly unknown[];
   item: CostItem;
-  comparison?: CatalogueComparison;
+  comparison?: CatalogComparison;
   /** What this line contributes, from the server's recomputed breakdown. */
   charged?: number;
 }>) {
@@ -181,9 +181,9 @@ function SheetItemRow({
             label={DRIFT_LABEL[drift]}
           />
         ) : null}
-        {drift === "differs" && comparison?.catalogueUnitPrice !== undefined ? (
+        {drift === "differs" && comparison?.catalogUnitPrice !== undefined ? (
           <p className="text-xs text-muted-foreground">
-            Catalogue now says {formatCurrency(comparison.catalogueUnitPrice, currency)}.
+            Catalog now says {formatCurrency(comparison.catalogUnitPrice, currency)}.
             This sheet keeps its own copy.
           </p>
         ) : null}
@@ -233,7 +233,7 @@ function SheetItemRow({
             >
               <RotateCcw aria-hidden className="size-3.5" />
               <span className="sr-only">
-                Move {item.name} back onto the catalogue price
+                Move {item.name} back onto the catalog price
               </span>
             </Button>
           ) : null}

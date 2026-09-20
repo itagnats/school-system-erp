@@ -9,12 +9,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/utils/format";
-import type { EnrolmentTermOption } from "@/types";
+import type { EnrollmentTermOption } from "@/types";
 
 /**
- * The programme term being enrolled into (direction.md §7a).
+ * The program term being enrolled into (direction.md §7a).
  *
- * Every path asks this, because a student joins a programme term and the
+ * Every path asks this, because a student joins a program term and the
  * course enrollments follow from its curriculum — the course is never chosen
  * by hand. The description under the control says how many enrollments the act
  * will create and what the package costs, so the consequence is visible before
@@ -25,21 +25,21 @@ import type { EnrolmentTermOption } from "@/types";
  * disagree about what is enrollable.
  *
  * Given exactly one term it stops being a question and renders as context,
- * which is what happens when the dialog is opened from a programme term rather
+ * which is what happens when the dialog is opened from a program term rather
  * than from the flat roster.
  */
-export function EnrolmentTermField({
+export function EnrollmentTermField({
   terms,
   value,
   onChange,
 }: {
-  terms: EnrolmentTermOption[];
+  terms: EnrollmentTermOption[];
   value: string;
   onChange: (termId: string) => void;
 }) {
   const chosen = terms.find((term) => term.id === value);
 
-  // Opened from a programme term, the term is context the screen arrived with
+  // Opened from a program term, the term is context the screen arrived with
   // rather than a question to ask again. A select holding one option is a
   // control that cannot be used, and asking someone to re-state what the URL
   // already says is how a flow starts feeling like paperwork.
@@ -57,11 +57,11 @@ export function EnrolmentTermField({
 
   return (
     <FormItem>
-      <FormLabel>Programme term</FormLabel>
+      <FormLabel>Program term</FormLabel>
       <Select value={value} onValueChange={onChange}>
         <FormControl>
           <SelectTrigger className="w-full">
-            <SelectValue placeholder="Choose a programme term" />
+            <SelectValue placeholder="Choose a program term" />
           </SelectTrigger>
         </FormControl>
         <SelectContent>
@@ -85,9 +85,9 @@ export function EnrolmentTermField({
  * afterwards: a curriculum of four courses means four enrollments, and the
  * package price is what the invoice for them will carry.
  */
-function describe(term: EnrolmentTermOption | undefined): string {
+function describe(term: EnrollmentTermOption | undefined): string {
   if (!term) {
-    return "Enrolment is entered at the programme level; the course enrollments follow.";
+    return "Enrollment is entered at the program level; the course enrollments follow.";
   }
   const noun = term.courseCount === 1 ? "enrollment" : "enrollments";
   const price = formatCurrency(term.packagePrice, term.currency);

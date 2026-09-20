@@ -21,7 +21,7 @@ import { HttpError, messageForStatus } from "./errors";
 const DEFAULT_TIMEOUT_MS = 15_000;
 
 export interface RequestOptions extends Omit<RequestInit, "body" | "method"> {
-  /** JSON-serialisable request body. */
+  /** JSON-serializable request body. */
   body?: unknown;
   /** Query string values. Undefined and null entries are dropped. */
   query?: Record<string, string | number | boolean | undefined | null>;

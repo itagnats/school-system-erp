@@ -11,7 +11,7 @@ interface RouteParams {
 /**
  * PATCH /api/costs/:costSheetId/items/:itemId - change this sheet's copy.
  *
- * `?realign=1` instead resets the unit price to the catalogue's current one.
+ * `?realign=1` instead resets the unit price to the catalog's current one.
  * It is a query flag rather than a body field because it is not a value being
  * set: the caller is asking the server what the price should be, which is the
  * one thing a body carrying a price could not express honestly.
@@ -21,7 +21,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
   if (new URL(request.url).searchParams.get("realign") === "1") {
     const realigned = realignSheetItem(costSheetId, itemId);
-    if (!realigned) return notFound("Catalogue item for this line");
+    if (!realigned) return notFound("Catalog item for this line");
     return NextResponse.json(realigned);
   }
 

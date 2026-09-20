@@ -15,10 +15,10 @@ import {
 } from "@/server/repositories";
 import { matchesSearch, paginate, sortRows, type ListQueryInput } from "@/server/query";
 import {
-  copyCatalogueItem,
-  findCatalogueItem,
-  getCatalogueGroup,
-} from "./catalogue-service";
+  copyCatalogItem,
+  findCatalogItem,
+  getCatalogGroup,
+} from "./catalog-service";
 import type {
   CostSheetUpdateInput,
   ProgramCostSheetUpdateInput,
@@ -27,7 +27,7 @@ import type {
   SheetItemUpdateInput,
 } from "@/lib/api/contracts";
 import type {
-  CatalogueComparison,
+  CatalogComparison,
   CostGroup,
   CostItem,
   CostKind,
@@ -44,8 +44,8 @@ import type {
  * Cost sheet reads and writes (direction.md §11-13, revised 2026-09-15).
  *
  * Two sheets, and the join between them is this module's real job: a course
- * bears its direct costs, a programme term bears its indirect ones, and a
- * course's total is its direct costs plus a derived share of its programme's
+ * bears its direct costs, a program term bears its indirect ones, and a
+ * course's total is its direct costs plus a derived share of its program's
  * pool. Neither sheet can be read usefully without the other, so both details
  * carry the whole picture rather than half of it.
  *
@@ -59,7 +59,7 @@ import type {
 /* The join                                                                   */
 /* -------------------------------------------------------------------------- */
 
-/** Students on a programme term, active or completed but not withdrawn. */
+/** Students on a program term, active or completed but not withdrawn. */
 function termHeadCount(term: ProgramTerm): number {
   return new Set(
     programEnrollmentTable
@@ -92,10 +92,10 @@ function courseInputsFor(term: ProgramTerm): CourseCostInput[] {
 }
 
 /**
- * The full costing for one programme term, or undefined if it has no sheet.
+ * The full costing for one program term, or undefined if it has no sheet.
  *
  * Every figure on both screens comes from here, which is what stops a course's
- * share and its programme's pool being computed two different ways.
+ * share and its program's pool being computed two different ways.
  */
 export function programCostBreakdownFor(
   term: ProgramTerm,
@@ -112,7 +112,7 @@ export function programCostBreakdownFor(
   });
 }
 
-/** The programme term a course-semester belongs to, if any. */
+/** The program term a course-semester belongs to, if any. */
 function termForCourse(
   courseId: string,
   semesterCode: string,
@@ -124,19 +124,19 @@ function termForCourse(
 }
 
 /**
- * One course's costing, through its programme when it has one.
+ * One course's costing, through its program when it has one.
  *
- * Seven of the fifty-seven course-semesters belong to no programme term. They
+ * Seven of the fifty-seven course-semesters belong to no program term. They
  * fall back to a standalone costing rather than being refused: a course costed
  * outside a curriculum is a real thing, and its direct costs are still its own.
  */
 function courseBreakdownFor(sheet: CourseCostSheet): CourseCostBreakdown {
   const term = termForCourse(sheet.courseId, sheet.semesterCode);
-  const programme = term ? programCostBreakdownFor(term) : undefined;
-  const fromProgramme = programme?.courses.find(
+  const program = term ? programCostBreakdownFor(term) : undefined;
+  const fromProgram = program?.courses.find(
     (course) => course.courseId === sheet.courseId,
   );
-  if (fromProgramme) return fromProgramme;
+  if (fromProgram) return fromProgram;
 
   const course = courseTable.find((entry) => entry.id === sheet.courseId);
   return calculateStandaloneCourseCost({
@@ -168,11 +168,11 @@ export interface CostSheetListItem {
   currency: string;
   studentCount: number;
   directTotal: number;
-  /** Share of its programme's indirect pool. Zero when it has no programme. */
+  /** Share of its program's indirect pool. Zero when it has no program. */
   indirectShare: number;
   totalCost: number;
   costPerStudent: number | null;
-  /** Null when the course belongs to no programme term. */
+  /** Null when the course belongs to no program term. */
   programTermId: string | null;
   updatedAt: string;
 }
@@ -182,20 +182,20 @@ export interface CourseCostSheetDetail {
   courseCode: string;
   courseName: string;
   breakdown: CourseCostBreakdown;
-  /** The programme term this course is costed inside, if any. */
+  /** The program term this course is costed inside, if any. */
   programTermId: string | null;
-  /** The programme's pool and markup, so the share can be explained on screen. */
+  /** The program's pool and markup, so the share can be explained on screen. */
   programCostSheetId: string | null;
   indirectTotal: number;
   markupPercent: number;
   /**
-   * How each item now compares with the catalogue entry it was copied from.
+   * How each item now compares with the catalog entry it was copied from.
    *
    * Travels with the sheet rather than sitting on its own endpoint: a sheet is
    * never read without wanting to know which of its rates have been overtaken,
    * and a second request for it would be a second chance to be out of step.
    */
-  drift: CatalogueComparison[];
+  drift: CatalogComparison[];
 }
 
 const SORTABLE: Record<string, (row: CostSheetListItem) => string | number> = {
@@ -266,8 +266,8 @@ export function costSheetsForCourse(courseId: string): CostSheetListItem[] {
  * Adjust the head count or the status, and recompute.
  *
  * Markup and the rounding step are **not** here any more: both moved to the
- * programme term (§13), because a package is priced once and several per-course
- * markups would leave a programme total that no screen adds up.
+ * program term (§13), because a package is priced once and several per-course
+ * markups would leave a program total that no screen adds up.
  *
  * Nothing is stored - see docs/decisions/why-bff.md - but the response is the
  * sheet as it would have been saved, with the breakdown recalculated from the
@@ -295,9 +295,9 @@ function courseDetailFrom(sheet: CourseCostSheet): CourseCostSheetDetail | undef
   const programSheet = term
     ? programCostSheetTable.find((entry) => entry.programTermId === term.id)
     : undefined;
-  const programme = term ? programCostBreakdownFor(term) : undefined;
+  const program = term ? programCostBreakdownFor(term) : undefined;
   const breakdown =
-    programme?.courses.find((entry) => entry.courseId === sheet.courseId) ??
+    program?.courses.find((entry) => entry.courseId === sheet.courseId) ??
     calculateStandaloneCourseCost({
       courseId: sheet.courseId,
       courseCode: course.code,
@@ -313,14 +313,14 @@ function courseDetailFrom(sheet: CourseCostSheet): CourseCostSheetDetail | undef
     breakdown,
     programTermId: term?.id ?? null,
     programCostSheetId: programSheet?.id ?? null,
-    indirectTotal: programme?.indirectTotal ?? 0,
-    markupPercent: programme?.markupPercent ?? 0,
-    drift: catalogueDriftFor(sheet),
+    indirectTotal: program?.indirectTotal ?? 0,
+    markupPercent: program?.markupPercent ?? 0,
+    drift: catalogDriftFor(sheet),
   };
 }
 
 /* -------------------------------------------------------------------------- */
-/* Programme cost sheets                                                      */
+/* Program cost sheets                                                      */
 /* -------------------------------------------------------------------------- */
 
 export interface ProgramCostSheetDetail {
@@ -331,7 +331,7 @@ export interface ProgramCostSheetDetail {
   semesterCode: string;
   packagePrice: number;
   breakdown: ProgramCostBreakdown;
-  drift: CatalogueComparison[];
+  drift: CatalogComparison[];
 }
 
 export function getProgramCostSheetByTerm(
@@ -367,18 +367,18 @@ function programDetailFrom(
     sheet,
     programTermId: term.id,
     programCode: program?.code ?? term.programId,
-    programName: program?.name ?? "Unknown programme",
+    programName: program?.name ?? "Unknown program",
     semesterCode: term.semesterCode,
     packagePrice: term.packagePrice,
     breakdown,
-    drift: catalogueDriftFor(sheet),
+    drift: catalogDriftFor(sheet),
   };
 }
 
 /**
  * Change the markup, the rounding step, the driver or the status.
  *
- * All four are programme-level by design (§13). The driver is accepted even
+ * All four are program-level by design (§13). The driver is accepted even
  * though only one value exists, because refusing a field the type allows would
  * be a lie about what the endpoint supports.
  */
@@ -410,9 +410,9 @@ export interface ProgramCostQuery extends ListQueryInput {
 }
 
 /**
- * A programme cost sheet as a table row.
+ * A program cost sheet as a table row.
  *
- * The index of Cost Management (revised 2026-09-16): the programme term is
+ * The index of Cost Management (revised 2026-09-16): the program term is
  * where a costing is finished, so it is what a cost list should lead with. A
  * course sheet is a contributing part and lists separately.
  */
@@ -473,7 +473,7 @@ function buildProgramListItems(): ProgramCostListItem[] {
       programTermId: term.id,
       programId: term.programId,
       programCode: program?.code ?? term.programId,
-      programName: program?.name ?? "Unknown programme",
+      programName: program?.name ?? "Unknown program",
       semesterCode: sheet.semesterCode,
       status: sheet.status,
       currency: sheet.currency,
@@ -539,7 +539,7 @@ export function isSheetWriteError(
 /**
  * Either sheet, found by id, so one set of content writes serves both.
  *
- * The alternative was a course version and a programme version of every write,
+ * The alternative was a course version and a program version of every write,
  * which is six near-identical functions and six chances for them to diverge on
  * what "add an item" means.
  */
@@ -579,10 +579,10 @@ function withGroupItems(
 }
 
 /**
- * Add a catalogue item to one of a sheet's groups.
+ * Add a catalog item to one of a sheet's groups.
  *
- * The copy is taken by `copyCatalogueItem`, the only implementation of the
- * snapshot rule. Adding the same catalogue item twice is allowed and
+ * The copy is taken by `copyCatalogItem`, the only implementation of the
+ * snapshot rule. Adding the same catalog item twice is allowed and
  * deliberate: two lecturers on one course are two lines rather than one line at
  * quantity two, because they may sit at different rates. The sheet's existing
  * ids go in with the source so the second line is a line and not an alias of
@@ -604,15 +604,15 @@ export function addItemToSheet(
     return { fieldErrors: { groupId: "That cost group is not on this sheet." } };
   }
 
-  const source = findCatalogueItem(input.catalogueItemId);
+  const source = findCatalogItem(input.catalogItemId);
   if (!source) {
-    return { fieldErrors: { catalogueItemId: "That catalogue item no longer exists." } };
+    return { fieldErrors: { catalogItemId: "That catalog item no longer exists." } };
   }
   if (source.status === "archived") {
     return {
       fieldErrors: {
-        catalogueItemId:
-          "That catalogue item is archived. It stays readable for provenance, but cannot be added to a sheet.",
+        catalogItemId:
+          "That catalog item is archived. It stays readable for provenance, but cannot be added to a sheet.",
       },
     };
   }
@@ -621,10 +621,10 @@ export function addItemToSheet(
   if (source.kind !== wanted) {
     return {
       fieldErrors: {
-        catalogueItemId:
+        catalogItemId:
           wanted === "direct"
-            ? "That is an indirect cost. It belongs to the programme term, which shares it across the whole curriculum."
-            : "That is a direct cost. It belongs to a single course, not to the programme.",
+            ? "That is an indirect cost. It belongs to the program term, which shares it across the whole curriculum."
+            : "That is a direct cost. It belongs to a single course, not to the program.",
       },
     };
   }
@@ -635,7 +635,7 @@ export function addItemToSheet(
   const taken = found.sheet.groups.flatMap((entry) =>
     entry.items.map((item) => item.id),
   );
-  const copy = copyCatalogueItem(source, { quantity: input.quantity }, taken);
+  const copy = copyCatalogItem(source, { quantity: input.quantity }, taken);
   return detailFor(
     found,
     withGroupItems(found.sheet.groups, group.id, [...group.items, copy]),
@@ -645,7 +645,7 @@ export function addItemToSheet(
 /**
  * Change the numbers on one of a sheet's items.
  *
- * Name and kind are not editable. An item's identity came from the catalogue,
+ * Name and kind are not editable. An item's identity came from the catalog,
  * and letting a sheet rename its copy would make the provenance say one thing
  * and the row another.
  */
@@ -676,7 +676,7 @@ function applySheetItemUpdate(item: CostItem, input: SheetItemUpdateInput): Cost
   };
 }
 
-/** Remove one item from a sheet. The catalogue is untouched. */
+/** Remove one item from a sheet. The catalog is untouched. */
 export function removeSheetItem(
   sheetId: string,
   itemId: string,
@@ -698,7 +698,7 @@ export function removeSheetItem(
 }
 
 /**
- * Start a new group on a sheet, from a catalogue group.
+ * Start a new group on a sheet, from a catalog group.
  *
  * Empty to begin with. Copying every item of the group would be the friendlier
  * default and the wrong one: a sheet is a deliberate selection, and a group
@@ -711,24 +711,24 @@ export function addGroupToSheet(
   const found = findSheet(sheetId);
   if (!found) return undefined;
 
-  const source = getCatalogueGroup(input.catalogueGroupId);
+  const source = getCatalogGroup(input.catalogGroupId);
   if (!source) {
     return {
-      fieldErrors: { catalogueGroupId: "That catalogue group no longer exists." },
+      fieldErrors: { catalogGroupId: "That catalog group no longer exists." },
     };
   }
-  if (found.sheet.groups.some((group) => group.catalogueGroupId === source.id)) {
-    return { fieldErrors: { catalogueGroupId: "This sheet already has that group." } };
+  if (found.sheet.groups.some((group) => group.catalogGroupId === source.id)) {
+    return { fieldErrors: { catalogGroupId: "This sheet already has that group." } };
   }
   // A group with nothing this sheet may hold is an empty box that can never be
-  // filled - the catalogue group exists, but all of its items are the wrong
+  // filled - the catalog group exists, but all of its items are the wrong
   // kind for this sheet.
   if (!source.items.some((item) => item.kind === allowedKind(found))) {
     return {
       fieldErrors: {
-        catalogueGroupId:
+        catalogGroupId:
           allowedKind(found) === "direct"
-            ? "That group holds only indirect costs, which belong to the programme term."
+            ? "That group holds only indirect costs, which belong to the program term."
             : "That group holds only direct costs, which belong to a course.",
       },
     };
@@ -739,47 +739,47 @@ export function addGroupToSheet(
     {
       id: `grp-${source.id}-${found.sheet.id}`,
       name: source.name,
-      catalogueGroupId: source.id,
+      catalogGroupId: source.id,
       items: [],
     },
   ]);
 }
 
 /**
- * How each of a sheet's items now compares with the catalogue (§12a).
+ * How each of a sheet's items now compares with the catalog (§12a).
  *
  * Computed on read, never stored: it is a comparison between two records, and a
  * stored comparison is a stored value that can go stale - which is the failure
  * the snapshot rule exists to avoid.
  *
  * Only the unit price is compared. Quantity is expected to differ per sheet,
- * because the catalogue carries defaults rather than truths, and reporting that
+ * because the catalog carries defaults rather than truths, and reporting that
  * as drift would mark almost every row.
  */
-export function catalogueDriftFor(
+export function catalogDriftFor(
   sheet: Readonly<{ groups: readonly CostGroup[] }>,
-): CatalogueComparison[] {
+): CatalogComparison[] {
   return sheet.groups.flatMap((group) =>
-    group.items.map((item) => compareWithCatalogue(item)),
+    group.items.map((item) => compareWithCatalog(item)),
   );
 }
 
-function compareWithCatalogue(item: CostItem): CatalogueComparison {
-  if (!item.catalogueItemId) return { itemId: item.id, drift: "none" };
+function compareWithCatalog(item: CostItem): CatalogComparison {
+  if (!item.catalogItemId) return { itemId: item.id, drift: "none" };
 
-  const source = findCatalogueItem(item.catalogueItemId);
+  const source = findCatalogItem(item.catalogItemId);
   if (!source) return { itemId: item.id, drift: "orphaned" };
 
   return {
     itemId: item.id,
     drift: source.defaultUnitPrice === item.unitPrice ? "current" : "differs",
-    catalogueName: source.name,
+    catalogName: source.name,
     sheetUnitPrice: item.unitPrice,
-    catalogueUnitPrice: source.defaultUnitPrice,
+    catalogUnitPrice: source.defaultUnitPrice,
   };
 }
 
-/** Move one item back onto the catalogue's current price. A deliberate act. */
+/** Move one item back onto the catalog's current price. A deliberate act. */
 export function realignSheetItem(
   sheetId: string,
   itemId: string,
@@ -791,8 +791,8 @@ export function realignSheetItem(
   if (!found || !group) return undefined;
 
   const target = group.items.find((item) => item.id === itemId);
-  const source = target?.catalogueItemId
-    ? findCatalogueItem(target.catalogueItemId)
+  const source = target?.catalogItemId
+    ? findCatalogItem(target.catalogItemId)
     : undefined;
   if (!source) return undefined;
 

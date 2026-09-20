@@ -42,7 +42,7 @@ const TONE_CHIP: Record<StatTone, string> = {
 };
 
 /**
- * Colour for the trend line.
+ * Color for the trend line.
  *
  * Direction is not the same as good news, which is why `trendIsGood` is a
  * separate input: enrollment up is positive, drop-outs up is not. Flat is

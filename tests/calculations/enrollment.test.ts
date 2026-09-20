@@ -3,14 +3,14 @@ import {
   courseEnrollmentIdFor,
   demoStudentSerial,
   expandCurriculum,
-  findEnrolmentConflict,
+  findEnrollmentConflict,
   programEnrollmentIdFor,
 } from "@/lib/calculations/enrollment";
-import type { EnrolmentTerm, ExistingMembership } from "@/lib/calculations/enrollment";
+import type { EnrollmentTerm, ExistingMembership } from "@/lib/calculations/enrollment";
 
 const STAMP = "2026-01-05T09:00:00.000Z";
 
-function term(overrides: Partial<EnrolmentTerm> = {}): EnrolmentTerm {
+function term(overrides: Partial<EnrollmentTerm> = {}): EnrollmentTerm {
   return {
     id: "pgt-it-202601",
     programId: "prg-it",
@@ -47,7 +47,7 @@ describe("expandCurriculum", () => {
     ]);
   });
 
-  it("puts the membership on the programme and the rows on the courses", () => {
+  it("puts the membership on the program and the rows on the courses", () => {
     const draft = expandCurriculum({
       term: term(),
       studentId: "stu-001",
@@ -107,7 +107,7 @@ describe("expandCurriculum", () => {
   });
 
   /**
-   * The `AUD-013` case, in advance. Two enrolments made one after another must
+   * The `AUD-013` case, in advance. Two enrollments made one after another must
    * not share an id just because the timestamp behind them is fixed.
    */
   it("gives two students in the same term distinct ids", () => {
@@ -140,13 +140,13 @@ describe("expandCurriculum", () => {
   });
 });
 
-describe("findEnrolmentConflict", () => {
+describe("findEnrollmentConflict", () => {
   it("passes a student with no history", () => {
-    expect(findEnrolmentConflict([], "stu-001", term())).toBeUndefined();
+    expect(findEnrollmentConflict([], "stu-001", term())).toBeUndefined();
   });
 
-  it("rejects a second programme in the same semester", () => {
-    const conflict = findEnrolmentConflict(
+  it("rejects a second program in the same semester", () => {
+    const conflict = findEnrollmentConflict(
       [membership({ programId: "prg-ds" })],
       "stu-001",
       term(),
@@ -160,22 +160,22 @@ describe("findEnrolmentConflict", () => {
   });
 
   it("rejects re-enrolling into the same term twice", () => {
-    const conflict = findEnrolmentConflict([membership()], "stu-001", term());
+    const conflict = findEnrollmentConflict([membership()], "stu-001", term());
     expect(conflict?.kind).toBe("already-enrolled");
   });
 
-  it("rejects a student moving to another programme in a later semester", () => {
-    const conflict = findEnrolmentConflict(
+  it("rejects a student moving to another program in a later semester", () => {
+    const conflict = findEnrollmentConflict(
       [membership({ semesterCode: "202501", programId: "prg-ds", status: "completed" })],
       "stu-001",
       term(),
     );
 
-    expect(conflict).toEqual({ kind: "other-programme", programId: "prg-ds" });
+    expect(conflict).toEqual({ kind: "other-program", programId: "prg-ds" });
   });
 
-  it("allows the same programme in a later semester, which is the normal case", () => {
-    const conflict = findEnrolmentConflict(
+  it("allows the same program in a later semester, which is the normal case", () => {
+    const conflict = findEnrollmentConflict(
       [membership({ semesterCode: "202502", status: "completed" })],
       "stu-001",
       term(),
@@ -185,7 +185,7 @@ describe("findEnrolmentConflict", () => {
   });
 
   it("ignores another student entirely", () => {
-    const conflict = findEnrolmentConflict(
+    const conflict = findEnrollmentConflict(
       [membership({ studentId: "stu-999", programId: "prg-ds" })],
       "stu-001",
       term(),
@@ -200,7 +200,7 @@ describe("findEnrolmentConflict", () => {
    * history.
    */
   it("lets a withdrawn student enrol again", () => {
-    const conflict = findEnrolmentConflict(
+    const conflict = findEnrollmentConflict(
       [membership({ status: "withdrawn" }), membership({ programId: "prg-ds", status: "withdrawn" })],
       "stu-001",
       term(),

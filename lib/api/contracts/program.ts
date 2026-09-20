@@ -2,7 +2,7 @@ import { z } from "zod";
 import { paginatedSchema } from "./list";
 
 /**
- * A programme term reaches a table as its money figures, not its curriculum.
+ * A program term reaches a table as its money figures, not its curriculum.
  *
  * The course list, the roster and the per-course cost attribution are on the
  * detail endpoint: a table needs to answer "did this make money", and shipping

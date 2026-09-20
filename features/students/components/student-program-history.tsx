@@ -5,21 +5,21 @@ import { formatDate } from "@/lib/utils";
 import type { StatusTone, StudentProgramTerm } from "@/types";
 
 /**
- * Enrolment history at programme grain (direction.md §7a, §9).
+ * Enrollment history at program grain (direction.md §7a, §9).
  *
- * One row per programme term, not per course: a student joins a term and the
+ * One row per program term, not per course: a student joins a term and the
  * course enrollments follow from its curriculum, so a term is the unit a person
- * recognises as "a year of study". The course-level detail lives on the
- * enrolment screens, one click away through the term.
+ * recognizes as "a year of study". The course-level detail lives on the
+ * enrollment screens, one click away through the term.
  *
- * The dates are the **semester's**, not the enrolment's. A term is a period,
+ * The dates are the **semester's**, not the enrollment's. A term is a period,
  * and showing the day somebody was added to a roster instead would answer a
  * question nobody asked.
  *
  * `linked` is false for a student reading their own profile (direction.md §3a).
  * The term page lives under `/enrollment`, which is administrator-only, so for
  * them the term is a label rather than a destination - the row still says which
- * programme and semester it was, which is the part that is theirs to know.
+ * program and semester it was, which is the part that is theirs to know.
  */
 export function StudentProgramHistory({
   history,
@@ -31,11 +31,11 @@ export function StudentProgramHistory({
   return (
     <Section
       title="Enrollment history"
-      description="Every programme term this student has held a place in, newest first."
+      description="Every program term this student has held a place in, newest first."
     >
       {history.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          This student has not been enrolled in a programme term yet.
+          This student has not been enrolled in a program term yet.
         </p>
       ) : (
         <ul className="grid">
@@ -55,7 +55,7 @@ export function StudentProgramHistory({
 
               {entry.programTermId && linked ? (
                 <Link
-                  href={routes.enrolmentTerm(entry.programTermId)}
+                  href={routes.enrollmentTerm(entry.programTermId)}
                   className="font-medium text-primary hover:underline"
                 >
                   {entry.programCode} {entry.semesterCode}
@@ -78,7 +78,7 @@ export function StudentProgramHistory({
 }
 
 /**
- * Programme membership status. `direction.md` §8: a status says where a student
+ * Program membership status. `direction.md` §8: a status says where a student
  * is, never how they did — an outcome is derived from the grades and is not one
  * of these four.
  */

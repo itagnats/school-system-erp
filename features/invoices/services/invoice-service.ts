@@ -18,7 +18,7 @@ export async function fetchInvoice(invoiceId: string): Promise<InvoiceDetailResp
 /**
  * Move an invoice to another status.
  *
- * The response carries the whole document back rather than an acknowledgement,
+ * The response carries the whole document back rather than an acknowledgment,
  * because the status is not the only thing that changes: marking an invoice
  * paid also settles its payment date, and the server is where that is decided.
  */

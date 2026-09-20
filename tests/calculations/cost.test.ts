@@ -162,7 +162,7 @@ describe("distribute", () => {
   });
 
   it("splits evenly when every weight is zero", () => {
-    // A programme whose courses all carry zero credits must still be costable.
+    // A program whose courses all carry zero credits must still be costable.
     expect(distribute(90, [0, 0, 0])).toEqual([30, 30, 30]);
   });
 
@@ -227,7 +227,7 @@ describe("calculateProgramCostBreakdown", () => {
     expect(Math.round(summed * 100) / 100).toBe(result.indirectTotal);
   });
 
-  it("reconciles: the course totals sum to the programme total", () => {
+  it("reconciles: the course totals sum to the program total", () => {
     // The invariant that makes the two levels one costing rather than two.
     const result = calculateProgramCostBreakdown({
       sheet: programSheet({ markupPercent: 8 }),
@@ -239,7 +239,7 @@ describe("calculateProgramCostBreakdown", () => {
     expect(result.subtotal).toBe(result.directTotal + result.indirectTotal);
   });
 
-  it("applies one programme markup to each course's subtotal", () => {
+  it("applies one program markup to each course's subtotal", () => {
     const result = calculateProgramCostBreakdown({
       sheet: programSheet({ markupPercent: 10 }),
       courses,
@@ -258,7 +258,7 @@ describe("calculateProgramCostBreakdown", () => {
       studentCount: 25,
     });
 
-    // Programme: the whole cost over the programme roster.
+    // Program: the whole cost over the program roster.
     expect(result.costPerStudent).toBe(roundTo(result.totalCost / 25));
     // Course: that course's own total over its own head count.
     expect(result.courses[0].costPerStudent).toBe(
@@ -266,7 +266,7 @@ describe("calculateProgramCostBreakdown", () => {
     );
   });
 
-  it("prices the programme by rounding its cost per student up", () => {
+  it("prices the program by rounding its cost per student up", () => {
     const result = calculateProgramCostBreakdown({
       sheet: programSheet(),
       courses,
@@ -340,7 +340,7 @@ describe("calculateStandaloneCourseCost", () => {
   });
 
   it("has a null share, not a zero one", () => {
-    // "No programme to take a share of" is not "a 0% share of one".
+    // "No program to take a share of" is not "a 0% share of one".
     expect(calculateStandaloneCourseCost(course("a", 4, 1)).sharePercent).toBeNull();
   });
 
@@ -375,7 +375,7 @@ describe("preferredPriceFor", () => {
     expect(preferredPriceFor(486.13, 500)).toBe(500);
   });
 
-  it("honours the sheet's own step", () => {
+  it("honors the sheet's own step", () => {
     expect(preferredPriceFor(4201.11, 500)).toBe(4500);
     expect(preferredPriceFor(4201.11, 100)).toBe(4300);
   });
@@ -412,11 +412,11 @@ function roundTo(value: number): number {
 
 /**
  * `AUD-013`. The copy's id used to be `itm-<source>-<WRITE_STAMP>`, and
- * `WRITE_STAMP` is a frozen constant - so two copies of one catalogue item on
+ * `WRITE_STAMP` is a frozen constant - so two copies of one catalog item on
  * one sheet were the same row twice. §12a says two of them is the supported
  * case, which is what made it a bug rather than a curiosity.
  */
-describe("identifying a copy of a catalogue item", () => {
+describe("identifying a copy of a catalog item", () => {
   it("gives the first copy a plain id", () => {
     expect(copyItemId("cat-lecturer", 1)).toBe("itm-cat-lecturer");
   });

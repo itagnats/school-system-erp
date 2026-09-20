@@ -36,7 +36,7 @@ export interface StudentQuery extends ListQueryInput {
   /**
    * Narrow to students who held a place in one semester.
    *
-   * This is what makes the "previous course" enrolment path (direction.md 7)
+   * This is what makes the "previous course" enrollment path (direction.md 7)
    * a different question from the "existing profile" one: the same picker,
    * asked for the people who were here last term rather than everyone.
    * Withdrawn memberships do not count - they are the record of someone who
@@ -45,7 +45,7 @@ export interface StudentQuery extends ListQueryInput {
   semester?: string;
 }
 
-/** Student ids holding a live programme membership in one semester. */
+/** Student ids holding a live program membership in one semester. */
 function studentsInSemester(semesterCode: string): Set<string> {
   return new Set(
     programEnrollmentTable
@@ -120,17 +120,17 @@ export function programOptions(): string[] {
 }
 
 /**
- * A profile created on the way into an enrolment (direction.md 7).
+ * A profile created on the way into an enrollment (direction.md 7).
  *
  * Six fields, because the spec asks for the minimum necessary for the initial
- * enrolment and everything else on a profile is the job of profile editing.
+ * enrollment and everything else on a profile is the job of profile editing.
  * The empty arrays are not placeholders for missing data: a student who has
  * just been created genuinely has no projects, clubs or achievements yet, and
  * the profile screen already renders that as an empty section.
  *
- * Programme is taken from the term rather than typed, so the profile and the
+ * Program is taken from the term rather than typed, so the profile and the
  * membership created beside it cannot disagree - which is the join the seed
- * relies on to answer "who is under this programme".
+ * relies on to answer "who is under this program".
  */
 export function createStudent(
   input: NewStudentInput,
@@ -178,10 +178,10 @@ export function createStudent(
  * case-sensitive even where the standard allows it.
  */
 export function emailTaken(email: string, exceptId?: string): boolean {
-  const normalised = email.trim().toLowerCase();
+  const normalized = email.trim().toLowerCase();
   return studentTable.some(
     (student) =>
-      student.id !== exceptId && student.personal.email.toLowerCase() === normalised,
+      student.id !== exceptId && student.personal.email.toLowerCase() === normalized,
   );
 }
 
@@ -236,8 +236,8 @@ export function updateStudent(
         ...student,
         academic: {
           ...input.academic,
-          // Programme is not editable here. A student belongs to one programme
-          // and that is decided by enrolment (direction.md 7a), so letting a
+          // Program is not editable here. A student belongs to one program
+          // and that is decided by enrollment (direction.md 7a), so letting a
           // profile form change it would put the profile and the membership
           // into a disagreement the seed itself relies on not existing.
           //
@@ -279,14 +279,14 @@ function studentStamp(): string {
 }
 
 /**
- * Enrolment history for the profile, newest first (direction.md 9).
+ * Enrollment history for the profile, newest first (direction.md 9).
  *
- * Programme grain rather than course grain: a student joins a programme term
+ * Program grain rather than course grain: a student joins a program term
  * and the courses follow from its curriculum, so "what have they been enrolled
  * in" is answered once per term rather than once per course. The course-level
- * history is still available on the enrolment screens.
+ * history is still available on the enrollment screens.
  *
- * A membership whose programme or semester is missing is a broken join and is
+ * A membership whose program or semester is missing is a broken join and is
  * dropped rather than rendered with blanks, the same posture the roster takes.
  */
 export function studentProgramHistory(studentId: string): StudentProgramTerm[] {
@@ -326,7 +326,7 @@ export function studentProgramHistory(studentId: string): StudentProgramTerm[] {
  * Remove a student (direction.md 8, decided 2026-09-16).
  *
  * Refused while anything still points at them. A profile is not the record of
- * a person so much as the thing every enrolment, evaluation and invoice hangs
+ * a person so much as the thing every enrollment, evaluation and invoice hangs
  * off, and deleting it would leave rows referring to somebody who is not there
  * - which is the one outcome a demo of referential care must not show.
  *
@@ -347,14 +347,14 @@ export function deleteStudent(studentId: string): RemovalResult | undefined {
   const invoices = invoiceTable.filter((row) => row.studentId === student.id).length;
 
   const holds: string[] = [];
-  if (memberships > 0) holds.push(`${memberships} programme ${plural(memberships, "enrolment")}`);
+  if (memberships > 0) holds.push(`${memberships} program ${plural(memberships, "enrollment")}`);
   if (courses > 0) holds.push(`${courses} course ${plural(courses, "enrollment")}`);
   if (invoices > 0) holds.push(`${invoices} ${plural(invoices, "invoice")}`);
 
   if (holds.length > 0) {
     return {
       ok: false,
-      reason: `${sentenceList(holds)} still point at this student. Withdraw them from their programme first.`,
+      reason: `${sentenceList(holds)} still point at this student. Withdraw them from their program first.`,
     };
   }
 

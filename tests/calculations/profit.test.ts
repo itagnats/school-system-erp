@@ -68,7 +68,7 @@ describe("calculateProgramProfit", () => {
             courseCode: "IT101",
             courseName: "Intro",
             costPerStudent: 3000,
-            // Only 5 of this programme's students take the course, even though
+            // Only 5 of this program's students take the course, even though
             // the sheet covers everyone on it.
             headCount: 5,
           },

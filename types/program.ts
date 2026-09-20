@@ -4,21 +4,21 @@ import type { StudentSummary } from "./student";
 /**
  * Curriculum (direction.md §4a).
  *
- * A programme is what a student actually enrols in. It gathers courses into a
+ * A program is what a student actually enrols in. It gathers courses into a
  * package per semester and puts a price on that package, which is what turns
  * cost management from bookkeeping into a decision:
  *
  *   Program -> Program Term (one semester) -> Courses
  *                                          -> Package price
  *
- * A course still belongs to itself and can appear in several programmes. The
+ * A course still belongs to itself and can appear in several programs. The
  * term is the join, and it is where the price lives, because the same course
- * list can be worth different money to different programmes.
+ * list can be worth different money to different programs.
  */
 
 export type ProgramStatus = "draft" | "active" | "archived";
 
-/** Whether a term is open to enrolment. */
+/** Whether a term is open to enrollment. */
 export type ProgramTermStatus = "planning" | "open" | "closed";
 
 export interface Program {
@@ -35,7 +35,7 @@ export interface Program {
 }
 
 /**
- * One semester of a programme: the courses it includes and what it costs to
+ * One semester of a program: the courses it includes and what it costs to
  * buy. This is the unit a student enrols in and the unit profit is measured on.
  */
 export interface ProgramTerm {
@@ -51,11 +51,11 @@ export interface ProgramTerm {
 }
 
 /**
- * A student enrolled in a programme for one semester.
+ * A student enrolled in a program for one semester.
  *
  * This is the parent of the per-course enrollment records: enrolling in a term
  * enrols the student in every course of its curriculum, which is why the
- * enrollment screen can be entered from a programme rather than a course.
+ * enrollment screen can be entered from a program rather than a course.
  */
 export interface ProgramEnrollment {
   id: string;
@@ -78,14 +78,14 @@ export interface ProgramCourseCost {
   courseName: string;
   /** Cost per student on that course, from its cost sheet. Null if no sheet. */
   costPerStudent: number | null;
-  /** Students from this programme taking the course this term. */
+  /** Students from this program taking the course this term. */
   headCount: number;
   /** costPerStudent x headCount, or null when the course has no sheet. */
   attributedCost: number | null;
 }
 
 /**
- * Revenue against cost for one programme term.
+ * Revenue against cost for one program term.
  *
  * Every intermediate figure is kept, for the same reason the cost breakdown
  * keeps its own: a margin the reader cannot check is a margin they cannot

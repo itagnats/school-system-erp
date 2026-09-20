@@ -53,9 +53,9 @@ Cost per Student
 
 Billing runs from the other side, and meets it at profitability (§13a, §13b):
 
-Programme Term
+Program Term
   ↓
-Programme Enrollment
+Program Enrollment
   ↓
 Invoice
   ↓
@@ -93,9 +93,9 @@ Students
 └── Student Profiles
 
 Cost Management
-├── Programme Costs      (revised 2026-09-16: the index, §11)
+├── Program Costs      (revised 2026-09-16: the index, §11)
 ├── Course Costs
-├── Cost Catalogue
+├── Cost Catalog
 └── Invoices
 
 Evaluation
@@ -215,7 +215,7 @@ handlers under `/api/students/<id>`. The collection itself is never reachable:
 would have been handed exactly the directory the rule exists to withhold.
 
 The principal's own `studentId` is resolved **on the server**, from the demo
-persona's enrolment, and is never carried in the cookie. A cookie asserting
+persona's enrollment, and is never carried in the cookie. A cookie asserting
 which record it may read is the same shape of mistake as a cookie asserting
 its own role, which is the hole `AUD-023` records.
 
@@ -231,12 +231,12 @@ Two of the roles get the same screens with less on them. The student gets
 - **`/dashboard` is a different screen for a student.** The staff dashboard
   asks how the school is doing — head counts, coverage, the busiest courses.
   A student's asks what they are enrolled in and what they still owe: their
-  programme and standing, their courses, their evaluation queue. It is a
+  program and standing, their courses, their evaluation queue. It is a
   separate screen rather than the same one with panels removed, because a
   student reading the school's head count has been shown a figure that is true
   and none of their business.
 - **It is not scoped to the active semester.** The staff dashboard measures one
-  moment; this one is a record. The seeded student holds enrolments in 202502
+  moment; this one is a record. The seeded student holds enrollments in 202502
   and 202602 while 202601 is running, so a dashboard filtered to "now" would be
   empty for the only student who can sign in. Every row carries its semester
   and the current one is marked, so nothing is disguised as current.
@@ -272,8 +272,8 @@ What that actually reaches, checked against the write path rather than assumed:
 may change    name, email, phone, date of birth
               major, year level, skills, interests, certifications
               emergency contact
-never         their programme - the update path has always ignored it,
-              for every role, because a programme comes from enrolment
+never         their program - the update path has always ignored it,
+              for every role, because a program comes from enrollment
 never         their student id
 never         DELETE - `ownerMethods` stops at PATCH
 ```
@@ -364,12 +364,12 @@ IT101
 
 ---
 
-# 4a. Curriculum and Programmes
+# 4a. Curriculum and Programs
 
 *Added 2026-09-06. A course on its own has a cost but no price, so cost
 management could describe spending and never answer whether it was worth it.*
 
-A **programme** is what a student actually enrols in. It gathers courses into a
+A **program** is what a student actually enrols in. It gathers courses into a
 package per semester and puts a price on that package:
 
 ```text
@@ -383,17 +383,17 @@ The **term** is the unit that matters. It is what a student enrols in, what
 carries the price, and what profit is measured on, because the same curriculum
 at the same price makes or loses money depending on how many people took it.
 
-A course still belongs to itself and may appear in several programmes. That is
-why a programme is charged a course cost *per student* rather than being handed
+A course still belongs to itself and may appear in several programs. That is
+why a program is charged a course cost *per student* rather than being handed
 the whole cost sheet.
 
 Support:
 
-- Programme with code, name and credential
+- Program with code, name and credential
 - Per-semester curriculum: which courses, in teaching order
 - Package price per term
 - Term status: planning, open, closed
-- Programme roster: who is under this programme this term
+- Program roster: who is under this program this term
 
 # 5. Semester
 
@@ -526,12 +526,12 @@ Only collect the minimum information necessary for the initial enrollment.
 
 ---
 
-# 7a. Enrolment Through a Programme
+# 7a. Enrollment Through a Program
 
 *Added 2026-09-06.*
 
-Enrolment is entered at the **programme** level, not the course level. A student
-joins a programme term, and that enrols them in the courses of its curriculum.
+Enrollment is entered at the **program** level, not the course level. A student
+joins a program term, and that enrols them in the courses of its curriculum.
 
 ```text
 Enrol student -> Program Term (BSC-IT, 202601)
@@ -540,23 +540,23 @@ Enrol student -> Program Term (BSC-IT, 202601)
 
 Two consequences the UI must respect:
 
-- the enrollment screen can be entered from a programme, and answers "who is
-  under this programme" as directly as it answers "who is on this course";
+- the enrollment screen can be entered from a program, and answers "who is
+  under this program" as directly as it answers "who is on this course";
 - a student may still drop an individual course, so a per-course head count is a
-  subset of the programme head count and never assumed equal to it.
+  subset of the program head count and never assumed equal to it.
 
-## One programme at a time
+## One program at a time
 
 *Added 2026-09-15.*
 
-**A student holds one programme, and one programme term per semester.** This was
+**A student holds one program, and one program term per semester.** This was
 already true of every one of the 635 seeded memberships - never two in a
-semester, and not one student who changes programme - but nothing enforced it,
+semester, and not one student who changes program - but nothing enforced it,
 so it was a coincidence rather than a rule. It is now checked server-side:
 
 ```text
-second programme term in the same semester   409
-a term whose programme is not the student own programme   422
+second program term in the same semester   409
+a term whose program is not the student own program   422
 ```
 
 The rule is not bureaucratic tidiness. The invoice is one document per student
@@ -695,7 +695,7 @@ The profile should be separated into logical sections rather than being one gian
 
 ## Purpose
 
-Manage the financial structure associated with delivering a programme in a
+Manage the financial structure associated with delivering a program in a
 semester, and the courses inside it.
 
 The cost-management model can retain the useful hierarchical structure of the real enterprise workflow while using fictional school data.
@@ -707,7 +707,7 @@ a shared cost reached a course through a hand-entered `allocationPercent`. That
 percentage had nothing to be a percentage **of**: the same classroom was copied
 onto every course sheet that used it, each taking whatever share someone typed,
 and no screen ever added them up. Measured across the seed, 82 of 92
-programme-level pools recovered **less** than the cost — median 50% — while 7
+program-level pools recovered **less** than the cost — median 50% — while 7
 recovered more. Half the shared cost simply vanished, and nothing looked wrong.*
 
 ```text
@@ -715,24 +715,24 @@ Course → Semester → Course Cost Sheet      DIRECT costs only
                                             lecturer, TA, materials
                                             belongs wholly to the course
 
-Programme → Programme Term → Programme Cost Sheet    INDIRECT costs only
+Program → Program Term → Program Cost Sheet    INDIRECT costs only
                                             classroom, utilities, workshop,
                                             industry visit
-                                            borne once by the programme,
+                                            borne once by the program,
                                             distributed across its curriculum
 ```
 
 **A direct cost travels with the course.** It is entered once per
-course-semester and is the same whichever programme adds that course, which is
+course-semester and is the same whichever program adds that course, which is
 what "the cost of running IT101" means.
 
-**An indirect cost is borne once by the programme term** and shared out. Each
-programme term rents its own room, runs its own workshop; there is no
+**An indirect cost is borne once by the program term** and shared out. Each
+program term rents its own room, runs its own workshop; there is no
 institution-wide pool above it (considered and rejected — it needs a second
-driver, for splitting the school across programmes, which this demo does not
+driver, for splitting the school across programs, which this demo does not
 need to invent).
 
-A course-semester that belongs to no programme term keeps its direct sheet and
+A course-semester that belongs to no program term keeps its direct sheet and
 receives no indirect share. Seven of the fifty-seven sheets are in that
 position, and they are not an error.
 
@@ -756,7 +756,7 @@ Cost Sheet
 ```
 
 What differs is which items each may hold. **The kind decides the sheet, and the
-sheet does not get a say** — a direct item cannot be put on a programme sheet and
+sheet does not get a say** — a direct item cannot be put on a program sheet and
 an indirect one cannot be put on a course sheet. That is the rule the old model
 lacked, and enforcing it is what makes double-counting unrepresentable rather
 than merely detectable.
@@ -770,7 +770,7 @@ COURSE cost sheet — direct only
   Student Activities
   └── Materials
 
-PROGRAMME cost sheet — indirect only
+PROGRAM cost sheet — indirect only
   Facilities
   ├── Classroom
   ├── Equipment
@@ -787,7 +787,7 @@ which is what makes it impossible for the shares not to total 100.
 
 ---
 
-# 12a. Cost Catalogue
+# 12a. Cost Catalog
 
 *Added 2026-09-12. §12 describes the shape of a sheet; this describes where its
 contents come from.*
@@ -797,41 +797,41 @@ course. The same lecturer rate, the same classroom, the same materials recur
 across thirty courses, and typing them again per sheet is both tedious and the
 reason two sheets disagree about what a lab costs.
 
-So there is a **catalogue**: master cost groups, each holding master cost items,
+So there is a **catalog**: master cost groups, each holding master cost items,
 maintained once and drawn on by every sheet.
 
 ```text
-Catalogue Group            Cost Sheet
-├── Catalogue Item   ──►   └── Cost Group
+Catalog Group            Cost Sheet
+├── Catalog Item   ──►   └── Cost Group
 │     default price               └── Cost Item   (a copy, not a link)
 │     default quantity
 │     options
-└── Catalogue Item
+└── Catalog Item
 ```
 
 ## A sheet takes a copy, never a reference
 
-**This is the decision the whole feature turns on.** Adding a catalogue item to a
+**This is the decision the whole feature turns on.** Adding a catalog item to a
 sheet **snapshots** its name, kind, price, quantity, allocation and options onto
 that sheet. The sheet then owns them.
 
-The alternative — a sheet holding a reference and reading today's catalogue price
+The alternative — a sheet holding a reference and reading today's catalog price
 — is wrong for costing, and quietly so. Raising the price of `Classroom` would
 silently rewrite every sheet that ever used it, including approved sheets from
 closed semesters, and a total that was reviewed and signed off would change
 without anyone touching it. A cost sheet is a record of what something cost,
 not a live query.
 
-The cost of snapshotting is that a catalogue correction does **not** reach the
+The cost of snapshotting is that a catalog correction does **not** reach the
 sheets already using it. That is handled openly rather than avoided:
 
-- an item copied from the catalogue keeps the id it came from, so its origin is
+- an item copied from the catalog keeps the id it came from, so its origin is
   known;
-- a sheet shows which of its items now **differ from the catalogue**, and by how
+- a sheet shows which of its items now **differ from the catalog**, and by how
   much;
 - updating one is a deliberate act on that sheet, never a background effect.
 
-An item may also be added to a sheet **without** the catalogue, for a one-off
+An item may also be added to a sheet **without** the catalog, for a one-off
 cost. It simply has no origin, and is never reported as out of date.
 
 ## Maintaining it
@@ -841,8 +841,8 @@ worth stating because neither is obvious:
 
 - **archive, do not delete, anything a sheet has used.** The sheets hold copies
   and would survive a delete, but their provenance would point at nothing, and
-  "where did this rate come from" is the question the catalogue exists to answer;
-- **a catalogue item carries defaults, not truths.** Quantity especially: forty
+  "where did this rate come from" is the question the catalog exists to answer;
+- **a catalog item carries defaults, not truths.** Quantity especially: forty
   five contact hours is the usual case and the sheet is free to say otherwise.
 
 ---
@@ -854,11 +854,11 @@ The system should demonstrate meaningful financial calculations.
 Support:
 
 - Direct costs, per course
-- Indirect costs, per programme term
+- Indirect costs, per program term
 - Distribution of the indirect pool across the curriculum
-- Total cost, per course and per programme
+- Total cost, per course and per program
 - Cost per student, on both bases
-- Optional markup, per programme term
+- Optional markup, per program term
 
 ## The calculation
 
@@ -868,25 +868,25 @@ Support:
 per course
   Direct Costs                                          (its own sheet)
 
-per programme term
+per program term
   Indirect Costs                                        (its own sheet)
   ÷ distributed by the DRIVER
   = each course's Indirect Share                        (shares total exactly 100%)
 
 per course, again
   Direct + Indirect Share          = Subtotal
-  Subtotal × markup                = Markup Amount      (the programme's markup)
+  Subtotal × markup                = Markup Amount      (the program's markup)
   Subtotal + Markup Amount         = Total Course Cost
   Total Course Cost ÷ its students = Cost per Student
   rounded up                       = Preferred Price
 
-per programme term
-  Σ Total Course Cost              = Total Programme Cost
-  ÷ programme enrolment            = Cost per Student, programme basis
+per program term
+  Σ Total Course Cost              = Total Program Cost
+  ÷ program enrollment            = Cost per Student, program basis
 ```
 
 Both per-student figures are shown, because they answer different questions. The
-per-course one says which course is expensive to run. The **programme** one is
+per-course one says which course is expensive to run. The **program** one is
 the figure that can be set beside the package price, since a package is sold per
 student for the whole curriculum.
 
@@ -906,7 +906,7 @@ alternative and are unusable here: measured against the seed, the lecturer-hours
 quantity has medians of 40, 43 and 43 for 2-, 3- and 4-credit courses. A
 2-credit course carries the same hours as a 4-credit one, because that quantity
 is generator jitter. Distributing by it would distribute by a random number that
-looks principled. Credits vary in 16 of the 19 programme terms, so the driver
+looks principled. Credits vary in 16 of the 19 program terms, so the driver
 does real work; the other 3 are genuine ties, which split evenly and correctly.
 
 `CostDriver` is a union with one member today. Adding contact hours later means
@@ -915,11 +915,11 @@ would give nearly the same answer, which is the point.
 
 **The distribution is exact.** The shares are allocated by largest remainder to
 two decimals, so the parts sum to the pool to the satang. Rounding each share
-independently would leak a few satang out of every programme, and a cost that
+independently would leak a few satang out of every program, and a cost that
 leaks is the failure this whole revision exists to remove.
 
-**A markup is one number per programme term**, applied to each course's subtotal
-after its share lands. Per-course markups would leave the programme total
+**A markup is one number per program term**, applied to each course's subtotal
+after its share lands. Per-course markups would leave the program total
 depending on several numbers that no screen adds up — the same shape of problem
 as the old allocation percentages.
 
@@ -986,18 +986,18 @@ screen beside it, because the gap between the two *is* the story.
 **Net profit is stated on a basis, and the basis is collected.** A pending
 student who has been billed and has not paid is outstanding, not earned;
 counting them as profit was the defect this rule replaces. The basis travels
-with the number — a figure labelled only "net profit" makes a claim it cannot
+with the number — a figure labeled only "net profit" makes a claim it cannot
 support.
 
 **Attributed** is the load-bearing word. A course cost sheet covers everyone on
-that course, and a course can be taught into several programmes at once, so a
-programme cannot be charged the whole sheet. It is charged:
+that course, and a course can be taught into several programs at once, so a
+program cannot be charged the whole sheet. It is charged:
 
 ```text
-Course cost per student x Students from this programme on that course
+Course cost per student x Students from this program on that course
 ```
 
-which is the only split that stays correct when two programmes share a course.
+which is the only split that stays correct when two programs share a course.
 
 Three things must not be hidden:
 
@@ -1019,24 +1019,24 @@ narrowed to payment gateway integration and accounting, which stay out.*
 
 An invoice is what turns a package price into a claim on a particular student.
 It is the last piece of the money chain: cost says what delivery cost, revenue
-says what the programme was worth, and an invoice says who owes it.
+says what the program was worth, and an invoice says who owes it.
 
 ## Grain
 
 **One invoice per student per semester.** Not per course — a student enrols in a
-programme (§7a), so a bill per course would contradict the thing being sold. Not
-per programme either: a student taking two programmes in one term receives one
+program (§7a), so a bill per course would contradict the thing being sold. Not
+per program either: a student taking two programs in one term receives one
 document, because that is what a person receives.
 
 ## Lines
 
-The lines are the **curriculum**, not the enrolments. A package is a package,
+The lines are the **curriculum**, not the enrollments. A package is a package,
 and the invoice shows what the package buys:
 
 ```text
-one line per course in the programme term's curriculum
+one line per course in the program term's curriculum
     amount = course credits x credit rate
-one programme fee line
+one program fee line
     amount = package price - sum of the course lines
 one credit line per course the student did not complete
     cancelled  100% of that course line
@@ -1051,8 +1051,8 @@ two must not be able to drift: a package price derived from one rate and an
 invoice from another produces a document that disagrees with the contract it
 bills, and nothing would catch it.
 
-The programme fee line exists so the course lines and the package price
-reconcile exactly. It is a real line, not a rounding plug, and it is labelled.
+The program fee line exists so the course lines and the package price
+reconcile exactly. It is a real line, not a rounding plug, and it is labeled.
 
 A course the student simply never enrolled in earns nothing back. Choosing not
 to attend what was bought is not a billing event.
@@ -1104,7 +1104,7 @@ own status, which is what a real ledger does to a settled bill and what stops a
 second payment being made against it.
 
 The stamp is visual, so the sentence above the block states the same thing in
-words: colour and a rotated label are lost to a screen reader and to a
+words: color and a rotated label are lost to a screen reader and to a
 monochrome print. Which statuses are payable is not a second list — it is
 `isOutstanding`, the same predicate the revenue split already uses.
 
@@ -1303,7 +1303,7 @@ rather than once at the top of the screen.
 ### Two relations that cannot exist
 
 **A same-role pair is peer assessment, not self-assessment.** Student assessing
-student is the centre of this feature (§16, Student). "Nobody assesses
+student is the center of this feature (§16, Student). "Nobody assesses
 themselves" is a rule about *people* and is enforced where people are: an
 evaluator never appears among their own subjects.
 
@@ -1418,14 +1418,14 @@ not what a student is asked about their teacher. Assessing a student:
 The gaps carry the meaning. An inspector meets the group once, so it is not
 asked to judge problem solving. A TA sees the work rather than the whole cohort,
 so it is not asked about responsibility or leadership. Peers are not asked to
-grade technical contribution, which is the teacher's and the TA's judgement to
+grade technical contribution, which is the teacher's and the TA's judgment to
 make. Only the teacher answers all seven.
 
 **A subset, not a separately worded set per relation.** Wording each relation's
 questions independently was the alternative and was rejected: a criterion would
 then mean something slightly different depending on who answered it, and the
 scores would stop being comparable across roles. A role's 360 score is
-normalised over the criteria it was actually asked, so a shorter question set is
+normalized over the criteria it was actually asked, so a shorter question set is
 not a penalty.
 
 Upward feedback asks a narrower and different set. Students can speak to how a
@@ -1474,7 +1474,7 @@ in §18, deliberately, not writing a new question.
 **A text question is not scored at all.** It has no criterion, never enters the
 blend of §20, and lands in the report's Feedback part (§23) — attributed to a
 role and never to a person. This is what the forms were missing: an ordering and
-a rating both compress a judgement into a number, and neither can say *why*.
+a rating both compress a judgment into a number, and neither can say *why*.
 
 **A setup takes a copy, never a reference.** Attaching questions to an
 evaluation snapshots their prompt, help text and type; only the id survives, for
@@ -1490,7 +1490,7 @@ copies; a current setting references.** A cost sheet is evidence. A submitted
 answer is evidence. The weight blend on a setup is a setting.
 
 **The bank is maintained under Manage Evaluation**, not beside the cost
-catalogue. They are the same *kind* of thing and belong to different people: a
+catalog. They are the same *kind* of thing and belong to different people: a
 question is edited by whoever runs the evaluation, and putting it in Cost
 Management would file it by mechanism rather than by who needs it.
 
@@ -1617,7 +1617,7 @@ The alternative — adding the ordering as a fifth weighted component beside the
 four roles — was rejected because a teacher who both rates and ranks would then
 count twice, once as a teacher and once as a contributor to the ordering
 component. Under the rule above a teacher counts once, and how they express that
-judgement is a property of the teacher's own share.
+judgment is a property of the teacher's own share.
 
 Only the ranking share is stored; the 360 share is always its complement. Two
 stored numbers that must total 100 are two numbers that will eventually disagree.
@@ -1644,7 +1644,7 @@ ordering 40" *and* the per-role weights beneath it, which gives the same quantit
 two sources of truth and no rule for which one wins. The per-role figures are the
 truth; the headline is computed from them and shown as a read-out.
 
-**A role can be switched off**, and the remaining weights are renormalised so
+**A role can be switched off**, and the remaining weights are renormalized so
 they still total 100. A course with no teaching assistant would otherwise leave
 15% of every score unallocated, and nothing downstream would detect it. A
 disabled role keeps its stored weight, so switching it back on restores the
@@ -1752,7 +1752,7 @@ together and it is worth knowing they happen to line up - a pass mark of 4 out
 of 5 is 80%, which is a B.
 
 **The report shows all three**, because they answer different questions. The
-mean is what an assessor recognises, the percentage is what compares across
+mean is what an assessor recognizes, the percentage is what compares across
 courses, and the grade is the academic record.
 
 **A score with no submissions is null, never zero and never "not pass".** "Has
@@ -1840,7 +1840,7 @@ so every cell is a dash - and keeping the column states the rule, where dropping
 it would leave a reader wondering whether self-assessment happened and simply
 was not shown.
 
-A **behavioural profile chart** sits between the two: a radar across the
+A **behavioral profile chart** sits between the two: a radar across the
 criteria, on the rating scale, because the shape is the finding. Its radius axis
 is fixed to the scale rather than inferred from the data - auto-scaling would
 make a weak profile fill the frame exactly like a strong one.
@@ -2150,10 +2150,10 @@ Forms should support:
 - Cost items
 - Cost options
 - Direct costs, per course
-- Indirect costs, per programme term
+- Indirect costs, per program term
 - Distribution by the driver (credit hours)
 - Total cost
-- Cost per student, per course and per programme
+- Cost per student, per course and per program
 - Preferred price
 
 ### Evaluation

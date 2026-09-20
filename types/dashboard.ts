@@ -99,7 +99,7 @@ export interface DashboardSummary {
  * one**. The seeded student is enrolled in 202502 and 202602 and the active
  * semester is 202601, so a dashboard filtered to "now" would be empty for the
  * only student who can sign in - and an empty landing page demonstrates
- * nothing. Showing every semester and labelling each row is the honest version:
+ * nothing. Showing every semester and labeling each row is the honest version:
  * nothing is hidden and nothing is passed off as current.
  */
 export interface StudentCourseRow {
@@ -149,7 +149,7 @@ export interface StudentDashboardSummary {
     yearLevel: number;
   } | null;
 
-  /** The most recent programme membership: what they are on, and where they got to. */
+  /** The most recent program membership: what they are on, and where they got to. */
   standing: {
     programName: string;
     semesterCode: SemesterCode;
@@ -166,6 +166,6 @@ export interface StudentDashboardSummary {
   /** Assignments with nothing left to do, for the "N of M" on the tile. */
   taskTotal: number;
 
-  /** The semester the school is running, for labelling rather than filtering. */
+  /** The semester the school is running, for labeling rather than filtering. */
   currentSemesterCode: SemesterCode | null;
 }

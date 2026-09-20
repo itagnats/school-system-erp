@@ -1,9 +1,9 @@
 import type { Program } from "@/types";
 
 /**
- * Fictional programmes.
+ * Fictional programs.
  *
- * The code prefix is load-bearing in the seed: a programme is stocked with the
+ * The code prefix is load-bearing in the seed: a program is stocked with the
  * courses whose code starts with the same letters, so `BSC-IT` gets the `IT`
  * courses. Real curriculum design is not that tidy, but a demo where the course
  * list is arbitrary teaches the reader nothing about the model.
@@ -14,7 +14,7 @@ export const mockPrograms: Program[] = [
     code: "BSC-IT",
     name: "Information Technology",
     description:
-      "Four-year programme covering infrastructure, software delivery and information systems.",
+      "Four-year program covering infrastructure, software delivery and information systems.",
     credential: "Bachelor of Science",
     status: "active",
     createdAt: "2024-09-01T09:00:00.000Z",
@@ -24,7 +24,7 @@ export const mockPrograms: Program[] = [
     id: "prg-ds",
     code: "BSC-DS",
     name: "Data Science",
-    description: "Statistics, modelling and the ethics of drawing conclusions from data.",
+    description: "Statistics, modeling and the ethics of drawing conclusions from data.",
     credential: "Bachelor of Science",
     status: "active",
     createdAt: "2024-09-01T09:00:00.000Z",
@@ -44,7 +44,7 @@ export const mockPrograms: Program[] = [
     id: "prg-ba",
     code: "BBA-AN",
     name: "Business Analytics",
-    description: "Decision modelling and process improvement for operations teams.",
+    description: "Decision modeling and process improvement for operations teams.",
     credential: "Bachelor of Business Administration",
     status: "active",
     createdAt: "2025-01-15T09:00:00.000Z",
@@ -62,7 +62,7 @@ export const mockPrograms: Program[] = [
   },
 ];
 
-/** Which course code prefix stocks each programme, used by the seed. */
+/** Which course code prefix stocks each program, used by the seed. */
 export const PROGRAM_COURSE_PREFIX: Record<string, string> = {
   "prg-it": "IT",
   "prg-ds": "DS",

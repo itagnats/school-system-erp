@@ -12,7 +12,7 @@ import { createQuestion, listQuestionGroups } from "@/server/services";
  * Not `handleList`: that helper speaks the shared paginated contract, and this
  * endpoint deliberately does not paginate - a page boundary inside a group
  * would split the thing being maintained. The demo switch and the artificial
- * latency are still honoured, because the screen has the same four states as
+ * latency are still honored, because the screen has the same four states as
  * any other.
  */
 export async function GET(request: Request) {

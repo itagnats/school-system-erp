@@ -1,4 +1,4 @@
-import { mockCatalogueGroups } from "@/data/mock/cost-catalog";
+import { mockCatalogGroups } from "@/data/mock/cost-catalog";
 import { mockQuestionGroups } from "@/data/mock/questions";
 import { questionsForRelation } from "@/lib/calculations";
 import { mockCourseCostSheets, mockProgramCostSheets } from "@/data/mock/costs";
@@ -17,7 +17,7 @@ import {
   INVOICE_STATUS_BY_MEMBERSHIP,
   ISSUE_LEAD_DAYS,
   PAYMENT_TERM_DAYS,
-  PROGRAMME_FEE_LABEL,
+  PROGRAM_FEE_LABEL,
 } from "@/data/mock/invoices";
 import {
   PROGRAM_COURSE_PREFIX,
@@ -27,8 +27,8 @@ import { mockSemesters } from "@/data/mock/semesters";
 import { mockStudents } from "@/data/mock/students";
 import type {
   AssesseeConfig,
-  CatalogueGroup,
-  CatalogueItem,
+  CatalogGroup,
+  CatalogItem,
   CostGroup,
   CostItem,
   CostKind,
@@ -63,7 +63,7 @@ import {
   courseLineAmount,
   creditLineAmount,
   creditReasonFor,
-  programmeFeeAmount,
+  programFeeAmount,
 } from "@/lib/calculations/invoice";
 import { createRandom, isoFromEpoch, type Random } from "./random";
 
@@ -75,7 +75,7 @@ import { createRandom, isoFromEpoch, type Random } from "./random";
  * the server and client renders disagree and hydration breaks.
  *
  * The hand-written rows come first and keep their ids, so a reader who has read
- * `data/mock/` recognises the top of every list.
+ * `data/mock/` recognizes the top of every list.
  */
 
 const SUBJECTS: ReadonlyArray<readonly [string, readonly string[]]> = [
@@ -88,7 +88,7 @@ const SUBJECTS: ReadonlyArray<readonly [string, readonly string[]]> = [
       "Cloud Foundations",
       "Cyber Security Basics",
       "Mobile Development",
-      "Systems Analysis",
+      "Systems Analyzis",
       "IT Project Management",
     ],
   ],
@@ -96,14 +96,14 @@ const SUBJECTS: ReadonlyArray<readonly [string, readonly string[]]> = [
     "DS",
     [
       "Statistics for Analysts",
-      "Data Visualisation",
+      "Data Visualization",
       "Machine Learning Primer",
       "Data Ethics",
       "Experiment Design",
     ],
   ],
   ["DE", ["Interaction Design", "Typography", "Service Design", "Prototyping"]],
-  ["BA", ["Operations Research", "Decision Modelling", "Process Improvement"]],
+  ["BA", ["Operations Research", "Decision Modeling", "Process Improvement"]],
   [
     "CS",
     [
@@ -117,11 +117,11 @@ const SUBJECTS: ReadonlyArray<readonly [string, readonly string[]]> = [
 ];
 
 /**
- * The programmes a generated student can belong to.
+ * The programs a generated student can belong to.
  *
  * `mockPrograms` itself, rather than a list of names beside it. The names used
  * to be written out here, which made the seed a second definition of the
- * programme catalogue - and a student's programme a string that no `Program`
+ * program catalog - and a student's program a string that no `Program`
  * row was ever joined to (`AUD-021`). The order is `mockPrograms`' own, so the
  * name each draw produces is unchanged; what is new is that the id comes with
  * it.
@@ -142,7 +142,7 @@ const MAJORS = [
 const INTERESTS = [
   "Web development",
   "Accessibility",
-  "Visualisation",
+  "Visualization",
   "Robotics",
   "Game design",
   "Forecasting",
@@ -182,7 +182,7 @@ function generateCourses(rng: Random, semesters: Semester[]): Course[] {
         id: `crs-${code.toLowerCase()}`,
         code,
         name: title,
-        description: `${title} for the ${prefix} programme. A fictional course record used for demonstration.`,
+        description: `${title} for the ${prefix} program. A fictional course record used for demonstration.`,
         credits: rng.int(2, 4),
         status,
         // A draft course has not been scheduled yet, which is what makes the
@@ -203,14 +203,14 @@ function generateCourses(rng: Random, semesters: Semester[]): Course[] {
 /**
  * A student's academic block.
  *
- * Its own function only so that the programme id and the programme name can
+ * Its own function only so that the program id and the program name can
  * come from **one** draw. Written inline, the object literal would have to call
- * `rng.pick` twice and the two halves could name different programmes - which
+ * `rng.pick` twice and the two halves could name different programs - which
  * is the same disagreement `AUD-021` was about, reintroduced one layer down.
  *
  * It must stay where the old `academic:` literal was in the evaluation order.
  * Hoisting the draw above `personal` reorders the PRNG stream, and the seed is
- * a different dataset: measured, that moved programme memberships from 635 to
+ * a different dataset: measured, that moved program memberships from 635 to
  * 628 and course enrollments from 1,297 to 1,261. Nothing failed, and every
  * number on every screen would have quietly changed.
  */
@@ -292,22 +292,22 @@ const STATUS_BY_SEMESTER: Record<string, EnrollmentStatus[]> = {
 };
 
 /**
- * Course enrollments are derived from programme enrollments, not generated
+ * Course enrollments are derived from program enrollments, not generated
  * beside them.
  *
- * A student enrols in a programme term, and that enrols them in the courses of
+ * A student enrols in a program term, and that enrols them in the courses of
  * its curriculum (direction.md §7a). Generating the two independently was the
  * first attempt and produced a dataset that quietly contradicted itself: barely
- * any programme member was enrolled in their own programme courses, so the
+ * any program member was enrolled in their own program courses, so the
  * per-course head count collapsed, the attributed cost went to almost nothing,
- * and every programme showed a 98% margin. The numbers were arithmetically
+ * and every program showed a 98% margin. The numbers were arithmetically
  * correct and completely false.
  *
  * A student may still drop an individual course, which is what keeps the
- * per-course head count lower than the programme head count rather than equal
+ * per-course head count lower than the program head count rather than equal
  * to it.
  */
-/** One course enrollment for one member of a programme term. */
+/** One course enrollment for one member of a program term. */
 function buildCourseEnrollment(
   rng: Random,
   serial: number,
@@ -359,7 +359,7 @@ function generateEnrollments(
     for (const courseId of term.courseIds) {
       const key = `${membership.studentId}:${courseId}:${term.semesterCode}`;
       // Most of the curriculum is taken; a few courses are skipped, so the
-      // course head count is a real subset of the programme head count.
+      // course head count is a real subset of the program head count.
       if (taken.has(key) || !rng.chance(0.88)) continue;
 
       taken.add(key);
@@ -383,18 +383,18 @@ function generateEnrollments(
 const SHEET_STATUSES: CostSheetStatus[] = ["draft", "review", "approved", "approved"];
 
 /**
- * How often a sheet's copy is nudged away from the catalogue default.
+ * How often a sheet's copy is nudged away from the catalog default.
  *
  * Not variety for its own sake: §12a says a sheet owns its copy and the
- * catalogue does not reach back into it, so the dataset has to contain items
+ * catalog does not reach back into it, so the dataset has to contain items
  * that genuinely differ or the drift states can never be seen on screen.
  */
 const PRICE_DRIFT_CHANCE = 0.18;
 
-/** Copy one catalogue item onto a sheet, taking its defaults (§12a). */
-function copyFromCatalogue(
+/** Copy one catalog item onto a sheet, taking its defaults (§12a). */
+function copyFromCatalog(
   rng: Random,
-  source: CatalogueItem,
+  source: CatalogItem,
   suffix: string,
 ): CostItem {
   const drifted = rng.chance(PRICE_DRIFT_CHANCE);
@@ -404,7 +404,7 @@ function copyFromCatalogue(
     name: source.name,
     kind: source.kind,
     // A sheet that has moved its own price is the case the drift report exists
-    // for. The rest sit exactly on the catalogue.
+    // for. The rest sit exactly on the catalog.
     unitPrice: drifted
       ? Math.round((source.defaultUnitPrice * (0.85 + rng.next() * 0.4)) / 50) * 50
       : source.defaultUnitPrice,
@@ -418,7 +418,7 @@ function copyFromCatalogue(
         ? `${rng.pick(source.options).id}-${suffix}`
         : undefined,
     note: source.note,
-    catalogueItemId: source.id,
+    catalogItemId: source.id,
     copiedAt: isoFromEpoch(-rng.int(40, 300)),
   };
 }
@@ -426,25 +426,25 @@ function copyFromCatalogue(
 /**
  * The groups one sheet is built from.
  *
- * Two to three of the catalogue's active groups, each contributing most of its
+ * Two to three of the catalog's active groups, each contributing most of its
  * active items. Not all of them: a sheet that always contains everything makes
- * the "add from catalogue" action look like it has nothing left to add.
+ * the "add from catalog" action look like it has nothing left to add.
  */
 /**
- * Groups for one sheet, drawn from the catalogue and filtered by kind.
+ * Groups for one sheet, drawn from the catalog and filtered by kind.
  *
  * `kind` is the whole point: a course sheet may only take direct items and a
- * programme sheet only indirect ones (direction.md §12). Filtering here rather
+ * program sheet only indirect ones (direction.md §12). Filtering here rather
  * than at the call sites is what makes it impossible for the generator to
  * produce a sheet the application would refuse to accept.
  */
 function sheetGroupsFrom(
   rng: Random,
-  catalogue: CatalogueGroup[],
+  catalog: CatalogGroup[],
   suffix: string,
   kind: CostKind,
 ): CostGroup[] {
-  const usable = catalogue
+  const usable = catalog
     .filter((group) => group.status === "active")
     .map((group) => ({
       group,
@@ -460,12 +460,12 @@ function sheetGroupsFrom(
     .map(({ group, available }) => {
       const items = rng
         .sample(available, Math.max(1, available.length - rng.int(0, 1)))
-        .map((entry) => copyFromCatalogue(rng, entry, suffix));
+        .map((entry) => copyFromCatalog(rng, entry, suffix));
 
       return {
         id: `${group.id}-${kind}-${suffix}`,
         name: group.name,
-        catalogueGroupId: group.id,
+        catalogGroupId: group.id,
         items,
       };
     })
@@ -475,7 +475,7 @@ function sheetGroupsFrom(
 /**
  * Direct-cost sheets, one per course-semester (direction.md §11).
  *
- * Direct costs only. The indirect ones belong to the programme term and are
+ * Direct costs only. The indirect ones belong to the program term and are
  * generated once, by `generateProgramCostSheets`.
  */
 function generateCourseCostSheets(
@@ -483,7 +483,7 @@ function generateCourseCostSheets(
   courses: Course[],
   enrollments: Enrollment[],
   terms: ProgramTerm[],
-  catalogue: CatalogueGroup[],
+  catalog: CatalogGroup[],
 ): CourseCostSheet[] {
   const sheets: CourseCostSheet[] = [...mockCourseCostSheets];
   const existing = new Set(sheets.map((s) => `${s.courseId}:${s.semesterCode}`));
@@ -494,7 +494,7 @@ function generateCourseCostSheets(
     headCount.set(key, (headCount.get(key) ?? 0) + 1);
   }
 
-  // A course taught inside a curriculum must have a sheet: the programme cost
+  // A course taught inside a curriculum must have a sheet: the program cost
   // screen names the ones that do not, and a missing sheet there reads as an
   // unknown cost rather than as a cheap course.
   //
@@ -522,9 +522,9 @@ function generateCourseCostSheets(
         status: rng.pick(SHEET_STATUSES),
         studentCount: headCount.get(key) ?? rng.int(15, 40),
         currency: "THB",
-        // Built from the catalogue rather than cloned from a template sheet, so
+        // Built from the catalog rather than cloned from a template sheet, so
         // every generated item knows where its rate came from (§12a).
-        groups: sheetGroupsFrom(rng, catalogue, suffix, "direct"),
+        groups: sheetGroupsFrom(rng, catalog, suffix, "direct"),
         createdAt: isoFromEpoch(createdDays),
         updatedAt: isoFromEpoch(createdDays + rng.int(5, 60)),
       });
@@ -534,7 +534,7 @@ function generateCourseCostSheets(
   // One curriculum course is left uncosted on purpose (AUD-015, closed
   // 2026-09-16). "A course with no cost sheet contributes unknown, never zero"
   // is §13a's rule, it is unit tested, and until now it appeared on 0 of 19
-  // terms - a rule stated in the spec and demonstrated nowhere. The programme
+  // terms - a rule stated in the spec and demonstrated nowhere. The program
   // cost screen has a state for it, and a state that never renders is the
   // failure this project keeps repeating.
   //
@@ -554,22 +554,22 @@ function generateCourseCostSheets(
  * The one curriculum course deliberately left without a direct cost sheet.
  *
  * CS296 in 202502 - a mid-sized course in a four-course curriculum, so the
- * programme it sits in still costs sensibly with one part unknown.
+ * program it sits in still costs sensibly with one part unknown.
  */
 const UNCOSTED_COURSE = { courseId: "crs-cs296", semesterCode: "202502" } as const;
 
 /**
- * Indirect-cost sheets, one per programme term (direction.md §11).
+ * Indirect-cost sheets, one per program term (direction.md §11).
  *
  * **One per term, with no exceptions.** A term without one has no classroom,
- * no utilities and no activities, which is not a state a real programme is ever
+ * no utilities and no activities, which is not a state a real program is ever
  * in — and an absent pool would quietly make every course in that term look
  * cheaper than its neighbours rather than showing an empty state.
  */
 function generateProgramCostSheets(
   rng: Random,
   terms: ProgramTerm[],
-  catalogue: CatalogueGroup[],
+  catalog: CatalogGroup[],
 ): ProgramCostSheet[] {
   const sheets: ProgramCostSheet[] = [...mockProgramCostSheets];
   const existing = new Set(sheets.map((s) => s.programTermId));
@@ -593,7 +593,7 @@ function generateProgramCostSheets(
       // stream and shift every value generated after it, for no gain.
       priceRoundingStep: DEFAULT_PRICE_ROUNDING_STEP,
       currency: "THB",
-      groups: sheetGroupsFrom(rng, catalogue, term.id, "indirect"),
+      groups: sheetGroupsFrom(rng, catalog, term.id, "indirect"),
       createdAt: isoFromEpoch(createdDays),
       updatedAt: isoFromEpoch(createdDays + rng.int(5, 60)),
     });
@@ -609,7 +609,7 @@ const TERM_STATUS_BY_SEMESTER: Record<string, ProgramTermStatus> = {
 };
 
 /**
- * A programme term is the curriculum for one semester plus its price.
+ * A program term is the curriculum for one semester plus its price.
  *
  * Courses are drawn from the matching code prefix, and the price is derived
  * from the course count so a heavier term costs more - an arbitrary price would
@@ -663,10 +663,10 @@ const PROGRAM_ENROLLMENT_STATUS: Record<ProgramTermStatus, ProgramEnrollment["st
 };
 
 /**
- * Students enrol in a programme, not in a course.
+ * Students enrol in a program, not in a course.
  *
- * Membership follows the programme already on the student profile, so the
- * roster on a programme and the programme on a profile cannot disagree.
+ * Membership follows the program already on the student profile, so the
+ * roster on a program and the program on a profile cannot disagree.
  */
 function generateProgramEnrollments(
   rng: Random,
@@ -676,7 +676,7 @@ function generateProgramEnrollments(
   const byProgram = new Map<string, Student[]>();
   for (const student of students) {
     // `programId`, not the display name through a lookup table. The table was
-    // the seed's own copy of the join `AUD-021` was raised about: a programme
+    // the seed's own copy of the join `AUD-021` was raised about: a program
     // renamed in `mockPrograms` and not here would have silently emptied its
     // cohort, and nothing would have failed.
     const list = byProgram.get(student.academic.programId);
@@ -691,7 +691,7 @@ function generateProgramEnrollments(
     const cohort = byProgram.get(term.programId) ?? [];
     if (cohort.length === 0) continue;
 
-    // Not the whole programme every term: students take breaks, and a term
+    // Not the whole program every term: students take breaks, and a term
     // where everyone is enrolled makes the head count meaningless.
     const taking = rng.sample(cohort, Math.max(1, Math.round(cohort.length * 0.55)));
     const pool = PROGRAM_ENROLLMENT_STATUS[term.status];
@@ -724,7 +724,7 @@ const GROUP_SIZE = 6;
 /** Below this, a course-semester is one group rather than two lopsided ones. */
 const MIN_GROUP_SIZE = 4;
 
-/** Enrolments that actually take part. A dropped student is not evaluated. */
+/** Enrollments that actually take part. A dropped student is not evaluated. */
 const EVALUABLE: ReadonlySet<EnrollmentStatus> = new Set<EnrollmentStatus>([
   "enrolled",
   "active",
@@ -737,7 +737,7 @@ const EVALUABLE: ReadonlySet<EnrollmentStatus> = new Set<EnrollmentStatus>([
  *
  * The group id has to be derived from the enrollments rather than assigned
  * independently, for the reason recorded above `buildCourseEnrollment`: the
- * programme layer was first built with two independent generators and produced
+ * program layer was first built with two independent generators and produced
  * a dataset that contradicted itself. A group whose members are not enrolled in
  * its course is the same mistake wearing different clothes - peer evaluation
  * would have nobody to evaluate.
@@ -977,7 +977,7 @@ interface InvoiceContext {
 }
 
 /**
- * The charges for one programme term: a line per curriculum course, then the
+ * The charges for one program term: a line per curriculum course, then the
  * fee that reconciles them with the package price.
  */
 function chargeLinesFor(
@@ -1007,12 +1007,12 @@ function chargeLinesFor(
   }
 
   // Omitted when it is zero rather than printed as a zero line.
-  const fee = programmeFeeAmount(term.packagePrice, courseTotal);
+  const fee = programFeeAmount(term.packagePrice, courseTotal);
   if (fee !== 0) {
     lines.push({
       id: nextId(),
       kind: "fee",
-      description: PROGRAMME_FEE_LABEL,
+      description: PROGRAM_FEE_LABEL,
       amount: fee,
     });
   }
@@ -1063,7 +1063,7 @@ function creditLinesFor(
  * Gather memberships by student and semester.
  *
  * The grain is the student-semester (direction.md §13b), so this runs before
- * any invoice is built: a student in two programmes gets one document with
+ * any invoice is built: a student in two programs gets one document with
  * lines from both, rather than two documents.
  */
 function membershipsByStudentSemester(
@@ -1086,9 +1086,9 @@ function membershipsByStudentSemester(
 /**
  * One invoice per student per semester (direction.md §13b).
  *
- * Derived from programme enrollments, never generated beside them. Generated
+ * Derived from program enrollments, never generated beside them. Generated
  * independently, an invoice would bill a student for a term they never joined -
- * the same failure the programme layer produced when course enrollments were
+ * the same failure the program layer produced when course enrollments were
  * generated apart from their parent.
  *
  * The lines are the **curriculum**, not the student's own enrollments: a
@@ -1168,7 +1168,7 @@ function generateInvoices(
       status,
       issuedOn,
       dueOn,
-      // Paid a little before or after the due date, so an ageing view has a
+      // Paid a little before or after the due date, so an aging view has a
       // spread rather than one date repeated.
       paidOn: status === "paid" ? isoDateFrom(dueOn, rng.int(-20, 5)) : undefined,
       currency: "THB",
@@ -1188,7 +1188,7 @@ function generateInvoices(
  * follows their own standing. Two exceptions, both about honesty rather than
  * variety: a term that has not opened can only hold drafts, since its cohort is
  * not confirmed; and an invoice is cancelled only when *every* membership on it
- * was withdrawn, because a student who withdrew from one of two programmes
+ * was withdrawn, because a student who withdrew from one of two programs
  * still owes for the other.
  */
 function invoiceStatusFor(
@@ -1206,7 +1206,7 @@ function invoiceStatusFor(
   );
   if (planning) return "draft";
 
-  // The furthest-along membership decides, so a completed programme is not
+  // The furthest-along membership decides, so a completed program is not
   // reported as pending because a second one has not started.
   const rank: Record<ProgramEnrollment["status"], number> = {
     withdrawn: 0,
@@ -1231,7 +1231,7 @@ export interface Dataset {
   evaluationGroups: EvaluationGroup[];
   evaluationSetups: EvaluationSetup[];
   invoices: Invoice[];
-  catalogueGroups: CatalogueGroup[];
+  catalogGroups: CatalogGroup[];
   questionGroups: QuestionGroup[];
 }
 
@@ -1243,8 +1243,8 @@ export function generateDataset(): Dataset {
   const semesters = [...mockSemesters];
   const courses = generateCourses(rng, semesters);
   const students = generateStudents(rng);
-  // Order matters: a course enrollment is a consequence of a programme
-  // enrollment, so the programme layer has to exist first.
+  // Order matters: a course enrollment is a consequence of a program
+  // enrollment, so the program layer has to exist first.
   const programs = [...mockPrograms];
   const programTerms = generateProgramTerms(rng, programs, courses, semesters);
   const programEnrollments = generateProgramEnrollments(rng, programTerms, students);
@@ -1255,8 +1255,8 @@ export function generateDataset(): Dataset {
   const enrollments = grouped.enrollments;
   const evaluationGroups = grouped.groups;
   const evaluationSetups = generateEvaluationSetups(rng, evaluationGroups, courses, semesters);
-  const catalogueGroups = [...mockCatalogueGroups];
-  // Hand-written master data, like the catalogue: taken through as written
+  const catalogGroups = [...mockCatalogGroups];
+  // Hand-written master data, like the catalog: taken through as written
   // rather than generated, because these are the words evaluators read.
   const questionGroups = [...mockQuestionGroups];
   const courseCostSheets = generateCourseCostSheets(
@@ -1264,9 +1264,9 @@ export function generateDataset(): Dataset {
     courses,
     enrollments,
     programTerms,
-    catalogueGroups,
+    catalogGroups,
   );
-  const programCostSheets = generateProgramCostSheets(rng, programTerms, catalogueGroups);
+  const programCostSheets = generateProgramCostSheets(rng, programTerms, catalogGroups);
   // Last: an invoice needs the curriculum for its lines and the course
   // enrollments for its credits, so both have to exist first.
   const invoices = generateInvoices(
@@ -1292,7 +1292,7 @@ export function generateDataset(): Dataset {
     evaluationGroups,
     evaluationSetups,
     invoices,
-    catalogueGroups,
+    catalogGroups,
     questionGroups,
   };
 }

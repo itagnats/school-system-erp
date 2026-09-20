@@ -30,7 +30,7 @@ import { EVALUATION_CRITERIA, EVALUATION_ROLES } from "@/types";
 
 /**
  * A tone is a visual weight, not a meaning. The label below always states the
- * status in words, so the badge never carries it in colour alone.
+ * status in words, so the badge never carries it in color alone.
  */
 export const EVALUATION_STATUS_TONE: Record<EvaluationStatus, StatusTone> = {
   "not-started": "neutral",

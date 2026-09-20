@@ -5,7 +5,7 @@ import type { AssesseeConfig, EvaluationSetup } from "@/types";
  * Fictional evaluation fixtures (scaffold.md §12).
  *
  * The hand-written rows here are the top of the generated dataset and keep
- * their ids, so a reader who has read this file recognises the first rows of
+ * their ids, so a reader who has read this file recognizes the first rows of
  * Manage Evaluation.
  */
 
@@ -52,7 +52,7 @@ export const STUDENT_ONLY_ASSESSEES: readonly AssesseeConfig[] = [
   },
 ];
 
-/** A student cohort with no teaching assistant, renormalised across the rest. */
+/** A student cohort with no teaching assistant, renormalized across the rest. */
 export const NO_TA_ASSESSEES: readonly AssesseeConfig[] = [
   {
     role: "student",

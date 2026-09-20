@@ -4,11 +4,11 @@ import type { SemesterCode } from "./common";
  * Cost structure (direction.md §11-13, revised 2026-09-15):
  *
  *   Course    -> Course Cost Sheet     -> Cost Group -> Cost Item -> Cost Option
- *   Prog Term -> Programme Cost Sheet  -> Cost Group -> Cost Item -> Cost Option
+ *   Prog Term -> Program Cost Sheet  -> Cost Group -> Cost Item -> Cost Option
  *
  * **The kind decides which sheet an item may sit on.** A direct cost belongs
  * wholly to one course and lives on that course's sheet. An indirect cost is
- * borne once by the programme term and is distributed across its curriculum by
+ * borne once by the program term and is distributed across its curriculum by
  * a driver, never by a hand-entered percentage.
  *
  * `shared` was the old name for `indirect`, and the rename is not cosmetic: the
@@ -42,14 +42,14 @@ export interface CostItem {
   selectedOptionId?: string;
   note?: string;
   /**
-   * The catalogue item this was copied from, if any (direction.md §12a).
+   * The catalog item this was copied from, if any (direction.md §12a).
    *
    * A copy, not a link: the values above are the sheet's own and do not follow
-   * the catalogue. This id exists so the sheet can answer "where did this rate
-   * come from" and report when the catalogue has since moved on. Absent on a
+   * the catalog. This id exists so the sheet can answer "where did this rate
+   * come from" and report when the catalog has since moved on. Absent on a
    * one-off cost typed straight onto the sheet.
    */
-  catalogueItemId?: string;
+  catalogItemId?: string;
   /** When the copy was taken. Absent on a one-off cost. */
   copiedAt?: string;
 }
@@ -59,12 +59,12 @@ export interface CostGroup {
   /** e.g. `Teaching`, `Facilities`, `Student Activities`. */
   name: string;
   items: CostItem[];
-  /** The catalogue group this group corresponds to, if any. */
-  catalogueGroupId?: string;
+  /** The catalog group this group corresponds to, if any. */
+  catalogGroupId?: string;
 }
 
 /* -------------------------------------------------------------------------- */
-/* The catalogue (direction.md §12a)                                          */
+/* The catalog (direction.md §12a)                                          */
 /* -------------------------------------------------------------------------- */
 
 /**
@@ -72,18 +72,18 @@ export interface CostGroup {
  *
  * The sheets hold copies and would survive a delete, but their provenance would
  * point at nothing — and "where did this rate come from" is the question the
- * catalogue exists to answer.
+ * catalog exists to answer.
  */
-export type CatalogueStatus = "active" | "archived";
+export type CatalogStatus = "active" | "archived";
 
 /**
  * A reusable cost line, maintained once and copied onto sheets.
  *
  * The prices and quantities here are **defaults, not truths**. Forty-five
  * contact hours is the usual case; a sheet is free to say otherwise, and doing
- * so is not a correction to the catalogue.
+ * so is not a correction to the catalog.
  */
-export interface CatalogueItem {
+export interface CatalogItem {
   id: string;
   groupId: string;
   name: string;
@@ -92,40 +92,40 @@ export interface CatalogueItem {
   defaultUnitPrice: number;
   defaultQuantity: number;
   options: CostOption[];
-  status: CatalogueStatus;
+  status: CatalogStatus;
   note?: string;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface CatalogueGroup {
+export interface CatalogGroup {
   id: string;
   /** e.g. `Teaching`, `Facilities`, `Student Activities`. */
   name: string;
   description?: string;
-  status: CatalogueStatus;
-  items: CatalogueItem[];
+  status: CatalogStatus;
+  items: CatalogItem[];
   createdAt: string;
   updatedAt: string;
 }
 
 /**
- * How a sheet item compares with the catalogue item it was copied from.
+ * How a sheet item compares with the catalog item it was copied from.
  *
- * `none` covers both a one-off cost and an item whose catalogue entry has been
- * removed; the two are distinguished by whether `catalogueItemId` is set at all.
+ * `none` covers both a one-off cost and an item whose catalog entry has been
+ * removed; the two are distinguished by whether `catalogItemId` is set at all.
  * Computed on read rather than stored, because it is a comparison between two
  * records and storing a comparison means storing something that can go stale.
  */
-export type CatalogueDrift = "none" | "current" | "differs" | "orphaned";
+export type CatalogDrift = "none" | "current" | "differs" | "orphaned";
 
-/** What a sheet item's price and the catalogue's now say, when they disagree. */
-export interface CatalogueComparison {
+/** What a sheet item's price and the catalog's now say, when they disagree. */
+export interface CatalogComparison {
   itemId: string;
-  drift: CatalogueDrift;
-  catalogueName?: string;
+  drift: CatalogDrift;
+  catalogName?: string;
   sheetUnitPrice?: number;
-  catalogueUnitPrice?: number;
+  catalogUnitPrice?: number;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -135,11 +135,11 @@ export interface CatalogueComparison {
 /**
  * Direct costs for one course in one semester.
  *
- * Entered once and the same whichever programme adds the course, which is what
+ * Entered once and the same whichever program adds the course, which is what
  * "the cost of running IT101" means. Holds **only** `direct` items; an indirect
  * cost has no business here, because it is not this course's to bear.
  *
- * A course-semester that belongs to no programme term still has one of these.
+ * A course-semester that belongs to no program term still has one of these.
  * It simply receives no indirect share.
  */
 export interface CourseCostSheet {
@@ -157,7 +157,7 @@ export interface CourseCostSheet {
 }
 
 /**
- * What distributes a programme's indirect pool across its curriculum.
+ * What distributes a program's indirect pool across its curriculum.
  *
  * A union with one member on purpose. Contact hours were the obvious second
  * driver and are unusable against this data — the lecturer-hours quantity does
@@ -167,9 +167,9 @@ export interface CourseCostSheet {
 export type CostDriver = "credits";
 
 /**
- * Indirect costs for one programme term, and how they are shared out.
+ * Indirect costs for one program term, and how they are shared out.
  *
- * Borne **once**: the programme rents the room, runs the workshop. Holds only
+ * Borne **once**: the program rents the room, runs the workshop. Holds only
  * `indirect` items, and no item carries a percentage — the share is derived
  * from the driver, which is what makes it impossible for the shares not to
  * total 100.
@@ -187,8 +187,8 @@ export interface ProgramCostSheet {
   /**
    * What a preferred price rounds up to (direction.md §13).
    *
-   * On the programme rather than the course, because the markup and the pool
-   * are both programme-level and a price built from them should not round by
+   * On the program rather than the course, because the markup and the pool
+   * are both program-level and a price built from them should not round by
    * one rule per course.
    */
   priceRoundingStep: number;
@@ -221,10 +221,10 @@ export interface CostGroupBreakdown {
 }
 
 /**
- * One course inside a programme's costing — or standing alone.
+ * One course inside a program's costing — or standing alone.
  *
  * `indirectShare` is zero and `sharePercent` null when the course belongs to no
- * programme term. Null rather than zero for the share because "no programme to
+ * program term. Null rather than zero for the share because "no program to
  * take a share of" and "a 0% share of one" are different claims.
  */
 export interface CourseCostBreakdown {
@@ -233,7 +233,7 @@ export interface CourseCostBreakdown {
   courseName: string;
   /** The driver value behind this course's share. */
   credits: number;
-  /** Share of the programme's indirect pool, 0-100. Null when unaffiliated. */
+  /** Share of the program's indirect pool, 0-100. Null when unaffiliated. */
   sharePercent: number | null;
   directTotal: number;
   indirectShare: number;
@@ -245,12 +245,12 @@ export interface CourseCostBreakdown {
   studentCount: number;
   /** totalCost / studentCount, or null when there are no students. */
   costPerStudent: number | null;
-  /** Direct groups only. The indirect ones belong to the programme. */
+  /** Direct groups only. The indirect ones belong to the program. */
   groups: CostGroupBreakdown[];
 }
 
 /**
- * What a programme costing needs to know about one of its courses.
+ * What a program costing needs to know about one of its courses.
  *
  * The sheet is optional because a curriculum may name a course that has no
  * direct cost sheet yet. That course still takes its share of the pool — it is
@@ -266,7 +266,7 @@ export interface CourseCostInput {
 }
 
 /**
- * A programme term's costing, and every course inside it.
+ * A program term's costing, and every course inside it.
  *
  * Both per-student figures are carried because they answer different questions:
  * `courses[].costPerStudent` says which course is expensive to run, and
@@ -286,7 +286,7 @@ export interface ProgramCostBreakdown {
   markupAmount: number;
   /** subtotal + markupAmount, and equal to the sum of the course totals. */
   totalCost: number;
-  /** Enrolment on the programme term, not on any one course. */
+  /** Enrollment on the program term, not on any one course. */
   studentCount: number;
   /** totalCost / studentCount, or null when nobody is enrolled. */
   costPerStudent: number | null;

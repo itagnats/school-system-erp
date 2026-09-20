@@ -12,7 +12,7 @@ import type { EvaluationCriterion, EvaluationRole } from "./evaluation";
 /**
  * Archived rather than deleted, once a setup has copied it.
  *
- * The same rule the cost catalogue follows (§12a). A setup holds copies and
+ * The same rule the cost catalog follows (§12a). A setup holds copies and
  * would survive the delete; its provenance would not, and "what was this person
  * actually asked" is the question the bank exists to answer.
  */
@@ -60,7 +60,7 @@ export interface Question {
  * A maintained set of questions, e.g. "Assessing a student".
  *
  * Grouped because that is how the bank is read and edited, the same shape the
- * cost catalogue settled on: a flat table sorted by group looks tidier and
+ * cost catalog settled on: a flat table sorted by group looks tidier and
  * loses the thing being maintained.
  */
 export interface QuestionGroup {

@@ -23,7 +23,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
   const { programEnrollmentId } = await params;
 
   const result = withdrawFromTerm(programEnrollmentId);
-  if (!result) return notFound("Programme enrolment");
+  if (!result) return notFound("Program enrollment");
 
   // Withdrawing twice is not an error: the second call reports the same
   // membership with nothing left to cancel, which is the truth.

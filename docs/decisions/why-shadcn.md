@@ -26,10 +26,10 @@ for writing them.
 ## Decision
 
 Use **shadcn/ui**, which is neither: it is a set of components you copy into your
-own repository, built on **Radix UI** primitives for behaviour.
+own repository, built on **Radix UI** primitives for behavior.
 
 The components live in `components/ui/` as ordinary project files. They are not a
-dependency, they are source. Radix supplies the behaviour that is genuinely hard
+dependency, they are source. Radix supplies the behavior that is genuinely hard
 to get right — focus trapping, focus restoration, `Esc` handling, scroll locking,
 roving tabindex, portal semantics, accessible names — and everything visual is
 ours to change.
@@ -48,7 +48,7 @@ was added for inline row actions where a solid red button would shout.
 
 - Accessibility comes from Radix rather than from us re-deriving it. A dialog
   that traps focus, restores it to the trigger, closes on `Esc` and locks scroll
-  is a lot of behaviour to hand-roll correctly, and it is the kind that fails
+  is a lot of behavior to hand-roll correctly, and it is the kind that fails
   quietly.
 - No version upgrade can change how the application looks. The components are
   source, so the palette cannot be broken by a minor bump.
@@ -93,5 +93,5 @@ above — the code arrives with defaults that were designed for a different syst
 calendar/table story, both of which this project needs.
 
 **A CSS framework with prebuilt components — Bootstrap, DaisyUI.** Rejected: the
-accessibility behaviour is not there, and the visual opinions are strong and
+accessibility behavior is not there, and the visual opinions are strong and
 wrong for this palette.

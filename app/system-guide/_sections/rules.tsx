@@ -81,10 +81,10 @@ const FAMILIES: Family[] = [
     icon: Copy,
     rules: [
       {
-        rule: "A cost sheet copies from the catalogue",
+        rule: "A cost sheet copies from the catalog",
         because:
-          "A signed-off total must not change because someone edited a lookup table. Drift is reported per line instead, and moving a line back onto the catalogue price is a deliberate act.",
-        where: "server/services/catalogue-service.ts · copyCatalogueItem",
+          "A signed-off total must not change because someone edited a lookup table. Drift is reported per line instead, and moving a line back onto the catalog price is a deliberate act.",
+        where: "server/services/catalog-service.ts · copyCatalogItem",
       },
       {
         rule: "Revenue is invoiced, not implied",
@@ -108,15 +108,15 @@ const FAMILIES: Family[] = [
         where: "lib/calculations/evaluation-weights.ts",
       },
       {
-        rule: "A student holds one programme, one term per semester",
+        rule: "A student holds one program, one term per semester",
         because:
-          "One invoice per student per semester over one package price cannot represent a second package. A second term in the same semester is 409; another programme is 422.",
-        where: "lib/calculations/enrollment.ts · findEnrolmentConflict",
+          "One invoice per student per semester over one package price cannot represent a second package. A second term in the same semester is 409; another program is 422.",
+        where: "lib/calculations/enrollment.ts · findEnrollmentConflict",
       },
       {
         rule: "The kind of cost decides which sheet it may reach",
         because:
-          "A direct cost belongs to one course and an indirect one to the programme. Enforcing it both ways is what makes double-counting impossible to express.",
+          "A direct cost belongs to one course and an indirect one to the program. Enforcing it both ways is what makes double-counting impossible to express.",
         where: "server/services/cost-service.ts · addItemToSheet",
       },
     ],

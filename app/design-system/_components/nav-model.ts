@@ -44,7 +44,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "a11y-forms", label: "Labels & errors" },
       { id: "a11y-dialog", label: "Dialog a11y" },
       { id: "a11y-contrast", label: "Contrast" },
-      { id: "a11y-nonvisual", label: "Beyond colour" },
+      { id: "a11y-nonvisual", label: "Beyond color" },
     ],
   },
   {

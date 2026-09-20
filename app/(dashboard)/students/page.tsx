@@ -18,7 +18,7 @@ export default function Page() {
     <>
       <PageHeader
         title="Students"
-        description="Student profiles across every programme."
+        description="Student profiles across every program."
       />
       <Suspense fallback={<TableSkeleton columns={5} />}>
         <StudentsScreen programOptions={programOptions()} />

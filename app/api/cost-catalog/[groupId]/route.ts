@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { catalogueGroupUpdateSchema } from "@/lib/api/contracts";
+import { catalogGroupUpdateSchema } from "@/lib/api/contracts";
 import { handleItem, jsonError, notFound } from "@/server/http";
 import { parseBody, readJson } from "@/server/validation";
-import { getCatalogueGroup, updateCatalogueGroup } from "@/server/services";
+import { getCatalogGroup, updateCatalogGroup } from "@/server/services";
 
 /** GET /api/cost-catalog/:groupId - one master group and its items. */
 export async function GET(
@@ -10,7 +10,7 @@ export async function GET(
   { params }: { params: Promise<{ groupId: string }> },
 ) {
   const { groupId } = await params;
-  return handleItem(request, () => getCatalogueGroup(groupId), "Catalogue group");
+  return handleItem(request, () => getCatalogGroup(groupId), "Catalog group");
 }
 
 /**
@@ -26,13 +26,13 @@ export async function PATCH(
 ) {
   const { groupId } = await params;
 
-  const parsed = parseBody(catalogueGroupUpdateSchema, await readJson(request));
+  const parsed = parseBody(catalogGroupUpdateSchema, await readJson(request));
   if (!parsed.ok) {
     return jsonError(422, "Some fields need attention", parsed.fieldErrors);
   }
 
-  const updated = updateCatalogueGroup(groupId, parsed.data);
-  if (!updated) return notFound("Catalogue group");
+  const updated = updateCatalogGroup(groupId, parsed.data);
+  if (!updated) return notFound("Catalog group");
 
   return NextResponse.json(updated);
 }

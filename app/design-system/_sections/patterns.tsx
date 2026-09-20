@@ -263,7 +263,7 @@ const columns: PrimeColumnDef<DemoRow>[] = [
 
           <Demo
             title="Plain, and a trend that is not good news"
-            note="Direction and sentiment are separate inputs: enrollment up is positive, drop-outs up is not. The arrow always accompanies the colour."
+            note="Direction and sentiment are separate inputs: enrollment up is positive, drop-outs up is not. The arrow always accompanies the color."
           >
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard label="Average score" value="87.4" trend="up" trendValue="+1.8" hint="vs 202601" />
@@ -275,7 +275,7 @@ const columns: PrimeColumnDef<DemoRow>[] = [
         </div>
       </Section>
 
-      <Section id="status-badges" title="Status badges" description="Tone plus a written label. Colour never carries the meaning on its own.">
+      <Section id="status-badges" title="Status badges" description="Tone plus a written label. Color never carries the meaning on its own.">
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-1.5">
             <StatusBadge tone="warning" label="Pending" />

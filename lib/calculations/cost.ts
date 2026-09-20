@@ -21,8 +21,8 @@ import { percentOf, roundMoney } from "./number";
  *   per course       Direct + Share = Subtotal
  *                    + markup       = Total Course Cost
  *                    / its students = Cost per Student
- *   per prog. term   Σ Total Course Cost               = Total Programme Cost
- *                    / programme enrolment             = Cost per Student
+ *   per prog. term   Σ Total Course Cost               = Total Program Cost
+ *                    / program enrollment             = Cost per Student
  *
  * Every intermediate figure is kept rather than collapsed into a total, because
  * the UI is required to show the arithmetic instead of hiding the business
@@ -31,7 +31,7 @@ import { percentOf, roundMoney } from "./number";
  * The rule that matters most: **an indirect share is derived, never entered.**
  * It used to be a percentage typed onto each course, and percentages typed in
  * several places do not add to 100 — measured across the seed, 82 of 92
- * programme pools recovered less than the cost and 7 recovered more. A derived
+ * program pools recovered less than the cost and 7 recovered more. A derived
  * share cannot do that.
  */
 
@@ -89,7 +89,7 @@ export function calculateItemBreakdown(item: CostItem): CostItemBreakdown {
  * Group totals for one sheet, with each group's share of it.
  *
  * `sharePercent` is a share of the sheet the groups are on — of the course's
- * direct costs, or of the programme's indirect pool — never of some combined
+ * direct costs, or of the program's indirect pool — never of some combined
  * figure that exists on neither sheet.
  */
 export function calculateGroupBreakdowns(
@@ -119,14 +119,14 @@ export function calculateGroupBreakdowns(
  *
  * Largest remainder, to two decimals. Rounding each part independently is the
  * obvious implementation and it leaks: three courses splitting 100.00 by equal
- * thirds each round to 33.33 and 0.01 disappears. One satang per programme per
+ * thirds each round to 33.33 and 0.01 disappears. One satang per program per
  * term is not a material sum, but a cost that leaks is precisely the failure
  * this revision exists to remove, and "it is only a rounding error" is how the
  * old allocation percentages were defended too.
  *
- * Weights need not be normalised and need not be whole. All-zero weights, or an
- * empty list, return an even split — there is no proportion to honour, and
- * refusing would mean a programme whose courses all carry zero credits could
+ * Weights need not be normalized and need not be whole. All-zero weights, or an
+ * empty list, return an even split — there is no proportion to honor, and
+ * refusing would mean a program whose courses all carry zero credits could
  * not be costed at all.
  */
 export function distribute(amount: number, weights: readonly number[]): number[] {
@@ -190,10 +190,10 @@ export function calculateCourseDirect(sheet: CourseCostSheet): {
 }
 
 /**
- * A course costed on its own, outside any programme (direction.md §11).
+ * A course costed on its own, outside any program (direction.md §11).
  *
  * Seven of the fifty-seven course-semesters are in this position. They bear no
- * indirect share and no markup, because both belong to a programme term they
+ * indirect share and no markup, because both belong to a program term they
  * are not in. `sharePercent` is null rather than zero: there is no pool to take
  * a share of, which is a different claim from taking none of one.
  */
@@ -224,10 +224,10 @@ export function calculateStandaloneCourseCost(
 }
 
 /**
- * A whole programme term's costing (direction.md §13).
+ * A whole program term's costing (direction.md §13).
  *
  * The indirect pool is distributed across the curriculum by the driver, the
- * markup is applied to each course's subtotal afterwards, and the programme
+ * markup is applied to each course's subtotal afterwards, and the program
  * total is the sum of the course totals — which is what makes the two levels
  * reconcile rather than merely agree approximately.
  */
@@ -239,7 +239,7 @@ export function calculateProgramCostBreakdown({
   sheet: ProgramCostSheet;
   /** In curriculum order. */
   courses: readonly CourseCostInput[];
-  /** Enrolment on the programme term. */
+  /** Enrollment on the program term. */
   studentCount: number;
 }>): ProgramCostBreakdown {
   const indirect = calculateGroupBreakdowns(sheet.groups);
@@ -284,7 +284,7 @@ export function calculateProgramCostBreakdown({
     breakdowns.reduce((sum, c) => sum + c.directTotal, 0),
   );
   const subtotal = roundMoney(directTotal + indirect.total);
-  // Summed from the courses rather than recomputed, so the programme total and
+  // Summed from the courses rather than recomputed, so the program total and
   // the course totals cannot disagree by a rounding step.
   const markupAmount = roundMoney(
     breakdowns.reduce((sum, c) => sum + c.markupAmount, 0),
@@ -331,10 +331,10 @@ export function calculateDirectTotal(sheet: CourseCostSheet): number {
 /* -------------------------------------------------------------------------- */
 
 /**
- * Which copy of a catalogue item this is, on a sheet that already holds these
+ * Which copy of a catalog item this is, on a sheet that already holds these
  * ids. 1 for the first, 2 for the second, and so on.
  *
- * §12a says adding the same catalogue item twice is deliberate - two lecturers
+ * §12a says adding the same catalog item twice is deliberate - two lecturers
  * on one course are two lines, because they may sit at different rates. The
  * two lines therefore need different ids, and the id used to be built from
  * `WRITE_STAMP`, a frozen constant standing in for a clock. Every copy of one
@@ -350,23 +350,23 @@ export function calculateDirectTotal(sheet: CourseCostSheet): number {
  * imports `server-only` and is unreachable from the test harness.
  */
 export function copyOrdinal(
-  catalogueItemId: string,
+  catalogItemId: string,
   taken: Iterable<string>,
 ): number {
   const used = new Set(taken);
   let ordinal = 1;
-  while (used.has(copyItemId(catalogueItemId, ordinal))) ordinal += 1;
+  while (used.has(copyItemId(catalogItemId, ordinal))) ordinal += 1;
   return ordinal;
 }
 
 /**
- * The sheet's id for its nth copy of a catalogue item.
+ * The sheet's id for its nth copy of a catalog item.
  *
  * The first copy carries no ordinal, so the common case - one line per item -
  * reads as `itm-cat-lecturer` rather than `itm-cat-lecturer-1`.
  */
-export function copyItemId(catalogueItemId: string, ordinal: number): string {
-  return ordinal <= 1 ? `itm-${catalogueItemId}` : `itm-${catalogueItemId}-${ordinal}`;
+export function copyItemId(catalogItemId: string, ordinal: number): string {
+  return ordinal <= 1 ? `itm-${catalogItemId}` : `itm-${catalogItemId}-${ordinal}`;
 }
 
 /**

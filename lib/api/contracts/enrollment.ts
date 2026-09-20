@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { EnrolmentResult, EnrollmentListItem } from "@/types";
+import type { EnrollmentResult, EnrollmentListItem } from "@/types";
 import { paginatedSchema } from "./list";
 import { studentSummarySchema } from "./student";
 
@@ -23,14 +23,14 @@ export const enrollmentListItemSchema = z.object({
 export const enrollmentListSchema = paginatedSchema(enrollmentListItemSchema);
 
 /**
- * A new student profile, collected during enrolment (direction.md §7).
+ * A new student profile, collected during enrollment (direction.md §7).
  *
- * "Only collect the minimum information necessary for the initial enrolment",
+ * "Only collect the minimum information necessary for the initial enrollment",
  * so this is deliberately six fields and not the whole of §9. Experience,
  * emergency contact, photo and the rest belong to profile editing, where
  * someone is doing that job rather than getting a student onto a roster.
  *
- * **Programme is not one of them.** It comes from the term being enrolled into,
+ * **Program is not one of them.** It comes from the term being enrolled into,
  * which is the only value that cannot then disagree with the membership being
  * created beside it.
  */
@@ -61,7 +61,7 @@ export const newStudentSchema = z.object({
 export type NewStudentInput = z.infer<typeof newStudentSchema>;
 
 /**
- * The three enrolment paths, as one request.
+ * The three enrollment paths, as one request.
  *
  * They differ only in how the student is identified — search an existing
  * profile, pick one out of a previous term, or create one — and agree on
@@ -76,17 +76,17 @@ export type NewStudentInput = z.infer<typeof newStudentSchema>;
 export const enrolRequestSchema = z.discriminatedUnion("source", [
   z.object({
     source: z.literal("existing-profile"),
-    programTermId: z.string().min(1, "Choose a programme term"),
+    programTermId: z.string().min(1, "Choose a program term"),
     studentId: z.string().min(1, "Choose a student"),
   }),
   z.object({
     source: z.literal("previous-course"),
-    programTermId: z.string().min(1, "Choose a programme term"),
+    programTermId: z.string().min(1, "Choose a program term"),
     studentId: z.string().min(1, "Choose a student"),
   }),
   z.object({
     source: z.literal("new-student"),
-    programTermId: z.string().min(1, "Choose a programme term"),
+    programTermId: z.string().min(1, "Choose a program term"),
     student: newStudentSchema,
   }),
 ]);
@@ -106,4 +106,4 @@ export const enrolResultSchema = z.object({
   semesterCode: z.string(),
   source: z.enum(["existing-profile", "previous-course", "new-student"]),
   enrollments: z.array(enrollmentListItemSchema),
-}) satisfies z.ZodType<EnrolmentResult>;
+}) satisfies z.ZodType<EnrollmentResult>;

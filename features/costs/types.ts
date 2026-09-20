@@ -1,5 +1,5 @@
 import type {
-  CatalogueComparison,
+  CatalogComparison,
   CourseCostBreakdown,
   CourseCostSheet,
   CostSheetStatus,
@@ -32,7 +32,7 @@ export interface CostSheetRow {
   currency: string;
   studentCount: number;
   directTotal: number;
-  /** Share of its programme's indirect pool. Zero when it has no programme. */
+  /** Share of its program's indirect pool. Zero when it has no program. */
   indirectShare: number;
   totalCost: number;
   costPerStudent: number | null;
@@ -46,20 +46,20 @@ export interface CostSheetDetailResponse {
   courseCode: string;
   courseName: string;
   breakdown: CourseCostBreakdown;
-  /** The programme term this course is costed inside, if any. */
+  /** The program term this course is costed inside, if any. */
   programTermId: string | null;
   programCostSheetId: string | null;
-  /** The programme's pool and markup, so the share can be explained on screen. */
+  /** The program's pool and markup, so the share can be explained on screen. */
   indirectTotal: number;
   markupPercent: number;
-  /** How each line now compares with the catalogue it was copied from (§12a). */
-  drift: CatalogueComparison[];
+  /** How each line now compares with the catalog it was copied from (§12a). */
+  drift: CatalogComparison[];
 }
 
 /**
- * What the programme cost endpoint returns (direction.md §11, §13).
+ * What the program cost endpoint returns (direction.md §11, §13).
  *
- * Addressed by the programme term rather than by the sheet's own id: there is
+ * Addressed by the program term rather than by the sheet's own id: there is
  * exactly one sheet per term, so a second identifier would only be a second
  * thing to look up.
  */
@@ -71,11 +71,11 @@ export interface ProgramCostSheetDetailResponse {
   semesterCode: string;
   packagePrice: number;
   breakdown: ProgramCostBreakdown;
-  /** How each line now compares with the catalogue it was copied from (§12a). */
-  drift: CatalogueComparison[];
+  /** How each line now compares with the catalog it was copied from (§12a). */
+  drift: CatalogComparison[];
 }
 
-/** Filters the programme cost list accepts. */
+/** Filters the program cost list accepts. */
 export interface ProgramCostQueryParams extends ListQuery {
   programId?: string;
   semester?: SemesterCode;
@@ -83,10 +83,10 @@ export interface ProgramCostQueryParams extends ListQuery {
 }
 
 /**
- * The derived row the programme cost table shows.
+ * The derived row the program cost table shows.
  *
  * The package price rides along because the comparison is the reason the list
- * exists: a costing is only interesting against what the programme charges.
+ * exists: a costing is only interesting against what the program charges.
  */
 export interface ProgramCostRow {
   id: string;

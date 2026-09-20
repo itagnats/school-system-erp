@@ -2,7 +2,7 @@ import { z } from "zod";
 import { newStudentSchema, type EnrolRequestInput } from "@/lib/api/contracts";
 
 /**
- * Form shapes for the three enrolment paths (direction.md §7).
+ * Form shapes for the three enrollment paths (direction.md §7).
  *
  * The wire contract is a discriminated union, which is right for a request and
  * wrong for a form: react-hook-form holds one flat object per form, and a
@@ -17,14 +17,14 @@ import { newStudentSchema, type EnrolRequestInput } from "@/lib/api/contracts";
  */
 
 export const pickStudentFormSchema = z.object({
-  programTermId: z.string().min(1, "Choose a programme term"),
+  programTermId: z.string().min(1, "Choose a program term"),
   studentId: z.string().min(1, "Choose a student"),
 });
 
 export type PickStudentFormValues = z.infer<typeof pickStudentFormSchema>;
 
 export const newStudentFormSchema = z.object({
-  programTermId: z.string().min(1, "Choose a programme term"),
+  programTermId: z.string().min(1, "Choose a program term"),
   ...newStudentSchema.shape,
 });
 

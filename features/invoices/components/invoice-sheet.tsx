@@ -113,7 +113,7 @@ export function InvoiceSheet({
       <section className="py-4">
         <Caption>Lines</Caption>
         <p className="mt-1 text-xs text-muted-foreground">
-          The programme curriculum, priced per credit hour, less anything
+          The program curriculum, priced per credit hour, less anything
           credited back.
         </p>
 

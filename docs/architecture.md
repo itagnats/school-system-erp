@@ -13,7 +13,7 @@ Dependencies point in one direction. A module may import from anything below it
 and from nothing above it.
 
 ```
-design tokens          app/globals.css — the only place a colour is defined
+design tokens          app/globals.css — the only place a color is defined
       ↓
 components/ui          generic primitives; no domain vocabulary
       ↓
@@ -33,7 +33,7 @@ app/*                  routing and composition only
 **Sideways is a direction too.** `features/*` is a row, not a stack, and one
 feature importing another is how a layered diagram quietly becomes a graph. That
 invariant held until 2026-09-12 and no longer does: `features/costs/` reaches
-into `features/cost-catalogue/` for a hook and a constants module, while
+into `features/cost-catalog/` for a hook and a constants module, while
 `features/dashboard/` faced the same choice and duplicated four strings instead.
 It is recorded as a violation rather than an exception (`AUD-012`, open), and
 until it is settled the rule is: duplicate a handful of strings, or put the
@@ -72,7 +72,7 @@ If you find yourself adding an `enrollmentStatus` prop to something under
 `components/decor` and `components/data-viz` exist for the same reason as each
 other: something that could not consume a semantic token needed containing.
 Decor holds no patterns and takes no content, so it sits below `shared/` rather
-than inside it. Data-viz wraps recharts, which takes colours as strings and
+than inside it. Data-viz wraps recharts, which takes colors as strings and
 cannot read a Tailwind class, so the wrappers pass `var(--chart-1)` and let the
 browser resolve it — which is what keeps a chart following the theme switch.
 
@@ -149,7 +149,7 @@ The sizes, checked against the filesystem by `tests/docs/doc-counts.test.ts`:
 13 <!-- count:types --> domain files under `types/`.
 
 Twelve <!-- count:features --> domains: `programs`, `courses`, `semesters`,
-`enrollment`, `students`, `costs`, `cost-catalogue`, `invoices`, `evaluation`,
+`enrollment`, `students`, `costs`, `cost-catalog`, `invoices`, `evaluation`,
 `question-bank`, `reports`, `dashboard`.
 
 ---
@@ -173,9 +173,9 @@ group layout.
                                      /students/[studentId]/edit
 /invoices                            /invoices/[invoiceId]
 
-/costs                               programme cost list
+/costs                               program cost list
 /costs/courses                       /costs/courses/[costSheetId]
-/costs/catalogue                     /costs/programmes/[programTermId]
+/costs/catalog                     /costs/programs/[programTermId]
 
 /evaluation                          /evaluation/[assignmentId]
 /evaluation/manage                   /evaluation/manage/[setupId]
@@ -187,17 +187,17 @@ group layout.
 
 Three shapes in that list are decisions rather than layout.
 
-**Enrollment is programme-first.** `/enrollment` lists programme terms and
+**Enrollment is program-first.** `/enrollment` lists program terms and
 `/enrollment/[programTermId]` shows that term's students, then the same term at
 course grain. A student is added from a term page and never from a flat list,
 because a term is what a student joins.
 
-**Cost Management leads with the programme.** `/costs` is the programme cost
+**Cost Management leads with the program.** `/costs` is the program cost
 list, `/costs/courses` the course list — the only place the seven course sheets
-belonging to no programme can be found — and `/costs/catalogue` the master
-groups and items. Costing deliberately did not move inside the Programme module:
-those seven sheets would have had no route, and the catalogue belongs to neither
-programme nor course.
+belonging to no program can be found — and `/costs/catalog` the master
+groups and items. Costing deliberately did not move inside the Program module:
+those seven sheets would have had no route, and the catalog belongs to neither
+program nor course.
 
 **The evaluation area is split by perspective**: `/evaluation/manage` is the
 teacher and administrator view, `/evaluation` is the evaluator's own queue.
@@ -208,7 +208,7 @@ The route shape mirrors the domain model rather than the navigation menu, so a
 URL reads as a location in the data.
 
 **Every link on a screen goes somewhere the reader may open.** The dashboard,
-the breadcrumb trail, the back control and the programme history all take the
+the breadcrumb trail, the back control and the program history all take the
 role and drop the anchor where it would be refused — a dead link is a worse
 answer than plain text. The two Develop pages are the deliberate exception,
 because the System Guide documents the whole route tree including the parts the
@@ -251,7 +251,7 @@ not an app one, `administrator` the reverse. Next 16 renamed Middleware to
 ## The domain model
 
 Three chains. A course can be offered in many semesters and can appear in many
-programmes; semester codes are `YYYYNN` (`202601`, `202602`).
+programs; semester codes are `YYYYNN` (`202601`, `202602`).
 
 ```
 Program → Program Term → Courses          → Package price
@@ -264,32 +264,32 @@ Course → Semester → Enrollment → Student → Evaluation Group
                                                                   → Ranking
 
 Course → Semester → Course Cost Sheet   → DIRECT costs only
-Program Term     → Programme Cost Sheet → INDIRECT costs, shared by credits
+Program Term     → Program Cost Sheet → INDIRECT costs, shared by credits
 
-Catalogue Group → Catalogue Item ⇢ (copied onto) Cost Group → Cost Item
+Catalog Group → Catalog Item ⇢ (copied onto) Cost Group → Cost Item
 ```
 
-**A student holds one programme, and one programme term per semester** (§7a).
+**A student holds one program, and one program term per semester** (§7a).
 Enforced server-side: a second term in the same semester is a 409, a term on
-another programme a 422. It is what makes one invoice per student per semester
+another program a 422. It is what makes one invoice per student per semester
 representable at all.
 
-**Status is progress; outcome is derived** (§8). A programme enrolment is
+**Status is progress; outcome is derived** (§8). A program enrollment is
 `pending | active | completed | withdrawn` — where the student is, never how
 they did. Pass and fail come from the grades and are never stored beside the
 status.
 
-**The programme chain is what a student actually buys.** A course has a cost but
-no price; a programme term has both, which is what lets the same data answer
-"did this make money" rather than only "what did it spend". Enrolment is entered
-at the programme level and the course enrollments follow from the curriculum, so
+**The program chain is what a student actually buys.** A course has a cost but
+no price; a program term has both, which is what lets the same data answer
+"did this make money" rather than only "what did it spend". Enrollment is entered
+at the program level and the course enrollments follow from the curriculum, so
 the two can never disagree about who is on what.
 
 **The evaluation chain** is documented in full in
 [evaluation-model.md](evaluation-model.md).
 
 **The cost chain** is two sheets that meet (revised 2026-09-15, direction.md
-§11-13). A course bears its **direct** costs; a programme term bears its
+§11-13). A course bears its **direct** costs; a program term bears its
 **indirect** ones once and shares them across its curriculum:
 
 ```
@@ -298,8 +298,8 @@ per term       Indirect costs                          (its own sheet)
                distributed by credit hours             (shares total 100%)
 per course     Direct + Share = Subtotal, + markup = Total Course Cost
                ÷ its students              = Cost per Student
-per term       Σ Total Course Cost          = Total Programme Cost
-               ÷ programme enrolment        = Cost per Student, programme basis
+per term       Σ Total Course Cost          = Total Program Cost
+               ÷ program enrollment        = Cost per Student, program basis
                rounded up                   = Preferred Price
 ```
 
@@ -307,19 +307,19 @@ The share is **derived**, never entered, which is what makes it impossible for
 the shares not to total 100. The old model let each course type a percentage of
 an undefined whole, and 82 of 92 pools recovered less than the cost.
 
-**The programme chain adds the other half of the sum** (revised 2026-09-12,
+**The program chain adds the other half of the sum** (revised 2026-09-12,
 §13a — revenue is invoiced, not implied):
 
 ```
 Package price × Enrolled students = List revenue     (what the price implies)
 Σ billed invoice totals           = Revenue
   of which paid                   = Collected
-Σ (course cost per student × programme head count on that course) = Cost
+Σ (course cost per student × program head count on that course) = Cost
 Collected − Cost                  = Net profit
 ```
 
 Cost is attributed per student rather than per sheet, because a course taught
-into two programmes cannot charge its whole sheet to either. A course with no
+into two programs cannot charge its whole sheet to either. A course with no
 cost sheet contributes *unknown*, not zero, and the count of those travels with
 the result so an incomplete total is never shown as a finished one.
 
@@ -361,18 +361,18 @@ each has a test file beside it:
 | `calculateRanking` | `lib/calculations/ranking.ts` | built, tested |
 | `clamp`, rounding helpers | `lib/calculations/number.ts` | built, tested |
 | `calculateEvaluationScore` | `lib/calculations/score.ts` | built, tested |
-| `summariseWeights`, `normaliseWeights`, role toggles | `lib/calculations/evaluation-weights.ts` | built, tested |
+| `summarizeWeights`, `normalizeWeights`, role toggles | `lib/calculations/evaluation-weights.ts` | built, tested |
 | Window state — open, closed, not yet open | `lib/calculations/evaluation-window.ts` | built, tested |
 | `copyQuestion`, `questionsForRelation` | `lib/calculations/question.ts` | built, tested |
 | `calculateCostBreakdown`, `calculateTotalCost`, `calculateCostPerStudent`, `distribute` | `lib/calculations/cost.ts` | built, tested |
 | `calculateProgramProfit`, `breakEvenPrice` | `lib/calculations/profit.ts` | built, tested |
 | Invoice lines, the package reconciliation, `CREDIT_RATE`, the payment payload | `lib/calculations/invoice.ts` | built, tested |
-| Enrolment expansion and the conflict rules | `lib/calculations/enrollment.ts` | built, tested |
+| Enrollment expansion and the conflict rules | `lib/calculations/enrollment.ts` | built, tested |
 
 `server/` holds no business math of its own. Anything a route handler needs to
 decide lives in one of the modules above, because that is the half with tests
 around it — the reason `lib/calculations/enrollment.ts` exists rather than the
-expansion sitting inside the enrolment service.
+expansion sitting inside the enrollment service.
 
 Two invariants worth stating out loud:
 
@@ -397,7 +397,7 @@ Two invariants worth stating out loud:
   `DataComponent` or `Form2`. Large page components split into named parts.
 - **`any` needs a documented reason.**
 - **Accessibility is a requirement, not polish** — keyboard navigation, visible
-  focus, real labels, accessible dialogs and form errors. Radix behaviour via
+  focus, real labels, accessible dialogs and form errors. Radix behavior via
   shadcn does the heavy lifting; the rest is documented and measured on
   `/design-system#a11y-contrast`.
 - **Types** — one file per domain under `types/`. Never a single giant
@@ -425,13 +425,13 @@ exists is worse than no document.
 | All twelve `features/*` | **built** — `reports` is the thinnest, and its screens live under Manage Evaluation |
 
 Built so far: Curriculum → Course → Semester → Enrollment → Student Profile →
-Cost Management → Cost Catalogue → Invoices → Manage Evaluation → the demo
+Cost Management → Cost Catalog → Invoices → Manage Evaluation → the demo
 persona switcher → Your Evaluation and the two form kinds → Score → Grade →
 Individual Report. The demo sign-in and the role-aware navigation landed out of
 order, at the user's request.
 
 What comes next: submission contracts, then the computed leaderboard, then the
-pass/fail derivation onto a programme enrolment (`direction.md` §8).
+pass/fail derivation onto a program enrollment (`direction.md` §8).
 
 Three things are open and worth knowing before working in this tree:
 

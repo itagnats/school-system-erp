@@ -10,12 +10,12 @@ import {
   studentTable,
 } from "@/server/repositories";
 import { matchesSearch, paginate, sortRows, type ListQueryInput } from "@/server/query";
-import { expandCurriculum, findEnrolmentConflict } from "@/lib/calculations/enrollment";
+import { expandCurriculum, findEnrollmentConflict } from "@/lib/calculations/enrollment";
 import { createStudent, emailTaken, getStudent, toSummary } from "./student-service";
 import { evaluationGroupName } from "@/types";
 import type { EnrolRequestInput } from "@/lib/api/contracts";
 import type {
-  EnrolmentResult,
+  EnrollmentResult,
   ProgramEnrollment,
   EnrollmentListItem,
   PaginatedResult,
@@ -37,7 +37,7 @@ export interface EnrollmentQuery extends ListQueryInput {
   semester?: string;
   status?: string;
   evaluationGroupId?: string;
-  /** Narrow to students enrolled in a programme, per direction.md §7a. */
+  /** Narrow to students enrolled in a program, per direction.md §7a. */
   programId?: string;
 }
 
@@ -62,10 +62,10 @@ const SORTABLE: Record<string, (row: EnrollmentListItem) => string | number> = {
 };
 
 /**
- * Student ids enrolled in a programme, optionally narrowed to one semester.
+ * Student ids enrolled in a program, optionally narrowed to one semester.
  *
- * Enrolment is entered at the programme level, so "who is under this
- * programme" is the programme enrollment table rather than a property of the
+ * Enrollment is entered at the program level, so "who is under this
+ * program" is the program enrollment table rather than a property of the
  * course rows.
  */
 function programMembers(programId: string, semesterCode?: string): Set<string> {
@@ -145,7 +145,7 @@ export function courseRoster(courseId: string, semesterCode: string): Enrollment
 }
 
 /**
- * Enrolment writes (direction.md 7, 7a).
+ * Enrollment writes (direction.md 7, 7a).
  *
  * Shaped and validated, and then nothing is stored - the same posture as every
  * other write here, recorded in docs/decisions/why-bff.md. What is real is
@@ -154,7 +154,7 @@ export function courseRoster(courseId: string, semesterCode: string): Enrollment
  */
 
 export type EnrolOutcome =
-  | { ok: true; data: EnrolmentResult }
+  | { ok: true; data: EnrollmentResult }
   | { ok: false; status: 404 | 409 | 422; message: string; fieldErrors?: Record<string, string> };
 
 /**
@@ -201,13 +201,13 @@ function resolveStudent(
     return { ok: false, status: 404, message: "That student does not exist" };
   }
 
-  // One student belongs to one programme, so enrolling them onto another is a
-  // contradiction with their own profile rather than a second enrolment.
+  // One student belongs to one program, so enrolling them onto another is a
+  // contradiction with their own profile rather than a second enrollment.
   //
   // Compared by id. This read `existing.academic.program !== program.name`
   // until 2026-09-20, because the profile carried a name and nothing else - so
   // a business rule was enforced through a display string, and renaming a
-  // programme would have started refusing its own students (`AUD-021`). The
+  // program would have started refusing its own students (`AUD-021`). The
   // message below still names both, because a reader needs the name.
   if (existing.academic.programId !== program.id) {
     return {
@@ -224,7 +224,7 @@ function resolveStudent(
 }
 
 /**
- * One student into one programme term, by any of the three paths.
+ * One student into one program term, by any of the three paths.
  *
  * The order of the checks is deliberate: the term first, because a bad term id
  * makes every later message meaningless; then the student; then the two rules
@@ -241,13 +241,13 @@ function resolveStudent(
 export function enrolStudent(input: EnrolRequestInput): EnrolOutcome {
   const term = programTermTable.find((row) => row.id === input.programTermId);
   if (!term) {
-    return { ok: false, status: 404, message: "That programme term does not exist" };
+    return { ok: false, status: 404, message: "That program term does not exist" };
   }
 
   const program = programTable.find((row) => row.id === term.programId);
   if (!program) {
-    // A term whose programme is missing is a broken join, not a user error.
-    return { ok: false, status: 404, message: "That programme term does not exist" };
+    // A term whose program is missing is a broken join, not a user error.
+    return { ok: false, status: 404, message: "That program term does not exist" };
   }
 
   if (term.status !== "open") {
@@ -256,7 +256,7 @@ export function enrolStudent(input: EnrolRequestInput): EnrolOutcome {
       status: 422,
       message: "Some fields need attention",
       fieldErrors: {
-        programTermId: `${program.code} ${term.semesterCode} is ${term.status}, so it is not taking enrolments`,
+        programTermId: `${program.code} ${term.semesterCode} is ${term.status}, so it is not taking enrollments`,
       },
     };
   }
@@ -267,12 +267,12 @@ export function enrolStudent(input: EnrolRequestInput): EnrolOutcome {
   if (!resolved.ok) return resolved;
   const student = resolved.student;
 
-  const conflict = findEnrolmentConflict(programEnrollmentTable, student.id, term);
+  const conflict = findEnrollmentConflict(programEnrollmentTable, student.id, term);
   if (conflict) {
     const message =
       conflict.kind === "already-enrolled"
         ? `That student already holds a place in ${conflict.semesterCode}`
-        : "That student is enrolled on another programme";
+        : "That student is enrolled on another program";
     return { ok: false, status: 409, message, fieldErrors: { studentId: message } };
   }
 
@@ -316,10 +316,10 @@ export function enrolStudent(input: EnrolRequestInput): EnrolOutcome {
 }
 
 /**
- * The roster of one programme term, one row per student.
+ * The roster of one program term, one row per student.
  *
- * `programRoster` in the programme service answers the same question for the
- * money screen; this one adds what the enrolment screen needs and nothing the
+ * `programRoster` in the program service answers the same question for the
+ * money screen; this one adds what the enrollment screen needs and nothing the
  * money screen does - how much of the curriculum each student is actually
  * carrying. A package is billed whole (13b), so a head count alone hides the
  * student who dropped three of four courses.
@@ -367,7 +367,7 @@ export function programTermRoster(programTermId: string): TermRosterRow[] | unde
 }
 
 /**
- * Withdraw a student from a programme term (direction.md 8, decided
+ * Withdraw a student from a program term (direction.md 8, decided
  * 2026-09-16).
  *
  * **A status, not a removal.** Section 8 makes the lifecycle explicit and
@@ -377,8 +377,8 @@ export function programTermRoster(programTermId: string): TermRosterRow[] | unde
  * change retrospectively.
  *
  * The course enrollments go with it, as `cancelled` rather than `dropped`:
- * dropping is a decision about one course taken while the programme continues,
- * and this is the programme ending. The distinction is not cosmetic - a
+ * dropping is a decision about one course taken while the program continues,
+ * and this is the program ending. The distinction is not cosmetic - a
  * cancelled course credits the whole line on the invoice and a dropped one
  * credits half (13b).
  */

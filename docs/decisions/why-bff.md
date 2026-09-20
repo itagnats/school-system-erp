@@ -139,7 +139,7 @@ inconsistent, since each instance holds its own memory.
 **Per-browser overlay.** Writes persisted in the visitor's own browser and merged
 over the seed. Durable and visitor-isolated. Rejected because every *derived*
 read would have to merge the overlay too — the dashboard summary that counts
-courses, the cost-per-student that divides by enrolment count, the ranking
+courses, the cost-per-student that divides by enrollment count, the ranking
 computed from scores. Miss one and a reviewer adds a course, sees it in the
 table, and sees the dashboard still say 40. A partially-updated figure reads as a
 bug; a total reset reads as a decision. Partial inconsistency is the worse

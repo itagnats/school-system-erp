@@ -31,7 +31,7 @@ export async function fetchCostSheet(costSheetId: string): Promise<CostSheetDeta
 /**
  * Adjust markup, head count or status.
  *
- * The response carries the recomputed breakdown rather than an acknowledgement,
+ * The response carries the recomputed breakdown rather than an acknowledgment,
  * so the screen renders figures the server derived instead of deriving them
  * again in the browser.
  */
@@ -49,9 +49,9 @@ export async function updateCostSheet(
 /* -------------------------------------------------------------------------- */
 
 /**
- * Copy a catalogue item onto the sheet.
+ * Copy a catalog item onto the sheet.
  *
- * No price is sent. It comes from the catalogue at the moment of copying, so
+ * No price is sent. It comes from the catalog at the moment of copying, so
  * the line's provenance is a fact rather than something the client asserted.
  */
 export async function addSheetItem(
@@ -63,7 +63,7 @@ export async function addSheetItem(
   });
 }
 
-/** Start a new, empty group on the sheet from a catalogue group. */
+/** Start a new, empty group on the sheet from a catalog group. */
 export async function addSheetGroup(
   costSheetId: string,
   input: SheetGroupAddInput,
@@ -84,7 +84,7 @@ export async function updateSheetItem(
   );
 }
 
-/** Put one line back on the catalogue's current price. */
+/** Put one line back on the catalog's current price. */
 export async function realignSheetItem(
   costSheetId: string,
   itemId: string,
@@ -105,7 +105,7 @@ export async function removeSheetItem(
 }
 
 /* -------------------------------------------------------------------------- */
-/* Programme cost sheets (direction.md §11, §13)                              */
+/* Program cost sheets (direction.md §11, §13)                              */
 /* -------------------------------------------------------------------------- */
 
 export async function fetchProgramCostSheet(
@@ -119,7 +119,7 @@ export async function fetchProgramCostSheet(
 /**
  * Change the markup, the rounding step, the driver or the status.
  *
- * All four are programme-level (§13). The response carries the whole costing
+ * All four are program-level (§13). The response carries the whole costing
  * recomputed — every course's share, every total — because all of them move
  * when the markup does, and re-deriving them here would be the cost formula
  * written a second time in the browser.

@@ -1,44 +1,44 @@
 import "server-only";
 
-import { catalogueGroupTable, courseCostSheetTable, programCostSheetTable } from "@/server/repositories";
+import { catalogGroupTable, courseCostSheetTable, programCostSheetTable } from "@/server/repositories";
 import { matchesSearch, type ListQueryInput } from "@/server/query";
 import { copyItemId, copyOptionId, copyOrdinal } from "@/lib/calculations";
 import type {
-  CatalogueGroupCreateInput,
-  CatalogueGroupUpdateInput,
-  CatalogueItemCreateInput,
-  CatalogueItemUpdateInput,
+  CatalogGroupCreateInput,
+  CatalogGroupUpdateInput,
+  CatalogItemCreateInput,
+  CatalogItemUpdateInput,
 } from "@/lib/api/contracts";
-import type { CatalogueGroup, CatalogueItem, CostGroup, CostItem } from "@/types";
+import type { CatalogGroup, CatalogItem, CostGroup, CostItem } from "@/types";
 
 /**
- * The master cost catalogue (direction.md §12a).
+ * The master cost catalog (direction.md §12a).
  *
- * A sheet takes a **copy** of a catalogue entry, never a reference. That single
+ * A sheet takes a **copy** of a catalog entry, never a reference. That single
  * decision is why this service exists separately from the cost service: the
- * catalogue is edited freely, and nothing it does can reach into a sheet that
+ * catalog is edited freely, and nothing it does can reach into a sheet that
  * has already been approved. Raising a rate here changes what the *next* sheet
  * will copy, and nothing else.
  *
  * Writes are shaped and validated but not persisted; see docs/decisions/why-bff.md.
  */
 
-export interface CatalogueQuery extends ListQueryInput {
+export interface CatalogQuery extends ListQueryInput {
   status?: string;
   kind?: string;
 }
 
 /**
- * The catalogue as a tree.
+ * The catalog as a tree.
  *
  * Returned whole rather than paginated: it is a maintenance screen over a few
  * dozen rows that a user reads by group, and paginating a three-level tree
  * gives a page that can end half way through a group.
  */
-export function listCatalogueGroups(query?: Partial<CatalogueQuery>): CatalogueGroup[] {
+export function listCatalogGroups(query?: Partial<CatalogQuery>): CatalogGroup[] {
   const search = query?.search ?? "";
 
-  return catalogueGroupTable
+  return catalogGroupTable
     .filter((group) => !query?.status || group.status === query.status)
     .map((group) => ({
       ...group,
@@ -56,25 +56,25 @@ export function listCatalogueGroups(query?: Partial<CatalogueQuery>): CatalogueG
     );
 }
 
-export function getCatalogueGroup(groupId: string): CatalogueGroup | undefined {
-  return catalogueGroupTable.find((group) => group.id === groupId);
+export function getCatalogGroup(groupId: string): CatalogGroup | undefined {
+  return catalogGroupTable.find((group) => group.id === groupId);
 }
 
-export function findCatalogueItem(itemId: string): CatalogueItem | undefined {
-  for (const group of catalogueGroupTable) {
+export function findCatalogItem(itemId: string): CatalogItem | undefined {
+  for (const group of catalogGroupTable) {
     const item = group.items.find((entry) => entry.id === itemId);
     if (item) return item;
   }
   return undefined;
 }
 
-/** Options for the "add from catalogue" picker on a sheet. */
-export function catalogueItemOptions(): {
+/** Options for the "add from catalog" picker on a sheet. */
+export function catalogItemOptions(): {
   groupId: string;
   groupName: string;
-  items: CatalogueItem[];
+  items: CatalogItem[];
 }[] {
-  return catalogueGroupTable
+  return catalogGroupTable
     .filter((group) => group.status === "active")
     .map((group) => ({
       groupId: group.id,
@@ -93,7 +93,7 @@ export function catalogueItemOptions(): {
 /** Timestamp for a shaped write. Fixed, because the seed clock is fixed. */
 const WRITE_STAMP = "2026-01-05T09:00:00.000Z";
 
-export function createCatalogueGroup(input: CatalogueGroupCreateInput): CatalogueGroup {
+export function createCatalogGroup(input: CatalogGroupCreateInput): CatalogGroup {
   return {
     id: `cat-${slug(input.name)}`,
     name: input.name,
@@ -105,11 +105,11 @@ export function createCatalogueGroup(input: CatalogueGroupCreateInput): Catalogu
   };
 }
 
-export function updateCatalogueGroup(
+export function updateCatalogGroup(
   groupId: string,
-  input: CatalogueGroupUpdateInput,
-): CatalogueGroup | undefined {
-  const current = getCatalogueGroup(groupId);
+  input: CatalogGroupUpdateInput,
+): CatalogGroup | undefined {
+  const current = getCatalogGroup(groupId);
   if (!current) return undefined;
 
   return {
@@ -131,8 +131,8 @@ export function updateCatalogueGroup(
 /**
  * Every sheet of either kind, for the in-use counts.
  *
- * A catalogue item can be copied onto a course sheet or a programme one, so a
- * count that looked at only one table would report zero for half the catalogue
+ * A catalog item can be copied onto a course sheet or a program one, so a
+ * count that looked at only one table would report zero for half the catalog
  * and let a used item be deleted (§12a).
  */
 function allSheets(): { groups: readonly CostGroup[] }[] {
@@ -140,14 +140,14 @@ function allSheets(): { groups: readonly CostGroup[] }[] {
 }
 
 export function sheetsUsingGroup(groupId: string): number {
-  const group = getCatalogueGroup(groupId);
+  const group = getCatalogGroup(groupId);
   if (!group) return 0;
 
   const itemIds = new Set(group.items.map((item) => item.id));
   return allSheets().filter((sheet) =>
     sheet.groups.some((sheetGroup) =>
       sheetGroup.items.some(
-        (item) => item.catalogueItemId && itemIds.has(item.catalogueItemId),
+        (item) => item.catalogItemId && itemIds.has(item.catalogItemId),
       ),
     ),
   ).length;
@@ -156,19 +156,19 @@ export function sheetsUsingGroup(groupId: string): number {
 export function sheetsUsingItem(itemId: string): number {
   return allSheets().filter((sheet) =>
     sheet.groups.some((group) =>
-      group.items.some((item) => item.catalogueItemId === itemId),
+      group.items.some((item) => item.catalogItemId === itemId),
     ),
   ).length;
 }
 
-export function createCatalogueItem(
+export function createCatalogItem(
   groupId: string,
-  input: CatalogueItemCreateInput,
-): CatalogueGroup | undefined {
-  const group = getCatalogueGroup(groupId);
+  input: CatalogItemCreateInput,
+): CatalogGroup | undefined {
+  const group = getCatalogGroup(groupId);
   if (!group) return undefined;
 
-  const item: CatalogueItem = {
+  const item: CatalogItem = {
     id: `cat-${slug(input.name)}`,
     groupId,
     name: input.name,
@@ -185,12 +185,12 @@ export function createCatalogueItem(
   return { ...group, items: [...group.items, item], updatedAt: WRITE_STAMP };
 }
 
-export function updateCatalogueItem(
+export function updateCatalogItem(
   groupId: string,
   itemId: string,
-  input: CatalogueItemUpdateInput,
-): CatalogueGroup | undefined {
-  const group = getCatalogueGroup(groupId);
+  input: CatalogItemUpdateInput,
+): CatalogGroup | undefined {
+  const group = getCatalogGroup(groupId);
   if (!group?.items.some((item) => item.id === itemId)) return undefined;
 
   return {
@@ -202,7 +202,7 @@ export function updateCatalogueItem(
   };
 }
 
-function applyItemUpdate(item: CatalogueItem, input: CatalogueItemUpdateInput): CatalogueItem {
+function applyItemUpdate(item: CatalogItem, input: CatalogItemUpdateInput): CatalogItem {
   const kind = input.kind ?? item.kind;
   return {
     ...item,
@@ -217,18 +217,18 @@ function applyItemUpdate(item: CatalogueItem, input: CatalogueItemUpdateInput): 
 }
 
 /**
- * Remove an item from the catalogue.
+ * Remove an item from the catalog.
  *
  * Refused once a sheet has copied it — archive it instead (§12a). The sheets
  * would survive the delete, since they hold copies, but their provenance would
- * point at nothing and the catalogue would stop being able to answer the one
+ * point at nothing and the catalog would stop being able to answer the one
  * question it exists for.
  */
-export function deleteCatalogueItem(
+export function deleteCatalogItem(
   groupId: string,
   itemId: string,
-): CatalogueGroup | { blockedBy: number } | undefined {
-  const group = getCatalogueGroup(groupId);
+): CatalogGroup | { blockedBy: number } | undefined {
+  const group = getCatalogGroup(groupId);
   if (!group?.items.some((item) => item.id === itemId)) return undefined;
 
   const used = sheetsUsingItem(itemId);
@@ -242,7 +242,7 @@ export function deleteCatalogueItem(
 }
 
 export function isBlocked(
-  result: CatalogueGroup | { blockedBy: number },
+  result: CatalogGroup | { blockedBy: number },
 ): result is { blockedBy: number } {
   return "blockedBy" in result;
 }
@@ -252,13 +252,13 @@ export function isBlocked(
 /* -------------------------------------------------------------------------- */
 
 /**
- * Take a sheet's copy of a catalogue item.
+ * Take a sheet's copy of a catalog item.
  *
  * The one place the snapshot rule is implemented. Everything the sheet needs is
  * read out here and becomes the sheet's own; the only thing that survives as a
  * link is the id, and that is for provenance rather than for values.
  *
- * Quantity may be overridden at the moment of copying, because the catalogue
+ * Quantity may be overridden at the moment of copying, because the catalog
  * carries defaults rather than truths. There is no allocation to override any
  * more — a share of the indirect pool is derived from the driver (§13).
  *
@@ -269,8 +269,8 @@ export function isBlocked(
  * `copyOrdinal` replaces the constant with a discriminator that is still
  * deterministic: it is a function of the sheet, not of the clock.
  */
-export function copyCatalogueItem(
-  source: CatalogueItem,
+export function copyCatalogItem(
+  source: CatalogItem,
   overrides: { quantity?: number; selectedOptionId?: string },
   taken: Iterable<string> = [],
 ): CostItem {
@@ -280,7 +280,7 @@ export function copyCatalogueItem(
     id: copyOptionId(option.id, ordinal),
   }));
 
-  // The override names an option on the *catalogue* item, so it is translated
+  // The override names an option on the *catalog* item, so it is translated
   // into this copy's numbering. An override naming nothing on the source falls
   // back to the first option rather than being stored verbatim: a
   // `selectedOptionId` that matches none of the copy's own options is a
@@ -298,7 +298,7 @@ export function copyCatalogueItem(
     options,
     selectedOptionId: chosen ? copyOptionId(chosen.id, ordinal) : options[0]?.id,
     note: source.note,
-    catalogueItemId: source.id,
+    catalogItemId: source.id,
     copiedAt: WRITE_STAMP,
   };
 }

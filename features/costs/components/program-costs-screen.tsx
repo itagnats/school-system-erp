@@ -21,7 +21,7 @@ import type { ProgramCostRow } from "../types";
 /**
  * The index of Cost Management (direction.md §11, revised 2026-09-16).
  *
- * The programme term is where a costing is finished — it owns the indirect
+ * The program term is where a costing is finished — it owns the indirect
  * pool, the driver, the markup and the price — so it is what the cost area
  * leads with. Course sheets are contributing parts and list separately.
  *
@@ -73,12 +73,12 @@ export function ProgramCostsScreen({
         <SearchInput
           value={table.search}
           onValueChange={table.setSearch}
-          placeholder="Search programme or semester"
-          aria-label="Search programme cost sheets"
+          placeholder="Search program or semester"
+          aria-label="Search program cost sheets"
           className="w-full max-w-xs"
         />
         <FilterSelect
-          label="Programme"
+          label="Program"
           value={programId}
           options={programOptions}
           onValueChange={(value) => table.setFilter("programId", value)}
@@ -107,8 +107,8 @@ export function ProgramCostsScreen({
         emptyState={
           <EmptyState
             variant="no-results"
-            title="No programme cost sheets match these filters"
-            description="Every programme term has one; try clearing a filter."
+            title="No program cost sheets match these filters"
+            description="Every program term has one; try clearing a filter."
           />
         }
         {...table.tableProps(query.data)}
@@ -120,7 +120,7 @@ export function ProgramCostsScreen({
 /**
  * The columns this screen is willing to let a user switch off.
  *
- * Not the programme, not the total, not the price: hiding the link is a table
+ * Not the program, not the total, not the price: hiding the link is a table
  * nobody can navigate, and hiding either side of the cost-against-price
  * comparison is hiding the reason the list exists.
  */
@@ -134,7 +134,7 @@ const OPTIONAL_COLUMNS: HideableColumn[] = [
 const columns: PrimeColumnDef<ProgramCostRow>[] = [
   {
     accessorKey: "programCode",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Programme" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Program" />,
     cell: ({ row }) => (
       <div className="min-w-0">
         <Link

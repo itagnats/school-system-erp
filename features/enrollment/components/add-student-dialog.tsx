@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { EnrolmentResult, EnrolmentTermOption, SemesterCode } from "@/types";
+import type { EnrollmentResult, EnrollmentTermOption, SemesterCode } from "@/types";
 import { NewStudentForm } from "./new-student-form";
 import { PickStudentForm } from "./pick-student-form";
 
@@ -37,10 +37,10 @@ export function AddStudentDialog({
   defaultTermId,
   label = "Add student",
 }: {
-  terms: EnrolmentTermOption[];
+  terms: EnrollmentTermOption[];
   semesterOptions: SemesterCode[];
   /**
-   * Preselected term. Set from the route on a programme term page, and from
+   * Preselected term. Set from the route on a program term page, and from
    * the active filters on the roster — in both cases the screen already knows
    * the answer, and asking again is the flaw this prop exists to remove.
    */
@@ -48,7 +48,7 @@ export function AddStudentDialog({
   label?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [result, setResult] = useState<EnrolmentResult>();
+  const [result, setResult] = useState<EnrollmentResult>();
 
   function close() {
     setOpen(false);
@@ -76,12 +76,12 @@ export function AddStudentDialog({
             <DialogDescription>
               {result
                 ? "Validated and returned by the BFF. This demo stores nothing, so it lasts until reload."
-                : "A student joins a programme term, and the course enrollments follow from its curriculum."}
+                : "A student joins a program term, and the course enrollments follow from its curriculum."}
             </DialogDescription>
           </DialogHeader>
 
           {result ? (
-            <EnrolmentReceipt result={result} onClose={close} />
+            <EnrollmentReceipt result={result} onClose={close} />
           ) : (
             <Tabs defaultValue="existing-profile">
               <TabsList className="w-full">
@@ -129,17 +129,17 @@ export function AddStudentDialog({
 }
 
 /**
- * What the enrolment actually did.
+ * What the enrollment actually did.
  *
  * One act produced several records, and a toast saying "enrolled" would hide
  * that. Listing the courses is the difference between a user believing the
  * curriculum was applied and seeing that it was.
  */
-function EnrolmentReceipt({
+function EnrollmentReceipt({
   result,
   onClose,
 }: {
-  result: EnrolmentResult;
+  result: EnrollmentResult;
   onClose: () => void;
 }) {
   return (

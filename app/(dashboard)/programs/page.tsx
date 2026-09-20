@@ -18,7 +18,7 @@ export default function Page() {
     <>
       <PageHeader
         title="Curriculum"
-        description="One row per programme term: the courses it includes, what the package sells for, and whether it made money."
+        description="One row per program term: the courses it includes, what the package sells for, and whether it made money."
       />
       <Suspense fallback={<TableSkeleton columns={10} />}>
         <ProgramsScreen semesterOptions={courseSemesterOptions()} />

@@ -87,7 +87,7 @@ export function InvoicesScreen({
           onValueChange={(value) => table.setFilter("semester", value)}
         />
         <FilterSelect
-          label="Programme"
+          label="Program"
           value={programId}
           options={programOptions}
           onValueChange={(value) => table.setFilter("programId", value)}
@@ -105,7 +105,7 @@ export function InvoicesScreen({
           <EmptyState
             variant="no-results"
             title="No invoices match these filters"
-            description="An invoice exists for every student enrolled in a programme term."
+            description="An invoice exists for every student enrolled in a program term."
           />
         }
         {...table.tableProps(query.data)}
@@ -116,7 +116,7 @@ export function InvoicesScreen({
 
 const OPTIONAL_COLUMNS: HideableColumn[] = [
   { id: "semesterCode", label: "Semester" },
-  { id: "programCode", label: "Programme" },
+  { id: "programCode", label: "Program" },
   { id: "dueOn", label: "Due" },
   { id: "creditTotal", label: "Credits" },
 ];
@@ -147,7 +147,7 @@ const columns: PrimeColumnDef<InvoiceRow>[] = [
   },
   {
     accessorKey: "programCode",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Programme" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Program" />,
     cell: ({ row }) => (
       <span className="truncate text-sm">{row.original.programCode}</span>
     ),

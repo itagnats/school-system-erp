@@ -165,7 +165,7 @@ export function MotionSection() {
           <div className="grid gap-4 lg:grid-cols-2">
             <Demo
               title="Interaction feedback"
-              note="Hover and hold. The colour transition is fast, and the 1px press travel is what makes a button feel like a button."
+              note="Hover and hold. The color transition is fast, and the 1px press travel is what makes a button feel like a button."
             >
               <div className="flex flex-wrap gap-2">
                 <Button>Primary</Button>
@@ -177,7 +177,7 @@ export function MotionSection() {
 
             <Demo
               title="A card that is actually clickable"
-              note="Elevation, not colour: a card lifts one shadow step on hover. Apply this only when the whole card is a link or a button — a hover effect on a static card promises something that does not happen."
+              note="Elevation, not color: a card lifts one shadow step on hover. Apply this only when the whole card is a link or a button — a hover effect on a static card promises something that does not happen."
             >
               <a
                 href="#motion"
@@ -196,7 +196,7 @@ export function MotionSection() {
       <Section
         id="reduced-motion"
         title="Reduced motion"
-        description="Handled once, globally, in globals.css. A component must never write its own prefers-reduced-motion query — that is how one surface ends up honouring the preference and eleven others quietly ignore it."
+        description="Handled once, globally, in globals.css. A component must never write its own prefers-reduced-motion query — that is how one surface ends up honoring the preference and eleven others quietly ignore it."
       >
         <div className="flex flex-col gap-4">
           <ReducedMotionStatus />

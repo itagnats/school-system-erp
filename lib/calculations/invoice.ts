@@ -72,10 +72,10 @@ export function courseLineAmount(credits: number, rate: number = CREDIT_RATE): n
  *
  * Not a rounding plug: a package price is a negotiated figure and the courses
  * only account for part of it, so the remainder is a real charge and is
- * labelled as one. It can be zero, in which case the caller omits the line
+ * labeled as one. It can be zero, in which case the caller omits the line
  * rather than printing a zero.
  */
-export function programmeFeeAmount(packagePrice: number, courseTotal: number): number {
+export function programFeeAmount(packagePrice: number, courseTotal: number): number {
   return roundMoney(packagePrice - courseTotal);
 }
 
@@ -154,7 +154,7 @@ export function isCollected(status: InvoiceStatus): boolean {
  *
  * A draft has not been sent and a cancelled invoice has been withdrawn, so
  * neither is a claim on anyone. Counting a draft would let an unsent document
- * inflate a programme's revenue.
+ * inflate a program's revenue.
  */
 export function isBilled(status: InvoiceStatus): boolean {
   return status !== "draft" && status !== "cancelled";
@@ -184,7 +184,7 @@ export function canTransition(from: InvoiceStatus, to: InvoiceStatus): boolean {
  * The biller this demo bills as.
  *
  * A counter-payment barcode carries a fifteen-digit biller identifier, and
- * every real one belongs to a real organisation. This is a deliberate
+ * every real one belongs to a real organization. This is a deliberate
  * placeholder — sequential digits, unmistakably invented — because `data/mock/`
  * holds fictional data only (`scaffold.md` §12) and a plausible-looking
  * identifier is the kind of fiction that stops being obvious once it is printed
@@ -221,7 +221,7 @@ export function amountInSatang(amount: number): string {
  * The four fields behind a counter-payment barcode, plus the payload itself.
  *
  * The fields are returned beside the payload rather than only inside it,
- * because the document prints both: the bars for a scanner and a labelled table
+ * because the document prints both: the bars for a scanner and a labeled table
  * for the person holding the paper, who has to be able to read out a reference
  * when the scanner will not take it.
  */

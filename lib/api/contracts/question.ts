@@ -139,7 +139,7 @@ export const questionGroupSchema = z.object({
 
 /**
  * The bank is returned whole rather than paginated, for the reason the
- * catalogue is: it is read by group, and a page boundary inside a group splits
+ * catalog is: it is read by group, and a page boundary inside a group splits
  * the thing being maintained.
  */
 export const questionBankSchema = z.object({

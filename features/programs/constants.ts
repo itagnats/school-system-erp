@@ -1,9 +1,9 @@
 import type { Option, ProgramTermStatus, StatusTone } from "@/types";
 
 /**
- * Programme vocabulary.
+ * Program vocabulary.
  *
- * A term status is about enrolment, not about money: a closed term can still be
+ * A term status is about enrollment, not about money: a closed term can still be
  * profitable and an open one can still be losing. Profit gets its own tone
  * below, driven by the number rather than by the state.
  */
@@ -25,10 +25,10 @@ export const TERM_STATUS_OPTIONS: Option<ProgramTermStatus>[] = (
 ).map((value) => ({ value, label: TERM_STATUS_LABEL[value] }));
 
 /**
- * Colour for a profit figure.
+ * Color for a profit figure.
  *
  * Never the only signal: every place this is used states the sign in the number
- * itself, so a reader who cannot distinguish the colours still reads a minus.
+ * itself, so a reader who cannot distinguish the colors still reads a minus.
  */
 export function profitToneClass(netProfit: number): string {
   if (netProfit > 0) return "text-success";

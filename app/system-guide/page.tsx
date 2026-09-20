@@ -49,16 +49,16 @@ export default function Page() {
         <div className="max-w-prose space-y-3 text-sm text-foreground">
           <p>
             Three chains run through {APP.name}. <strong>People</strong> — a
-            student joins a programme term and the course enrolments follow from
+            student joins a program term and the course enrollments follow from
             its curriculum. <strong>Money</strong> — each course is costed, the
-            programme shares its indirect costs across them, and an invoice says
-            who owes for it. <strong>Judgement</strong> — a cohort is grouped,
+            program shares its indirect costs across them, and an invoice says
+            who owes for it. <strong>Judgment</strong> — a cohort is grouped,
             assessed from four directions, and scored.
           </p>
           <p>
             They meet twice: cost per student joins the course chain to the
-            programme&rsquo;s profitability, and the curriculum joins the
-            programme to the invoice that bills it.
+            program&rsquo;s profitability, and the curriculum joins the
+            program to the invoice that bills it.
           </p>
           <p className="text-muted-foreground">
             This page demonstrates rather than restates. Every number below is

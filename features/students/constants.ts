@@ -4,7 +4,7 @@ import type { Option } from "@/types";
  * Student vocabulary.
  *
  * A student has no status union, so what this file carries is the year-level
- * labelling that every screen would otherwise invent for itself.
+ * labeling that every screen would otherwise invent for itself.
  */
 
 export function yearLevelLabel(level: number): string {

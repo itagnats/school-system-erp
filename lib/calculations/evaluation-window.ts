@@ -86,7 +86,7 @@ function dayOf(iso: string): string {
 /**
  * A date input's `YYYY-MM-DD` in the shape the store holds.
  *
- * Every seeded window is UTC midnight, so normalising here keeps one format in
+ * Every seeded window is UTC midnight, so normalizing here keeps one format in
  * the table instead of two that sort the same and compare differently.
  */
 export function toStoredDate(day: string): string {

@@ -66,7 +66,7 @@ export function FormDemo() {
   return (
     <Section id="form-bindings"
       title="Form bindings"
-      description="components/ui/form.tsx over React Hook Form and Zod. Submit empty to see validation, focus and announcement behaviour."
+      description="components/ui/form.tsx over React Hook Form and Zod. Submit empty to see validation, focus and announcement behavior."
     >
       <Demo
         title="Course form"

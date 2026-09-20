@@ -75,7 +75,7 @@ export function PrimitivesSection() {
     <div className="flex flex-col" style={{ gap: "var(--section-gap)" }}>
       <Section id="buttons"
         title="Buttons"
-        description="Black is the action colour: a primary button is black on white, never red. One primary per screen; everything else is outline, secondary or ghost."
+        description="Black is the action color: a primary button is black on white, never red. One primary per screen; everything else is outline, secondary or ghost."
       >
         <div className="flex flex-col gap-4">
           <Demo
@@ -510,7 +510,7 @@ export function PrimitivesSection() {
  * compositions rather than importing them, the same way the worked dashboard
  * below does. Change one and change the other.
  *
- * Two behaviours are worth playing with rather than reading about, which is why
+ * Two behaviors are worth playing with rather than reading about, which is why
  * this demo is interactive:
  *
  *   - **zero is "not rated"**, so the range runs 0-5 rather than 1-5. A slider

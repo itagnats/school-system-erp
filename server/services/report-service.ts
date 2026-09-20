@@ -88,7 +88,7 @@ function hasSubmitted(subjectId: string, role: EvaluationRole): boolean {
  * demonstrated neither outcome.
  *
  * Varying the subject is what spreads the means across the scale. Same failure
- * shape as the programme margins that all came out at 98%: the numbers were
+ * shape as the program margins that all came out at 98%: the numbers were
  * never wrong, the distribution was.
  */
 function baselineFor(subjectId: string, scaleMax: number): number {

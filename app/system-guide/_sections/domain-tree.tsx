@@ -21,7 +21,7 @@ import {
  * carries a `total` off a real list service, so the shape and the size are the
  * system's own answer rather than a remembered one.
  *
- * **The programme term is the centre, and that is a claim about the domain
+ * **The program term is the center, and that is a claim about the domain
  * rather than a layout convenience.** It is where the three chains meet: it
  * holds the curriculum, it is what a student actually joins, and it owns the
  * indirect costs the courses inside it share. Put anything else in the middle
@@ -34,19 +34,19 @@ import {
  * calculation that could differ between renders breaks hydration, and a diagram
  * that reflows is a diagram nobody can point at in a review.
  *
- * Colours are passed as `var(--token)` strings, the device
+ * Colors are passed as `var(--token)` strings, the device
  * `category-bar-chart.tsx` already uses for `--surface-sunken`. The browser
  * resolves them, so the map follows the theme switch without this file knowing
  * which theme is on.
  *
- * Edges run centre to centre and the boxes are painted over them, so no curve
+ * Edges run center to center and the boxes are painted over them, so no curve
  * has to stop exactly at a rounded corner. It costs nothing — the rects are
  * opaque — and it removes the only fiddly geometry in the file.
  *
  * ## Accessibility
  *
  * The SVG is `aria-hidden`. A screen reader crawling it produces a stream of
- * unlabelled paths, which is worse than nothing, so the list underneath carries
+ * unlabeled paths, which is worse than nothing, so the list underneath carries
  * the same nodes, the same counts and a sentence each. That list is the real
  * content rather than a fallback: the map gives a sighted reader the shape and
  * the list gives everyone the meaning. Same bargain `ChartFrame` makes, applied
@@ -58,7 +58,7 @@ interface MapNode {
   label: string;
   count: number;
   note: string;
-  /** Fixed centre in viewBox units. Never computed. */
+  /** Fixed center in viewBox units. Never computed. */
   x: number;
   y: number;
   w: number;
@@ -76,9 +76,9 @@ function buildNodes(): MapNode[] {
   return [
     {
       id: "term",
-      label: "Programme term",
+      label: "Program term",
       count: listProgramTerms(COUNT_ONLY).total,
-      note: "A curriculum for one semester plus a package price. The centre of the domain: what a student joins, what holds the courses, and what bears the indirect costs.",
+      note: "A curriculum for one semester plus a package price. The center of the domain: what a student joins, what holds the courses, and what bears the indirect costs.",
       x: 500,
       y: 220,
       w: 176,
@@ -100,7 +100,7 @@ function buildNodes(): MapNode[] {
       id: "course",
       label: "Course",
       count: listCourses(COUNT_ONLY).total,
-      note: "Named by the curriculum. One course can run in several semesters, and carries its own direct costs into any programme that takes it.",
+      note: "Named by the curriculum. One course can run in several semesters, and carries its own direct costs into any program that takes it.",
       x: 760,
       y: 130,
       w: 130,
@@ -111,7 +111,7 @@ function buildNodes(): MapNode[] {
       id: "course-sheet",
       label: "Course cost sheet",
       count: listCostSheets(COUNT_ONLY).total,
-      note: "Direct costs only — lecturer, TA, materials. Seven belong to no programme at all and bear no share of a pool.",
+      note: "Direct costs only — lecturer, TA, materials. Seven belong to no program at all and bear no share of a pool.",
       x: 915,
       y: 66,
       w: 160,
@@ -131,7 +131,7 @@ function buildNodes(): MapNode[] {
     },
     {
       id: "program-sheet",
-      label: "Programme cost sheet",
+      label: "Program cost sheet",
       count: listProgramCostSheets(COUNT_ONLY).total,
       note: "Indirect costs — classroom, utilities, activities — borne once by the term and shared across its curriculum by credit hours.",
       x: 500,
@@ -142,9 +142,9 @@ function buildNodes(): MapNode[] {
     },
     {
       id: "membership",
-      label: "Programme enrolment",
+      label: "Program enrollment",
       count: programEnrollmentCount(),
-      note: "One membership per student per term. This is the enrolment that is entered; everything below it follows from the curriculum.",
+      note: "One membership per student per term. This is the enrollment that is entered; everything below it follows from the curriculum.",
       x: 235,
       y: 130,
       w: 198,
@@ -163,8 +163,8 @@ function buildNodes(): MapNode[] {
       parent: "membership",
     },
     {
-      id: "enrolment",
-      label: "Course enrolment",
+      id: "enrollment",
+      label: "Course enrollment",
       count: listEnrollments(COUNT_ONLY).total,
       note: "Derived from the curriculum, never entered by hand — which is why a roster and a curriculum cannot disagree.",
       x: 95,
@@ -188,7 +188,7 @@ function buildNodes(): MapNode[] {
 }
 
 /**
- * A cubic curve between two centres, bending along whichever axis dominates.
+ * A cubic curve between two centers, bending along whichever axis dominates.
  *
  * Bending the wrong way turns a gentle arc into an S, which is the difference
  * between a mind map and a plate of spaghetti.
@@ -217,7 +217,7 @@ export function DomainTreeSection() {
     <Section
       id="domain"
       title="The domain, as a mind map"
-      description="The programme term sits in the middle because that is where the three chains meet. Every count is read from a service as the page renders."
+      description="The program term sits in the middle because that is where the three chains meet. Every count is read from a service as the page renders."
     >
       {/* The one place this page may scroll sideways. A diagram squeezed to a
           phone's width is unreadable, so it keeps its size and the container
@@ -288,7 +288,7 @@ export function DomainTreeSection() {
 
       <p className="mt-4 max-w-prose text-xs text-muted-foreground">
         Two joins close the loops. Cost per student ties a course back to its
-        programme&rsquo;s profitability, and the curriculum ties a programme term
+        program&rsquo;s profitability, and the curriculum ties a program term
         to the invoice that bills it — which is why an invoice line is a course
         the student was sold rather than a course they attended.
       </p>

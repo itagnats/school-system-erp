@@ -64,12 +64,12 @@ export function StudentDashboardScreen({
         <StatCard
           tone="pink"
           icon={GraduationCap}
-          label="Programme"
+          label="Program"
           value={standing ? standing.programName : student.program}
           hint={
             standing
               ? `${PROGRAM_STANDING_LABEL[standing.status]} · ${standing.semesterCode}`
-              : "No programme membership recorded"
+              : "No program membership recorded"
           }
         />
         <StatCard

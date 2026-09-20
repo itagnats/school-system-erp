@@ -25,16 +25,16 @@ export async function generateMetadata({ params }: Readonly<PageParams>): Promis
   const { programTermId } = await params;
   const detail = getProgramTerm(programTermId);
   return {
-    title: detail ? `Enrolment · ${detail.program.code} ${detail.term.semesterCode}` : "Enrolment",
+    title: detail ? `Enrollment · ${detail.program.code} ${detail.term.semesterCode}` : "Enrollment",
   };
 }
 
 /**
- * Who is under one programme term, and how a student is added to it
+ * Who is under one program term, and how a student is added to it
  * (direction.md §6, §7, §7a).
  *
  * Two tables, because §7a names two questions and they have different grains.
- * The roster is **one row per student** — that is what a programme enrolment
+ * The roster is **one row per student** — that is what a program enrollment
  * is, and what the package is billed against. Below it, the same term seen as
  * course enrollments, which is where a dropped course or an evaluation group
  * shows up. A head count and a course count are not the same number and the
@@ -50,7 +50,7 @@ export default async function Page({ params }: Readonly<PageParams>) {
   if (!detail || !roster) notFound();
 
   // Present only while the term is open. A planning or closed term would have
-  // the enrolment refused by the server, and an action that cannot succeed is
+  // the enrollment refused by the server, and an action that cannot succeed is
   // worse than no action.
   const enrollable = openProgramTermOptions().find((term) => term.id === programTermId);
 
@@ -96,7 +96,7 @@ export default async function Page({ params }: Readonly<PageParams>) {
 
       <Section
         title="Course enrollments"
-        description="The same term at course grain, where a drop or an evaluation group is visible. Programme and semester are the page, so they are not filters here."
+        description="The same term at course grain, where a drop or an evaluation group is visible. Program and semester are the page, so they are not filters here."
       >
         <Suspense fallback={<TableSkeleton columns={4} />}>
           <EnrollmentScreen
@@ -117,7 +117,7 @@ export default async function Page({ params }: Readonly<PageParams>) {
 
 /** Why Add Student is absent, in the words of the term status. */
 const TERM_NOT_OPEN: Record<string, string> = {
-  planning: "Planning - not taking enrolments yet",
+  planning: "Planning - not taking enrollments yet",
   closed: "Closed - this term is over",
   open: "",
 };

@@ -13,24 +13,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LoadingState } from "@/components/feedback";
-import { useCatalogue } from "@/features/cost-catalogue/hooks/use-catalogue";
+import { useCatalogPicker } from "../hooks/use-catalog-picker";
 import { HttpError } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 import type { CostGroup, CostKind } from "@/types";
 import { useSheetContents } from "../hooks/use-cost-sheet-mutations";
 
 /**
- * Copy a catalogue item onto one of the sheet's groups (direction.md §12a).
+ * Copy a catalog item onto one of the sheet's groups (direction.md §12a).
  *
- * The picker is scoped to the catalogue group this sheet group came from, when
+ * The picker is scoped to the catalog group this sheet group came from, when
  * it has one: a sheet's "Facilities" wants facilities items, and offering the
- * whole catalogue would turn a two-click action into a search.
+ * whole catalog would turn a two-click action into a search.
  *
- * No price field. The price comes from the catalogue at the moment of copying —
+ * No price field. The price comes from the catalog at the moment of copying —
  * letting the dialog name one would make the line's provenance a claim rather
  * than a fact. The copy is editable the moment it lands on the sheet.
  */
-export function AddFromCatalogueDialog({
+export function AddFromCatalogDialog({
   sheetId,
   group,
   kind,
@@ -53,16 +53,16 @@ export function AddFromCatalogueDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }>) {
-  const catalogue = useCatalogue({ status: "active" });
+  const catalog = useCatalogPicker({ status: "active" });
   const mutation = useSheetContents(sheetId, detailKey);
 
   const [selected, setSelected] = useState<string | null>(null);
   const [quantity, setQuantity] = useState("");
 
-  const source = catalogue.data?.find((entry) => entry.id === group.catalogueGroupId);
-  // A sheet group with no catalogue origin still needs somewhere to draw from,
+  const source = catalog.data?.find((entry) => entry.id === group.catalogGroupId);
+  // A sheet group with no catalog origin still needs somewhere to draw from,
   // so fall back to everything rather than showing an empty picker.
-  const available = (source ? [source] : (catalogue.data ?? [])).flatMap((entry) =>
+  const available = (source ? [source] : (catalog.data ?? [])).flatMap((entry) =>
     entry.items.filter((item) => item.status === "active" && item.kind === kind),
   );
 
@@ -75,17 +75,17 @@ export function AddFromCatalogueDialog({
         <DialogHeader>
           <DialogTitle>Add to {group.name}</DialogTitle>
           <DialogDescription>
-            The sheet takes a copy. Changing the catalogue later will not change
+            The sheet takes a copy. Changing the catalog later will not change
             this line.
           </DialogDescription>
         </DialogHeader>
 
-        {catalogue.isPending ? <LoadingState label="Loading the catalogue" /> : null}
+        {catalog.isPending ? <LoadingState label="Loading the catalog" /> : null}
 
-        {!catalogue.isPending && available.length === 0 ? (
+        {!catalog.isPending && available.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             Every active item in this group is already on the sheet, or the
-            catalogue has none. Add one under Cost Catalogue first.
+            catalog has none. Add one under Cost Catalog first.
           </p>
         ) : null}
 
@@ -128,7 +128,7 @@ export function AddFromCatalogueDialog({
             type="number"
             inputMode="numeric"
             className="w-32"
-            placeholder="Catalogue default"
+            placeholder="Catalog default"
             value={quantity}
             onChange={(event) => setQuantity(event.target.value)}
             aria-invalid={fieldErrors?.quantity ? true : undefined}
@@ -140,9 +140,9 @@ export function AddFromCatalogueDialog({
           ) : null}
         </div>
 
-        {fieldErrors?.catalogueItemId ? (
+        {fieldErrors?.catalogItemId ? (
           <p role="alert" className="text-xs font-medium text-destructive">
-            {fieldErrors.catalogueItemId}
+            {fieldErrors.catalogItemId}
           </p>
         ) : null}
 
@@ -160,7 +160,7 @@ export function AddFromCatalogueDialog({
                   kind: "add-item",
                   input: {
                     groupId: group.id,
-                    catalogueItemId: selected,
+                    catalogItemId: selected,
                     quantity: quantity === "" ? undefined : Number(quantity),
                   },
                 },

@@ -1,18 +1,18 @@
-import type { CatalogueGroup, CatalogueItem, CostKind, CostOption } from "@/types";
+import type { CatalogGroup, CatalogItem, CostKind, CostOption } from "@/types";
 
 /**
- * The master cost catalogue (direction.md §12a).
+ * The master cost catalog (direction.md §12a).
  *
  * An item's **kind decides which sheet it can reach** (§12, revised
  * 2026-09-15): a `direct` item goes onto a course's sheet, an `indirect` one
- * onto a programme term's. Nothing here carries an allocation percentage any
+ * onto a program term's. Nothing here carries an allocation percentage any
  * more — a share of the indirect pool is derived from the driver (§13).
  *
  * Hand-written rather than generated, and deliberately small: this is the file
  * a reviewer should be able to read in one sitting to learn what a school
  * charges for. The groups and items are the ones §12 uses as its own example.
  *
- * Every sheet in the seed is built from these entries, so the catalogue is load
+ * Every sheet in the seed is built from these entries, so the catalog is load
  * bearing rather than decorative — change a default here and the generated
  * dataset changes with it.
  */
@@ -30,9 +30,9 @@ function item(
   extra: {
     options?: CostOption[];
     note?: string;
-    status?: CatalogueItem["status"];
+    status?: CatalogItem["status"];
   } = {},
-): CatalogueItem {
+): CatalogItem {
   return {
     id,
     groupId,
@@ -48,7 +48,7 @@ function item(
   };
 }
 
-export const mockCatalogueGroups: CatalogueGroup[] = [
+export const mockCatalogGroups: CatalogGroup[] = [
   {
     id: "cat-teaching",
     name: "Teaching",
@@ -124,6 +124,6 @@ export const mockCatalogueGroups: CatalogueGroup[] = [
 ];
 
 /** Flat lookup, for the seed and for provenance checks. */
-export const mockCatalogueItems: CatalogueItem[] = mockCatalogueGroups.flatMap(
+export const mockCatalogItems: CatalogItem[] = mockCatalogGroups.flatMap(
   (group) => group.items,
 );

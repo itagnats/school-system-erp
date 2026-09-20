@@ -3,11 +3,11 @@ import type { SemesterCode } from "./common";
 /**
  * Invoicing (direction.md §13b).
  *
- *   Programme Term -> Programme Enrollment -> Invoice -> Invoice Line
+ *   Program Term -> Program Enrollment -> Invoice -> Invoice Line
  *
- * One invoice per student per semester. A student enrols in a programme rather
+ * One invoice per student per semester. A student enrols in a program rather
  * than a course (§7a), so a bill per course would contradict what is being
- * sold; and a student taking two programmes in one term still receives one
+ * sold; and a student taking two programs in one term still receives one
  * document, because that is what a person receives.
  */
 
@@ -60,11 +60,11 @@ export interface Invoice {
   studentId: string;
   semesterCode: SemesterCode;
   /**
-   * The programme terms this invoice bills for.
+   * The program terms this invoice bills for.
    *
-   * Plural because the grain is the student-semester, not the programme. The
-   * current seed gives each student one programme, so this holds one id — the
-   * shape is what stops a second programme becoming a second invoice.
+   * Plural because the grain is the student-semester, not the program. The
+   * current seed gives each student one program, so this holds one id — the
+   * shape is what stops a second program becoming a second invoice.
    */
   programTermIds: string[];
   status: InvoiceStatus;
@@ -125,7 +125,7 @@ export interface InvoiceDetail {
 }
 
 /**
- * What a programme term was actually billed, for §13a.
+ * What a program term was actually billed, for §13a.
  *
  * Only what the invoices say. The list revenue it gets compared against —
  * package price multiplied by head count — is computed by the profit

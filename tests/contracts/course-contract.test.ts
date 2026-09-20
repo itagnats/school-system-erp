@@ -46,7 +46,7 @@ describe("courseCreateSchema", () => {
     expect(tooMany.success).toBe(false);
   });
 
-  it("normalises a code by trimming it", () => {
+  it("normalizes a code by trimming it", () => {
     const parsed = courseCreateSchema.parse({
       code: "  IT101  ",
       name: "Introduction to IT",

@@ -35,7 +35,7 @@ export interface ColumnMetaHints {
  * registered ones exist on the instance, which keeps the bundle small but means
  * the feature set is part of the table's type. Declaring it once here is what
  * stops every module from having to name the generic, and it guarantees two
- * tables in different modules cannot quietly support different behaviour.
+ * tables in different modules cannot quietly support different behavior.
  *
  * `columnMeta` is typed here too, rather than through global declaration
  * merging, so a column can carry alignment and class hints with real types.

@@ -17,7 +17,7 @@ import type { StudentSummary } from "./student";
  * Three rules are structural, not cosmetic:
  *   - no *person* ever assesses themselves, whatever their role. A matching
  *     pair of roles is not the same thing: student assessing student is peer
- *     assessment, and it is the centre of the feature;
+ *     assessment, and it is the center of the feature;
  *   - an inspector is a student drawn from a different evaluation group;
  *   - ranking and grade apply to student assessees only. A teacher gets a
  *     feedback report, not a position in a leaderboard and not a letter.
@@ -192,7 +192,7 @@ export interface AssessorConfig {
   role: EvaluationRole;
   /**
    * Whether this role assesses this assessee at all. A course with no teaching
-   * assistant switches `ta` off, and the remaining weights are renormalised
+   * assistant switches `ta` off, and the remaining weights are renormalized
    * rather than leaving 15% of the score unaccounted for.
    */
   enabled: boolean;
@@ -455,7 +455,7 @@ export interface RoleScore {
  *
  * Three figures, and the relationship between them is the report:
  *
- *   behavioural  the weighted mean of the 360 ratings
+ *   behavioral  the weighted mean of the 360 ratings
  *   ranking      the weighted mean of the submitted orderings
  *   total        the two blended by their derived effective shares
  *
@@ -469,14 +469,14 @@ export interface ScoreResult {
   roles: RoleScore[];
 
   /** Mean of the 360 ratings, weighted by each role's 360 contribution. */
-  behaviouralScore: number | null;
+  behavioralScore: number | null;
   /** Mean of the orderings, weighted by each role's ranking contribution. */
   rankingScore: number | null;
   /** The blend of the two. Null when nothing has been submitted at all. */
   totalScore: number | null;
 
-  /** The derived shares the two halves carry, from `summariseWeights`. */
-  behaviouralSharePercent: number;
+  /** The derived shares the two halves carry, from `summarizeWeights`. */
+  behavioralSharePercent: number;
   rankingSharePercent: number;
 
   /** `totalScore` as a percentage of the scale, for §22's thresholds. */

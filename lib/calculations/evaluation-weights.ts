@@ -53,7 +53,7 @@ export function enabledAssessors(assessors: readonly AssessorConfig[]): Assessor
  * number and no rule for which wins. Here the per-assessor figures are the
  * truth and the headline is computed from them.
  */
-export function summariseWeights(assessors: readonly AssessorConfig[]): WeightSummary {
+export function summarizeWeights(assessors: readonly AssessorConfig[]): WeightSummary {
   const active = enabledAssessors(assessors);
 
   const totalPercent = round(
@@ -74,7 +74,7 @@ export function summariseWeights(assessors: readonly AssessorConfig[]): WeightSu
     totalPercent,
     remainingPercent: round(100 - totalPercent, 2),
     // Tolerance rather than equality: these are user-entered percentages and a
-    // renormalised set can land on 99.999999999999.
+    // renormalized set can land on 99.999999999999.
     balanced: Math.abs(100 - totalPercent) < 0.005,
     effective360Percent: round(threeSixty, 2),
     effectiveRankingPercent: round(ranking, 2),
@@ -93,7 +93,7 @@ export function summariseWeights(assessors: readonly AssessorConfig[]): WeightSu
  * A disabled assessor keeps its stored weight rather than being zeroed, so
  * switching it back on restores the blend it had.
  */
-export function normaliseWeights(assessors: readonly AssessorConfig[]): AssessorConfig[] {
+export function normalizeWeights(assessors: readonly AssessorConfig[]): AssessorConfig[] {
   const active = enabledAssessors(assessors);
   const total = active.reduce((sum, assessor) => sum + assessor.weightPercent, 0);
 
@@ -203,7 +203,7 @@ export function setAssessorRankingShare(
  * Replace one relation's question set.
  *
  * Order follows the canonical criteria list rather than the order they were
- * clicked, so two setups asking the same questions serialise identically and a
+ * clicked, so two setups asking the same questions serialize identically and a
  * diff between them is readable.
  */
 export function setAssessorCriteria(
@@ -222,9 +222,9 @@ export function setAssessorCriteria(
 }
 
 /**
- * Toggle one assessor, then renormalise that assessee's blend.
+ * Toggle one assessor, then renormalize that assessee's blend.
  *
- * Renormalising here rather than leaving it to the caller is deliberate: a
+ * Renormalizing here rather than leaving it to the caller is deliberate: a
  * toggle that silently unbalances a card is the failure this module exists to
  * prevent.
  */
@@ -239,7 +239,7 @@ export function setAssessorEnabled(
     const toggled = assessee.assessors.map((assessor) =>
       assessor.role === assessorRole ? { ...assessor, enabled } : assessor,
     );
-    return { ...assessee, assessors: normaliseWeights(toggled) };
+    return { ...assessee, assessors: normalizeWeights(toggled) };
   });
 }
 
@@ -291,7 +291,7 @@ export function removeAssessee(
  *
  * Per assessee, because the same assessor role can be correctly configured for
  * one assessee and empty for another. Reported rather than auto-corrected -
- * which questions to ask is a judgement, not something to guess mid-keystroke.
+ * which questions to ask is a judgment, not something to guess mid-keystroke.
  */
 export function relationsWithoutQuestions(assessee: AssesseeConfig): EvaluationRole[] {
   return assessee.assessors
@@ -311,7 +311,7 @@ export function maxAssesseeShare(
   pick: (summary: WeightSummary) => number,
 ): number {
   return assessees.reduce(
-    (max, assessee) => Math.max(max, pick(summariseWeights(assessee.assessors))),
+    (max, assessee) => Math.max(max, pick(summarizeWeights(assessee.assessors))),
     0,
   );
 }
@@ -352,7 +352,7 @@ export function unbalancedAssessees(
   assessees: readonly AssesseeConfig[],
 ): EvaluationRole[] {
   return assessees
-    .filter((assessee) => !summariseWeights(assessee.assessors).balanced)
+    .filter((assessee) => !summarizeWeights(assessee.assessors).balanced)
     .map((assessee) => assessee.role);
 }
 
@@ -360,7 +360,7 @@ export function unbalancedAssessees(
  * Whether an assessor role could ever assess an assessee role.
  *
  * **A matching pair of roles is not self-assessment.** Student assessing
- * student is peer assessment - the centre of the whole feature (direction.md
+ * student is peer assessment - the center of the whole feature (direction.md
  * §16). "Nobody assesses themselves" is a rule about *people*, and it is
  * enforced where people are: an evaluator never appears among their own
  * subjects. Confusing the two rules once cost this module the peer relation

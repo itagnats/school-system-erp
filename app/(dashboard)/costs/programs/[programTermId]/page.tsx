@@ -18,12 +18,12 @@ export async function generateMetadata({
   return {
     title: detail
       ? `${detail.programCode} ${detail.semesterCode} costs`
-      : "Programme costs",
+      : "Program costs",
   };
 }
 
 /**
- * The indirect cost sheet for one programme term (direction.md 11, 13).
+ * The indirect cost sheet for one program term (direction.md 11, 13).
  *
  * A server component reading the service directly - no HTTP hop for data it can
  * already reach. The screen below is a client component only so the markup, the
@@ -39,7 +39,7 @@ export default async function Page({ params }: Readonly<PageParams>) {
     <>
       <PageHeader
         title={`${detail.programCode} - ${detail.semesterCode}`}
-        description="Indirect costs for the programme term, and how they reach each course."
+        description="Indirect costs for the program term, and how they reach each course."
         meta={
           <Link
             href={routes.programTerm(programTermId)}

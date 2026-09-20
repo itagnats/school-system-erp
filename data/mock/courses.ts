@@ -25,7 +25,7 @@ export const mockCourses: Course[] = [
     code: "IT205",
     name: "Database Systems",
     description:
-      "Relational modelling, normalisation, query design and the trade-offs behind indexing.",
+      "Relational modeling, normalization, query design and the trade-offs behind indexing.",
     credits: 3,
     status: "active",
     offeredIn: ["202502", "202601"],
@@ -47,9 +47,9 @@ export const mockCourses: Course[] = [
   {
     id: "crs-ds220",
     code: "DS220",
-    name: "Data Analysis Fundamentals",
+    name: "Data Analyzis Fundamentals",
     description:
-      "Describing, visualising and drawing defensible conclusions from a dataset.",
+      "Describing, visualizing and drawing defensible conclusions from a dataset.",
     credits: 3,
     status: "active",
     offeredIn: ["202601"],

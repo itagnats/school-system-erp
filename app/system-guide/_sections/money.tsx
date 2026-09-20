@@ -8,7 +8,7 @@ import {
 } from "@/server/services";
 
 /**
- * The money chain, worked on a real programme term at render time.
+ * The money chain, worked on a real program term at render time.
  *
  * The claim this section makes — that a derived share cannot fail to total the
  * pool — is the one the whole 2026-09-15 rebuild rests on, so it is *checked on
@@ -35,7 +35,7 @@ export function MoneySection() {
     return (
       <Section id="money" title="The money chain">
         <p className="text-sm text-muted-foreground">
-          No programme cost sheet is available to work through.
+          No program cost sheet is available to work through.
         </p>
       </Section>
     );
@@ -52,7 +52,7 @@ export function MoneySection() {
     <Section
       id="money"
       title="The money chain, worked live"
-      description={`${detail.programCode} ${detail.semesterCode}, re-derived on every render. A course bears its direct costs; the programme bears the indirect ones once and shares them by credit hours.`}
+      description={`${detail.programCode} ${detail.semesterCode}, re-derived on every render. A course bears its direct costs; the program bears the indirect ones once and shares them by credit hours.`}
     >
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
@@ -99,7 +99,7 @@ export function MoneySection() {
           holds={sharesReconcile}
         />
         <Check
-          label="Course totals reconcile to the programme"
+          label="Course totals reconcile to the program"
           detail={`${money(totalSum)} against ${money(b.totalCost)}`}
           holds={totalsReconcile}
         />
@@ -138,7 +138,7 @@ function Check({
             : "text-sm font-medium text-error"
         }
       >
-        {/* Never colour alone: the word carries the state for anyone who cannot
+        {/* Never color alone: the word carries the state for anyone who cannot
             see the hue, and for print. */}
         {holds ? "Holds" : "Does not hold"}
       </dd>

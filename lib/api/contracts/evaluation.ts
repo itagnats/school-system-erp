@@ -18,7 +18,7 @@ const windowStatus = z.enum(["draft", "open", "closed", "published"]);
  *
  * A date input produces `2026-03-06`; the store holds `2026-03-06T00:00:00.000Z`
  * and a client echoing a setup back unchanged sends that. Accepting both and
- * normalising in the service keeps one format in the table, rather than two that
+ * normalizing in the service keeps one format in the table, rather than two that
  * sort alike and compare differently.
  */
 const windowDate = z.union([z.iso.date(), z.iso.datetime()], {

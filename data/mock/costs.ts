@@ -5,11 +5,11 @@ import type { CourseCostSheet, ProgramCostSheet } from "@/types";
  * One of each sheet, fully written, so the nesting is readable in a single file:
  *
  *   Course Cost Sheet     -> Cost Group -> Cost Item -> Cost Option   (direct)
- *   Programme Cost Sheet  -> Cost Group -> Cost Item -> Cost Option   (indirect)
+ *   Program Cost Sheet  -> Cost Group -> Cost Item -> Cost Option   (indirect)
  *
- * The pair is deliberately the same course-semester and the programme term that
+ * The pair is deliberately the same course-semester and the program term that
  * contains it, so a reader can see how the two halves meet: IT101 carries its
- * own lecturer and materials, and takes a share of the BSc IT programme's
+ * own lecturer and materials, and takes a share of the BSc IT program's
  * classroom and utilities (direction.md §11-13).
  *
  * Nothing here carries an allocation percentage. A course bears its direct
@@ -27,7 +27,7 @@ export const mockCourseCostSheets: CourseCostSheet[] = [
       {
         id: "grp-teaching",
         name: "Teaching",
-        catalogueGroupId: "cat-teaching",
+        catalogGroupId: "cat-teaching",
         items: [
           {
             id: "itm-lecturer",
@@ -37,19 +37,19 @@ export const mockCourseCostSheets: CourseCostSheet[] = [
             quantity: 45,
             options: [],
             note: "45 contact hours across the term.",
-            catalogueItemId: "cat-lecturer",
+            catalogItemId: "cat-lecturer",
             copiedAt: "2025-12-02T09:00:00.000Z",
           },
           {
             id: "itm-ta",
             name: "Teaching assistant",
             kind: "direct",
-            // Deliberately above the catalogue default of 600, so this sheet
-            // demonstrates the "differs from the catalogue" state (§12a).
+            // Deliberately above the catalog default of 600, so this sheet
+            // demonstrates the "differs from the catalog" state (§12a).
             unitPrice: 750,
             quantity: 30,
             options: [],
-            catalogueItemId: "cat-ta",
+            catalogItemId: "cat-ta",
             copiedAt: "2025-12-02T09:00:00.000Z",
           },
         ],
@@ -57,7 +57,7 @@ export const mockCourseCostSheets: CourseCostSheet[] = [
       {
         id: "grp-activities",
         name: "Student activities",
-        catalogueGroupId: "cat-activities",
+        catalogGroupId: "cat-activities",
         items: [
           {
             id: "itm-materials",
@@ -66,11 +66,11 @@ export const mockCourseCostSheets: CourseCostSheet[] = [
             unitPrice: 350,
             quantity: 42,
             options: [],
-            catalogueItemId: "cat-materials",
+            catalogItemId: "cat-materials",
             copiedAt: "2025-12-02T09:00:00.000Z",
           },
           {
-            // No catalogue origin: a one-off cost typed straight onto the
+            // No catalog origin: a one-off cost typed straight onto the
             // sheet, which §12a allows and never reports as out of date.
             id: "itm-invigilation",
             name: "External invigilator",
@@ -89,10 +89,10 @@ export const mockCourseCostSheets: CourseCostSheet[] = [
 ];
 
 /**
- * The programme term that IT101 sits in, and the costs it bears once.
+ * The program term that IT101 sits in, and the costs it bears once.
  *
  * The classroom is the worked example of why this sheet exists at all. It is
- * booked by the programme, not by any one course: under the old model each
+ * booked by the program, not by any one course: under the old model each
  * course held its own copy and took whatever percentage someone typed, and
  * across the seed 82 of 92 pools recovered less than the cost.
  */
@@ -110,7 +110,7 @@ export const mockProgramCostSheets: ProgramCostSheet[] = [
       {
         id: "grp-facilities",
         name: "Facilities",
-        catalogueGroupId: "cat-facilities",
+        catalogGroupId: "cat-facilities",
         items: [
           {
             id: "itm-room",
@@ -118,7 +118,7 @@ export const mockProgramCostSheets: ProgramCostSheet[] = [
             kind: "indirect",
             unitPrice: 0,
             quantity: 45,
-            catalogueItemId: "cat-room",
+            catalogItemId: "cat-room",
             copiedAt: "2025-12-02T09:00:00.000Z",
             selectedOptionId: "opt-lab",
             options: [
@@ -138,7 +138,7 @@ export const mockProgramCostSheets: ProgramCostSheet[] = [
             unitPrice: 12000,
             quantity: 1,
             options: [],
-            catalogueItemId: "cat-utilities",
+            catalogItemId: "cat-utilities",
             copiedAt: "2025-12-02T09:00:00.000Z",
           },
         ],
@@ -146,7 +146,7 @@ export const mockProgramCostSheets: ProgramCostSheet[] = [
       {
         id: "grp-activities-indirect",
         name: "Student activities",
-        catalogueGroupId: "cat-activities",
+        catalogGroupId: "cat-activities",
         items: [
           {
             id: "itm-field",
@@ -156,7 +156,7 @@ export const mockProgramCostSheets: ProgramCostSheet[] = [
             quantity: 1,
             options: [],
             note: "One coach for the whole cohort.",
-            catalogueItemId: "cat-field",
+            catalogItemId: "cat-field",
             copiedAt: "2025-12-02T09:00:00.000Z",
           },
         ],

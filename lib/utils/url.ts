@@ -3,7 +3,7 @@ import type { ListQuery } from "@/types";
 /**
  * URL search params are the storage for table state: search, filters, sorting
  * and pagination all live there so a view can be refreshed and shared
- * (scaffold.md §26). These helpers keep that serialisation in one place.
+ * (scaffold.md §26). These helpers keep that serialization in one place.
  */
 
 /** Read a string param, treating an empty string as absent. */

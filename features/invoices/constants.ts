@@ -48,7 +48,7 @@ export const INVOICE_CREDIT_REASON_LABEL: Record<InvoiceCreditReason, string> = 
  * a business rule and business rules change in one place.
  */
 export const INVOICE_GRAIN_NOTE =
-  "One invoice per student per semester. Lines are the programme curriculum; a course that was cancelled or dropped is credited back.";
+  "One invoice per student per semester. Lines are the program curriculum; a course that was cancelled or dropped is credited back.";
 
 /**
  * The letterhead on the printed document.
@@ -69,7 +69,7 @@ export const INVOICE_ISSUER = {
  * the barcode — the document is a record of what was billed, and a payment
  * block that vanishes leaves a reader unsure whether the invoice ever had one —
  * but it is stamped and faded, and this sentence says in words what the stamp
- * says in a glance. Colour and a rubber stamp are both visual; the sentence is
+ * says in a glance. Color and a rubber stamp are both visual; the sentence is
  * what a screen reader and a monochrome printer get.
  *
  * **This map is copy, not the rule.** Which statuses are payable is

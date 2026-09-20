@@ -5,9 +5,9 @@ import { parseBody, readJson } from "@/server/validation";
 import { getProgramCostSheetByTerm, updateProgramCostSheet } from "@/server/services";
 
 /**
- * The indirect cost sheet for one programme term (direction.md 11, 13).
+ * The indirect cost sheet for one program term (direction.md 11, 13).
  *
- * Addressed by the programme term rather than by the sheet's own id, because
+ * Addressed by the program term rather than by the sheet's own id, because
  * the term is what a caller already has: there is exactly one sheet per term,
  * so a second identifier would only be a second thing to look up.
  */
@@ -19,7 +19,7 @@ export async function GET(
   return handleItem(
     request,
     () => getProgramCostSheetByTerm(programTermId),
-    "Programme cost sheet",
+    "Program cost sheet",
   );
 }
 
@@ -36,10 +36,10 @@ export async function PATCH(
   }
 
   const current = getProgramCostSheetByTerm(programTermId);
-  if (!current) return notFound("Programme cost sheet");
+  if (!current) return notFound("Program cost sheet");
 
   const updated = updateProgramCostSheet(current.sheet.id, parsed.data);
-  if (!updated) return notFound("Programme cost sheet");
+  if (!updated) return notFound("Program cost sheet");
 
   return NextResponse.json(updated);
 }

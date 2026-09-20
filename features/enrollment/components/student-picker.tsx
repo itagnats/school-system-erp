@@ -13,13 +13,13 @@ import { useEnrolCandidates } from "../hooks/use-enrol-student";
  * Choose the student to enrol.
  *
  * Both picker paths in direction.md §7 are this component. "Existing profile"
- * is every student on the programme; "previous course" is the same list with a
+ * is every student on the program; "previous course" is the same list with a
  * semester attached, which narrows it to the people who were here last term.
  * The paths are two questions, not two screens, and writing them twice would
  * have produced two lists that drifted.
  *
- * The list is **scoped to the term's programme** rather than showing everyone.
- * A student on another programme is refused by the server, so offering them
+ * The list is **scoped to the term's program** rather than showing everyone.
+ * A student on another program is refused by the server, so offering them
  * here would be an invitation to hit an error that the screen could have
  * avoided.
  */
@@ -32,7 +32,7 @@ export function StudentPicker({
   onChange,
   labelledBy,
 }: {
-  /** Programme name from the chosen term. Absent until a term is chosen. */
+  /** Program name from the chosen term. Absent until a term is chosen. */
   program?: string;
   /** Narrow to students who held a place in this semester. */
   semester?: string;
@@ -47,7 +47,7 @@ export function StudentPicker({
   if (!program) {
     return (
       <p className="rounded-md border border-dashed px-3 py-6 text-center text-xs text-muted-foreground">
-        Choose a programme term first — the people you can enrol depend on it.
+        Choose a program term first — the people you can enrol depend on it.
       </p>
     );
   }
@@ -80,8 +80,8 @@ export function StudentPicker({
             title="Nobody matches"
             description={
               semester
-                ? "No student on this programme held a place that semester. Try the existing profile path, or a different semester."
-                : "No student on this programme matches that search."
+                ? "No student on this program held a place that semester. Try the existing profile path, or a different semester."
+                : "No student on this program matches that search."
             }
           />
         }

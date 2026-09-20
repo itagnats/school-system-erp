@@ -10,7 +10,7 @@ export async function GET(
   { params }: { params: Promise<{ programTermId: string }> },
 ) {
   const { programTermId } = await params;
-  return handleItem(request, () => getProgramTerm(programTermId), "Programme term");
+  return handleItem(request, () => getProgramTerm(programTermId), "Program term");
 }
 
 /**
@@ -32,7 +32,7 @@ export async function PATCH(
   }
 
   const updated = updateProgramTerm(programTermId, parsed.data);
-  if (!updated) return notFound("Programme term");
+  if (!updated) return notFound("Program term");
 
   return NextResponse.json(updated);
 }
@@ -48,5 +48,5 @@ export async function DELETE(
   { params }: { params: Promise<{ programTermId: string }> },
 ) {
   const { programTermId } = await params;
-  return handleRemoval(deleteProgramTerm(programTermId), "Programme term");
+  return handleRemoval(deleteProgramTerm(programTermId), "Program term");
 }

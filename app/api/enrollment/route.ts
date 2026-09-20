@@ -20,7 +20,7 @@ export async function GET(request: Request) {
 }
 
 /**
- * POST /api/enrollment - enrol one student into one programme term.
+ * POST /api/enrollment - enrol one student into one program term.
  *
  * The body is a discriminated union on `source`, so the three paths in
  * direction.md §7 arrive as one request and a malformed combination - a new

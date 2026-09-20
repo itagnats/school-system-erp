@@ -13,7 +13,7 @@ import { FilterBar, FilterSelect, SearchInput, StatusBadge } from "@/components/
 import { useListTable } from "@/hooks";
 import { routes } from "@/lib/constants";
 import type {
-  EnrolmentTermOption,
+  EnrollmentTermOption,
   EnrollmentListItem,
   EnrollmentStatus,
   Option,
@@ -32,8 +32,8 @@ import { AddStudentDialog } from "./add-student-dialog";
  * The enrollment roster (direction.md §6-8).
  *
  * Five filters, because an enrollment is only meaningful in context: which
- * programme, which course, which semester, what state, and which evaluation
- * group. Programme comes first because that is what a student actually enrols
+ * program, which course, which semester, what state, and which evaluation
+ * group. Program comes first because that is what a student actually enrols
  * in - the course rows follow from the curriculum. The BFF joins the student
  * and course in, so a row arrives ready to render.
  */
@@ -47,13 +47,13 @@ export function EnrollmentScreen({
   courseOptions: Option[];
   programOptions: Option[];
   semesterOptions: SemesterCode[];
-  /** Programme terms currently taking enrolments, for the Add Student dialog. */
-  termOptions: EnrolmentTermOption[];
+  /** Program terms currently taking enrollments, for the Add Student dialog. */
+  termOptions: EnrollmentTermOption[];
   /**
-   * Pins the table to one programme term.
+   * Pins the table to one program term.
    *
    * Set when this is the course-level section of a term page, where the
-   * programme and semester are the page rather than a choice. Their filter
+   * program and semester are the page rather than a choice. Their filter
    * controls come off with them - a control whose value cannot change is
    * furniture - and so does Add Student, which the page header already owns.
    */
@@ -83,9 +83,9 @@ export function EnrollmentScreen({
   /**
    * The term the filters already point at, if they point at exactly one.
    *
-   * Enrolment belongs on the programme term page, where the term is in the URL
+   * Enrollment belongs on the program term page, where the term is in the URL
    * (direction.md 7a). This screen is the flat roster, so it can still open the
-   * dialog - but when someone has already narrowed to one programme and one
+   * dialog - but when someone has already narrowed to one program and one
    * semester, asking them to pick the term again is asking a question they
    * just answered.
    */
@@ -129,7 +129,7 @@ export function EnrollmentScreen({
         />
         {locked ? null : (
           <FilterSelect
-            label="Programme"
+            label="Program"
             value={programId}
             options={programOptions}
             onValueChange={(value) => table.setFilter("programId", value)}

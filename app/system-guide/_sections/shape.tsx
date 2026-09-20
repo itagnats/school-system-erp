@@ -28,13 +28,13 @@ const COUNT_ONLY = { search: "", page: 1, pageSize: 1, direction: "asc" } as con
 
 export function ShapeSection() {
   const counts = [
-    { label: "Programme terms", value: listProgramTerms(COUNT_ONLY).total },
+    { label: "Program terms", value: listProgramTerms(COUNT_ONLY).total },
     { label: "Semesters", value: listSemesters(COUNT_ONLY).total },
     { label: "Courses", value: listCourses(COUNT_ONLY).total },
     { label: "Students", value: listStudents(COUNT_ONLY).total },
-    { label: "Course enrolments", value: listEnrollments(COUNT_ONLY).total },
+    { label: "Course enrollments", value: listEnrollments(COUNT_ONLY).total },
     { label: "Invoices", value: listInvoices(COUNT_ONLY).total },
-    { label: "Programme cost sheets", value: listProgramCostSheets(COUNT_ONLY).total },
+    { label: "Program cost sheets", value: listProgramCostSheets(COUNT_ONLY).total },
   ];
 
   const routeCount = NAVIGATION.reduce((sum, group) => sum + group.items.length, 0);

@@ -18,7 +18,7 @@ export default function Page() {
     <>
       <PageHeader
         title="Course costs"
-        description="Direct costs, one sheet per course offering. Each course adds a share of its programme's indirect pool on top - seven of these belong to no programme and bear no share."
+        description="Direct costs, one sheet per course offering. Each course adds a share of its program's indirect pool on top - seven of these belong to no program and bear no share."
       />
       <Suspense fallback={<TableSkeleton columns={6} />}>
         <CostSheetsScreen

@@ -14,7 +14,7 @@ import { findDemoAccount, listDemoAccounts, resolvePrincipal } from "@/server/se
  * Nothing here is authentication. There is no password to check, no account to
  * look up in a directory and no secret to sign the cookie with - PRIME is a
  * frontend piece with no database, and a signing key committed to the
- * repository would be theatre rather than security. What this demonstrates is
+ * repository would be theater rather than security. What this demonstrates is
  * where a session is established and what the cookie carrying it should look
  * like, which is the part a frontend actually owns.
  */

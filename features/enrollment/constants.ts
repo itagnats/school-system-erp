@@ -10,7 +10,7 @@ import {
  *
  * The tone is visual weight only. `dropped` and `cancelled` share the error
  * tone but never the label, because the difference between them matters to a
- * registrar and colour cannot carry it.
+ * registrar and color cannot carry it.
  */
 
 export const ENROLLMENT_STATUS_TONE: Record<EnrollmentStatus, StatusTone> = {
@@ -50,7 +50,7 @@ export const EVALUATION_GROUP_OPTIONS: Option[] = EVALUATION_GROUP_LETTERS.map(
 );
 
 /**
- * Programme term status, duplicated from `features/programs/constants.ts`.
+ * Program term status, duplicated from `features/programs/constants.ts`.
  *
  * Deliberate, not an oversight. `CLAUDE.md` forbids a third cross-feature
  * import while `AUD-012` is open, and `features/dashboard/constants.ts`
@@ -75,11 +75,11 @@ export const TERM_STATUS_OPTIONS: Option<ProgramTermStatus>[] = (
 ).map((value) => ({ value, label: TERM_STATUS_LABEL[value] }));
 
 /**
- * Programme membership status (direction.md 8).
+ * Program membership status (direction.md 8).
  *
  * A different union from the course enrollment status above - four values
  * against six - because they answer different questions: where a student is on
- * the programme, and what happened to one of its courses. A status says where
+ * the program, and what happened to one of its courses. A status says where
  * somebody is, never how they did.
  */
 export const MEMBERSHIP_LABEL: Record<string, string> = {

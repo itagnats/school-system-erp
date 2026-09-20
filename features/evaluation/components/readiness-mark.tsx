@@ -8,7 +8,7 @@ import type { FormReadiness } from "@/types";
  *
  * The glyph is never the only signal. Each mark carries its state as text for a
  * screen reader and as a title for a pointer, because a tick and a cross differ
- * only in shape and colour - and the third state, "not used", is a deliberate
+ * only in shape and color - and the third state, "not used", is a deliberate
  * choice that must not read as a failure.
  */
 export function ReadinessMark({ readiness }: Readonly<{ readiness: FormReadiness }>) {

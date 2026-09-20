@@ -11,7 +11,7 @@ import { yearLevelLabel } from "../constants";
  * Who this student is, as one card (direction.md §9).
  *
  * The identity sits apart from the detail because it is the thing a reader
- * checks they are on the right profile with — name, programme, how to reach
+ * checks they are on the right profile with — name, program, how to reach
  * them — and then stops reading. Everything below it is reference material.
  *
  * **The banner is the petal layer, not a photograph.** A stock building shot
@@ -50,7 +50,7 @@ export function StudentIdentityCard({ student }: { student: Student }) {
         </p>
 
         <dl className="mt-4 grid w-full gap-2 text-left">
-          <Detail icon={GraduationCap} label="Programme">
+          <Detail icon={GraduationCap} label="Program">
             {academic.program} · {yearLevelLabel(academic.yearLevel)}
           </Detail>
           <Detail icon={Building2} label="Major">

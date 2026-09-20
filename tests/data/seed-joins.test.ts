@@ -5,11 +5,11 @@ import { seed } from "@/data/seed";
 /**
  * The joins the seed has to hold, asserted rather than described (`AUD-021`).
  *
- * A student's programme was a **name** until 2026-09-20, and "one student
- * belongs to one programme" was enforced by comparing that name to
+ * A student's program was a **name** until 2026-09-20, and "one student
+ * belongs to one program" was enforced by comparing that name to
  * `Program.name`. The seed had a second copy of the same join, a hand-written
  * `PROGRAM_BY_ACADEMIC_NAME` map, and neither copy could fail loudly: rename a
- * programme in one place and its cohort silently empties.
+ * program in one place and its cohort silently empties.
  *
  * `academic.programId` replaced both. This is what makes that an improvement
  * rather than a second field to keep in step — the id must resolve, and the
@@ -22,7 +22,7 @@ import { seed } from "@/data/seed";
  * block before it reorders the whole PRNG stream, which took memberships from
  * 635 to 628 and enrollments from 1,297 to 1,261 without breaking anything.
  */
-describe("the seed's programme join", () => {
+describe("the seed's program join", () => {
   const programNameById = new Map(mockPrograms.map((program) => [program.id, program.name]));
 
   it("reads a real field", () => {
@@ -34,7 +34,7 @@ describe("the seed's programme join", () => {
     }
   });
 
-  it("points every student at a programme that exists", () => {
+  it("points every student at a program that exists", () => {
     const dangling = seed.students
       .filter((student) => !programNameById.has(student.academic.programId))
       .map((student) => `${student.studentId} -> ${student.academic.programId}`);
@@ -51,9 +51,9 @@ describe("the seed's programme join", () => {
     expect(disagreeing).toEqual([]);
   });
 
-  it("puts every student in a programme, and every programme to work", () => {
+  it("puts every student in a program, and every program to work", () => {
     const held = new Set(seed.students.map((student) => student.academic.programId));
-    // A programme with no students is a curriculum, a cost sheet and a set of
+    // A program with no students is a curriculum, a cost sheet and a set of
     // invoices that no screen can ever show populated.
     expect([...held].sort()).toEqual(mockPrograms.map((program) => program.id).sort());
   });
@@ -65,10 +65,10 @@ describe("the seed's programme join", () => {
     expect(seed.invoices).toHaveLength(635);
   });
 
-  it("enrols each member onto their own programme", () => {
+  it("enrols each member onto their own program", () => {
     // The rule the name-keyed map existed to implement, now checkable. The
-    // first version of the programme layer generated memberships independently
-    // of the profile and almost nobody took their own programme's courses; the
+    // first version of the program layer generated memberships independently
+    // of the profile and almost nobody took their own program's courses; the
     // margin came out at 98% everywhere and nothing complained.
     const programOf = new Map(
       seed.students.map((student) => [student.id, student.academic.programId]),

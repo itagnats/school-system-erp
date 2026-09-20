@@ -2,7 +2,7 @@ import type { InvoicedRevenue, ProgramCourseCost, ProgramProfit } from "@/types"
 import { percentOf, roundMoney } from "./number";
 
 /**
- * Programme profitability (direction.md §13a, revised 2026-09-12).
+ * Program profitability (direction.md §13a, revised 2026-09-12).
  *
  *   Package price x enrolled students = List revenue
  *   Sum of billed invoice totals       = Revenue
@@ -17,14 +17,14 @@ import { percentOf, roundMoney } from "./number";
  * Both figures are kept, because the gap between them is the story.
  *
  * **Net profit is stated on a basis, and the basis is collected.** A figure
- * labelled only "net profit" over a term with a quarter of its invoices unpaid
+ * labeled only "net profit" over a term with a quarter of its invoices unpaid
  * makes a claim it cannot support.
  *
  * The interesting part is *attributed*. A course cost sheet covers everyone on
- * that course, and a course can be taught into several programmes at once, so a
- * programme cannot simply be charged the whole sheet. It is charged the course
+ * that course, and a course can be taught into several programs at once, so a
+ * program cannot simply be charged the whole sheet. It is charged the course
  * cost per student multiplied by its own head count on that course, which is
- * the only split that stays correct when two programmes share a course.
+ * the only split that stays correct when two programs share a course.
  *
  * Three things are deliberately not hidden:
  *   - a course with no cost sheet contributes null rather than zero, and the
@@ -54,7 +54,7 @@ export interface ProgramProfitInput {
     courseName: string;
     /** From the course cost sheet for this semester. Null when there is none. */
     costPerStudent: number | null;
-    /** Students from this programme taking this course. */
+    /** Students from this program taking this course. */
     headCount: number;
   }[];
 }

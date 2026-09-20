@@ -17,7 +17,7 @@ import { invoicedRevenueForTerm } from "./invoice-service";
 import { toSummary } from "./student-service";
 import type { ProgramTermUpdateInput } from "@/lib/api/contracts";
 import type {
-  EnrolmentTermOption,
+  EnrollmentTermOption,
   PaginatedResult,
   Program,
   ProgramProfit,
@@ -28,10 +28,10 @@ import type {
 } from "@/types";
 
 /**
- * Programme reads, including the revenue side (direction.md §4a, §13a).
+ * Program reads, including the revenue side (direction.md §4a, §13a).
  *
  * This is the service that makes cost management mean something. A cost sheet
- * on its own answers "what did this course cost"; a programme term answers
+ * on its own answers "what did this course cost"; a program term answers
  * "did we make money", which is the question a school actually asks.
  */
 
@@ -55,18 +55,18 @@ const SORTABLE: Record<string, (row: ProgramTermSummary) => string | number> = {
   netProfit: (p) => p.netProfit,
   marginPercent: (p) => p.marginPercent ?? Number.NEGATIVE_INFINITY,
   /**
-   * Enrolment usefulness: open terms, then the ones that will open, then
+   * Enrollment usefulness: open terms, then the ones that will open, then
    * history - and the newest semester first inside each band.
    *
-   * The enrolment screen needs this and the curriculum screen does not, which
+   * The enrollment screen needs this and the curriculum screen does not, which
    * is why it is a separate key rather than a redefinition of `status`.
    * Sorting by status alphabetically puts `closed` first, which buries every
    * term a student can actually be enrolled into beneath ten that are over.
    */
-  enrolment: (p) => `${ENROLMENT_RANK[p.status]}:${invertSemester(p.semesterCode)}`,
+  enrollment: (p) => `${ENROLLMENT_RANK[p.status]}:${invertSemester(p.semesterCode)}`,
 };
 
-const ENROLMENT_RANK: Record<ProgramTermStatus, number> = {
+const ENROLLMENT_RANK: Record<ProgramTermStatus, number> = {
   open: 0,
   planning: 1,
   closed: 2,
@@ -78,11 +78,11 @@ function invertSemester(code: string): string {
 }
 
 /**
- * Cost per student for each course of a term, from the programme's own costing.
+ * Cost per student for each course of a term, from the program's own costing.
  *
  * Read through `programCostBreakdownFor` rather than off a course sheet
  * directly (revised 2026-09-15). A course's cost is its direct costs **plus**
- * its derived share of the programme's indirect pool, and taking the direct
+ * its derived share of the program's indirect pool, and taking the direct
  * half alone here would understate every course by the share — which is the
  * under-recovery this revision exists to remove.
  *
@@ -96,7 +96,7 @@ function costPerStudentByCourse(term: ProgramTerm): Map<string, number | null> {
   );
 }
 
-/** Enrolment ids of students taking a programme term, active or completed. */
+/** Enrollment ids of students taking a program term, active or completed. */
 function studentIdsInTerm(term: ProgramTerm): string[] {
   return programEnrollmentTable
     .filter(
@@ -109,11 +109,11 @@ function studentIdsInTerm(term: ProgramTerm): string[] {
 }
 
 /**
- * Profit for one programme term.
+ * Profit for one program term.
  *
  * The head count per course is a genuine join rather than the term head count
- * reused: a student enrolled in the programme has not necessarily enrolled in
- * every course of its curriculum, and charging the programme for absent
+ * reused: a student enrolled in the program has not necessarily enrolled in
+ * every course of its curriculum, and charging the program for absent
  * students would overstate cost.
  */
 export function programTermProfit(term: ProgramTerm): ProgramProfit {
@@ -217,7 +217,7 @@ export function getProgramTerm(programTermId: string): ProgramTermDetail | undef
   };
 }
 
-/** Who is under this programme term. */
+/** Who is under this program term. */
 function programRoster(term: ProgramTerm): ProgramRosterEntry[] {
   const studentsById = new Map(studentTable.map((student) => [student.id, student]));
 
@@ -242,7 +242,7 @@ function programRoster(term: ProgramTerm): ProgramRosterEntry[] {
     .sort((a, b) => a.student.studentId.localeCompare(b.student.studentId));
 }
 
-/** Programme options for a filter bar. */
+/** Program options for a filter bar. */
 export function programFilterOptions(): { value: string; label: string }[] {
   return programTable
     .filter((program) => program.status !== "draft")
@@ -292,7 +292,7 @@ export function updateProgramTerm(
  * history, so putting either in the picker would be an invitation the server
  * then has to refuse.
  */
-export function openProgramTermOptions(): EnrolmentTermOption[] {
+export function openProgramTermOptions(): EnrollmentTermOption[] {
   const programsById = new Map(programTable.map((program) => [program.id, program]));
 
   return programTermTable
@@ -321,7 +321,7 @@ export function openProgramTermOptions(): EnrolmentTermOption[] {
 }
 
 /**
- * How many programme memberships exist, withdrawn ones included.
+ * How many program memberships exist, withdrawn ones included.
  *
  * A plain count rather than a list: the system guide needs the size of the
  * table and nothing in it, and paginating a list to read `total` would be a
@@ -334,7 +334,7 @@ export function programEnrollmentCount(): number {
 }
 
 /**
- * Remove a programme term (decided 2026-09-16).
+ * Remove a program term (decided 2026-09-16).
  *
  * Refused while anyone is a member or an invoice bills it. A term is what a
  * package was sold as, so deleting one that has been billed would leave an

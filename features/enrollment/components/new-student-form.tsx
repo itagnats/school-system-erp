@@ -14,27 +14,27 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { HttpError } from "@/lib/api";
-import type { EnrolmentResult, EnrolmentTermOption } from "@/types";
+import type { EnrollmentResult, EnrollmentTermOption } from "@/types";
 import { useEnrolStudent } from "../hooks/use-enrol-student";
 import {
   emptyNewStudentForm,
   newStudentFormSchema,
   toEnrolRequest,
   type NewStudentFormValues,
-} from "../validations/enrolment-schema";
-import { EnrolmentTermField } from "./enrolment-term-field";
+} from "../validations/enrollment-schema";
+import { EnrollmentTermField } from "./enrollment-term-field";
 
 /**
  * Create a profile and enrol it in one step (direction.md §7).
  *
  * Five fields, because the spec asks for "the minimum information necessary
- * for the initial enrolment". Everything else on a profile — date of birth,
+ * for the initial enrollment". Everything else on a profile — date of birth,
  * phone, interests, projects, emergency contact — belongs to profile editing
  * (§10), where someone is doing that job rather than getting a student onto a
  * roster. A registration form that asks for all of §9 before anyone can be
- * enrolled is how a demo of an enrolment flow turns into a demo of a long form.
+ * enrolled is how a demo of an enrollment flow turns into a demo of a long form.
  *
- * **Programme is absent on purpose.** It comes from the term, which is the only
+ * **Program is absent on purpose.** It comes from the term, which is the only
  * way the new profile and the membership created beside it cannot disagree.
  */
 export function NewStudentForm({
@@ -43,10 +43,10 @@ export function NewStudentForm({
   onDone,
   onCancel,
 }: {
-  terms: EnrolmentTermOption[];
+  terms: EnrollmentTermOption[];
   /** Preselected when the screen already knows which term is meant. */
   defaultTermId?: string;
-  onDone: (result: EnrolmentResult) => void;
+  onDone: (result: EnrollmentResult) => void;
   onCancel: () => void;
 }) {
   const enrol = useEnrolStudent();
@@ -91,7 +91,7 @@ export function NewStudentForm({
           control={form.control}
           name="programTermId"
           render={({ field }) => (
-            <EnrolmentTermField terms={terms} value={field.value} onChange={field.onChange} />
+            <EnrollmentTermField terms={terms} value={field.value} onChange={field.onChange} />
           )}
         />
 
@@ -153,7 +153,7 @@ export function NewStudentForm({
                   <Input placeholder="Software Engineering" autoComplete="off" {...field} />
                 </FormControl>
                 <FormDescription>
-                  {term ? `Programme is ${term.programName}, from the term.` : "Within the programme."}
+                  {term ? `Program is ${term.programName}, from the term.` : "Within the program."}
                 </FormDescription>
                 <FormMessage />
               </FormItem>

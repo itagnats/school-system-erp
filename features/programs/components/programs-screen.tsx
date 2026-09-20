@@ -25,7 +25,7 @@ import { useProgramTerms } from "../hooks/use-program-terms";
 /**
  * Curriculum and profitability (direction.md §4a, §13a).
  *
- * A row is one programme term rather than one programme, because the money
+ * A row is one program term rather than one program, because the money
  * question is always asked of a semester: the same curriculum priced the same
  * way makes or loses money depending on how many people took it.
  */
@@ -66,8 +66,8 @@ export function ProgramsScreen({ semesterOptions }: { semesterOptions: SemesterC
         <SearchInput
           value={table.search}
           onValueChange={table.setSearch}
-          placeholder="Search programme or semester"
-          aria-label="Search programmes"
+          placeholder="Search program or semester"
+          aria-label="Search programs"
           className="w-full max-w-xs"
         />
         <FilterSelect
@@ -94,8 +94,8 @@ export function ProgramsScreen({ semesterOptions }: { semesterOptions: SemesterC
         emptyState={
           <EmptyState
             variant="no-results"
-            title="No programme terms match these filters"
-            description="A programme only has a term in the semesters its courses are offered in."
+            title="No program terms match these filters"
+            description="A program only has a term in the semesters its courses are offered in."
           />
         }
         {...table.tableProps(query.data)}
@@ -123,7 +123,7 @@ const OPTIONAL_COLUMNS: HideableColumn[] = [
 const columns: PrimeColumnDef<ProgramTermSummary>[] = [
   {
     accessorKey: "programCode",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Programme" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Program" />,
     cell: ({ row }) => (
       <div className="min-w-0">
         <Link
@@ -220,7 +220,7 @@ const columns: PrimeColumnDef<ProgramTermSummary>[] = [
       if (row.original.revenue === 0) {
         return <span className="text-muted-foreground">Not billed</span>;
       }
-      // The sign is in the number as well as in the colour, so the figure still
+      // The sign is in the number as well as in the color, so the figure still
       // reads for someone who cannot tell the two tones apart.
       return (
         <span

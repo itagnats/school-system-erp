@@ -20,7 +20,7 @@ import { MEMBERSHIP_LABEL, MEMBERSHIP_TONE } from "../constants";
 import { withdrawFromTerm } from "../services/enrollment-service";
 
 /**
- * The roster of one programme term, one row per student (direction.md §7a).
+ * The roster of one program term, one row per student (direction.md §7a).
  *
  * A client component only because of the Withdraw action. The rows arrive
  * server-rendered and complete; nothing is fetched here.

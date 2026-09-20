@@ -11,7 +11,7 @@ export const metadata: Metadata = {
  *
  * A client screen over `/api/questions`, because it searches and filters — the
  * same split every maintenance screen in PRIME makes. It sits under Manage
- * Evaluation rather than beside the cost catalogue: the two are the same kind
+ * Evaluation rather than beside the cost catalog: the two are the same kind
  * of master data and belong to different people, and filing this one by
  * mechanism would put it where nobody who writes questions would look.
  */

@@ -5,15 +5,15 @@ import { parseBody, readJson } from "@/server/validation";
 import { addGroupToSheet, addItemToSheet, isSheetWriteError } from "@/server/services";
 
 /**
- * POST /api/costs/:costSheetId/items - copy a catalogue item onto the sheet.
+ * POST /api/costs/:costSheetId/items - copy a catalog item onto the sheet.
  *
  * A group is added through the same route, distinguished by the body carrying
- * `catalogueGroupId` instead of `catalogueItemId`. Both are "add something to
- * this sheet from the catalogue", both return the whole recomputed sheet, and a
+ * `catalogGroupId` instead of `catalogItemId`. Both are "add something to
+ * this sheet from the catalog", both return the whole recomputed sheet, and a
  * second route would differ only in its name.
  *
  * The response is the sheet with its breakdown recalculated, never an
- * acknowledgement: adding a line changes the total, the group shares and the
+ * acknowledgment: adding a line changes the total, the group shares and the
  * per-student figure, and the client must not derive those itself.
  */
 export async function POST(
@@ -24,7 +24,7 @@ export async function POST(
   const body = await readJson(request);
 
   const isGroup =
-    typeof body === "object" && body !== null && "catalogueGroupId" in body;
+    typeof body === "object" && body !== null && "catalogGroupId" in body;
 
   const parsed = isGroup
     ? parseBody(sheetGroupAddSchema, body)
@@ -35,7 +35,7 @@ export async function POST(
   }
 
   const result = isGroup
-    ? addGroupToSheet(costSheetId, parsed.data as { catalogueGroupId: string })
+    ? addGroupToSheet(costSheetId, parsed.data as { catalogGroupId: string })
     : addItemToSheet(costSheetId, parsed.data as Parameters<typeof addItemToSheet>[1]);
 
   if (!result) return notFound("Cost sheet");

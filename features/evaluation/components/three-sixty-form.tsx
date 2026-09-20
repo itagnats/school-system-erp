@@ -23,14 +23,14 @@ type SubjectAnswers = {
  * **One subject at a time**, stepped through rather than listed. Seven criteria
  * for each of ten people is seventy inputs, and a single scrolling page invites
  * straight-lining - the evaluator picks a column and rules down it. Asking for
- * one person's answers at a time makes each judgement its own act.
+ * one person's answers at a time makes each judgment its own act.
  *
  * The subject strip along the top is the position indicator and the navigation
  * both: an evaluator can see how many are left and jump to one they want to
  * revisit, which a plain Next button cannot do.
  *
  * Nothing is persisted (docs/decisions/why-bff.md). Answers live in component
- * state, so the form demonstrates its own behaviour and resets on reload.
+ * state, so the form demonstrates its own behavior and resets on reload.
  */
 export function ThreeSixtyForm({
   assignment,

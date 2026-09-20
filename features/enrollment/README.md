@@ -1,7 +1,7 @@
 # features/enrollment
 
 Feature module. Not implemented yet — the design system, theme and shared
-components are being finalised first.
+components are being finalized first.
 
 ```
 components/     UI specific to this feature

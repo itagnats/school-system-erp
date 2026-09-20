@@ -179,7 +179,7 @@ export function ruleFor(
   rules: readonly AccessRule[],
   path: string,
 ): AccessRule | undefined {
-  const normalised = normalise(path);
+  const normalized = normalize(path);
 
   return rules
     .filter((rule) => {
@@ -187,8 +187,8 @@ export function ruleFor(
       // prefix would make it match every path, and since it is also the
       // shortest it would be the fallback for anything unlisted - turning the
       // allowlist above into an allow-all with extra steps.
-      if (rule.prefix === "/") return normalised === "/";
-      return normalised === rule.prefix || normalised.startsWith(`${rule.prefix}/`);
+      if (rule.prefix === "/") return normalized === "/";
+      return normalized === rule.prefix || normalized.startsWith(`${rule.prefix}/`);
     })
     .sort((a, b) => b.prefix.length - a.prefix.length)[0];
 }
@@ -240,9 +240,9 @@ export function mayPassAsOwner(
   const rule = ruleFor(rules, path);
   if (!rule?.owner?.includes(role)) return false;
 
-  const normalised = normalise(path);
+  const normalized = normalize(path);
   // A record beneath the collection, never the collection itself.
-  if (!normalised.startsWith(`${rule.prefix}/`)) return false;
+  if (!normalized.startsWith(`${rule.prefix}/`)) return false;
 
   return (rule.ownerMethods ?? READ_METHODS).includes(method);
 }
@@ -356,7 +356,7 @@ export function safeReturnPath(
 ): string {
   if (!value) return fallback;
   if (!value.startsWith("/")) return fallback;
-  // Protocol-relative (`//host`) and backslash variants browsers normalise into
+  // Protocol-relative (`//host`) and backslash variants browsers normalize into
   // one. Both leave the site while looking like a path.
   if (value.startsWith("//") || value.includes("\\")) return fallback;
   if (value.includes("://")) return fallback;
@@ -364,7 +364,7 @@ export function safeReturnPath(
 }
 
 /** Trailing slashes are not a different page. */
-function normalise(path: string): string {
+function normalize(path: string): string {
   if (path.length > 1 && path.endsWith("/")) return path.slice(0, -1);
   return path;
 }

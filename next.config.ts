@@ -33,7 +33,7 @@ const csp = [
 const securityHeaders = [
   // Stop the browser sniffing a response into a different content type.
   { key: "X-Content-Type-Options", value: "nosniff" },
-  // Legacy clickjacking defence; frame-ancestors above covers modern browsers.
+  // Legacy clickjacking defense; frame-ancestors above covers modern browsers.
   { key: "X-Frame-Options", value: "DENY" },
   // Send the origin cross-site, the full URL same-origin, nothing downgrading.
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },

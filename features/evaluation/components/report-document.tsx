@@ -179,9 +179,9 @@ export function ReportDocument({
         {/* The working, not just the answer. */}
         <dl className="mt-3 grid gap-1.5 rounded-lg border border-hairline bg-surface-sunken px-3.5 py-3 text-xs">
           <Line
-            label="Behavioural score"
-            hint={`${score.behaviouralSharePercent}% of the total`}
-            value={score.behaviouralScore}
+            label="Behavioral score"
+            hint={`${score.behavioralSharePercent}% of the total`}
+            value={score.behavioralScore}
           />
           <Line
             label="Forced ranking score"
@@ -190,7 +190,7 @@ export function ReportDocument({
           />
           <div className="mt-1 border-t border-hairline pt-2">
             <Line
-              label={`Total (behavioural ${score.behaviouralSharePercent}% + ranking ${score.rankingSharePercent}%)`}
+              label={`Total (behavioral ${score.behavioralSharePercent}% + ranking ${score.rankingSharePercent}%)`}
               value={score.totalScore}
               strong
             />
@@ -227,7 +227,7 @@ export function ReportDocument({
       {/* -------------------------------------------------------------- */}
       <section>
         <h4 className="text-xs font-medium tracking-wide text-primary-strong uppercase">
-          Behavioural profile
+          Behavioral profile
         </h4>
         <div className="mt-2">
           <CriteriaRadarChart

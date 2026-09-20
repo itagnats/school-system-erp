@@ -28,7 +28,7 @@ import { Demo } from "../_components/demo";
 import { PendingButtonDemo } from "../_components/state-lab";
 
 /**
- * One labelled cell in a state matrix.
+ * One labeled cell in a state matrix.
  *
  * `replica` is the honest part. Hover and press cannot be shown in a static
  * cell, so those cells hand-apply the same classes the real variant applies

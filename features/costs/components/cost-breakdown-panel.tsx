@@ -23,7 +23,7 @@ import type { CostSheetDetailResponse } from "../types";
  * head count, and the step the preferred price rounds up to. Every figure below
  * the form comes back from the server recalculated - none of this arithmetic is
  * repeated in the browser, which is the whole reason the endpoint returns a
- * breakdown rather than an acknowledgement.
+ * breakdown rather than an acknowledgment.
  */
 export function CostBreakdownPanel({ initial }: Readonly<{ initial: CostSheetDetailResponse }>) {
   const mutation = useUpdateCostSheet(initial.sheet.id);
@@ -44,7 +44,7 @@ export function CostBreakdownPanel({ initial }: Readonly<{ initial: CostSheetDet
     <>
       <Section
         title="How the total is reached"
-        description="This course's own direct costs, plus its share of the programme's indirect pool, divided by head count."
+        description="This course's own direct costs, plus its share of the program's indirect pool, divided by head count."
         actions={
           <StatusBadge
             tone={COST_STATUS_TONE[sheet.status]}
@@ -63,7 +63,7 @@ export function CostBreakdownPanel({ initial }: Readonly<{ initial: CostSheetDet
             value={money(breakdown.indirectShare)}
             hint={
               breakdown.sharePercent === null
-                ? "Costed outside any programme, so no share of a pool."
+                ? "Costed outside any program, so no share of a pool."
                 : `${formatPercent(breakdown.sharePercent)} of ${money(detail.indirectTotal)}, by credit hours.`
             }
           />
@@ -71,7 +71,7 @@ export function CostBreakdownPanel({ initial }: Readonly<{ initial: CostSheetDet
           <Figure
             label={`Markup, ${formatPercent(detail.markupPercent)}`}
             value={money(breakdown.markupAmount)}
-            hint="Set once on the programme term."
+            hint="Set once on the program term."
           />
         </dl>
 
@@ -114,14 +114,14 @@ export function CostBreakdownPanel({ initial }: Readonly<{ initial: CostSheetDet
           </Button>
           <p className="text-xs text-muted-foreground">
             The server recomputes every figure above. Markup and the price
-            rounding live on the programme term. Nothing is stored.
+            rounding live on the program term. Nothing is stored.
           </p>
         </form>
       </Section>
 
       {detail.programTermId ? (
         <p data-print="hide" className="mt-3 text-xs text-muted-foreground">
-          The indirect share is set on the programme term, not here.{" "}
+          The indirect share is set on the program term, not here.{" "}
           <Link
             href={routes.programCost(detail.programTermId)}
             className="rounded-sm underline underline-offset-4"
@@ -167,7 +167,7 @@ function Figure({
         {value}
       </dd>
       {/* A second <dd>, not a <p>: a <div> inside a <dl> may hold one <dt> and
-          several <dd>, and a stray <p> there is invalid. Matches the programme
+          several <dd>, and a stray <p> there is invalid. Matches the program
           term panel, which reached the same shape first. */}
       {hint ? <dd className="text-xs text-muted-foreground">{hint}</dd> : null}
     </div>

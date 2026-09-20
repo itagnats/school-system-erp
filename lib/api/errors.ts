@@ -1,7 +1,7 @@
 import type { ApiError } from "@/types";
 
 /**
- * Normalised transport failure. Everything the API layer throws is one of
+ * Normalized transport failure. Everything the API layer throws is one of
  * these, so hooks and error states never have to guess at the shape.
  */
 export class HttpError extends Error implements ApiError {

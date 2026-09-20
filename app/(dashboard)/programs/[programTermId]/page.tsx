@@ -19,20 +19,20 @@ export async function generateMetadata({ params }: Readonly<PageParams>): Promis
   const { programTermId } = await params;
   const detail = getProgramTerm(programTermId);
   return {
-    title: detail ? `${detail.program.code} ${detail.term.semesterCode}` : "Programme term",
+    title: detail ? `${detail.program.code} ${detail.term.semesterCode}` : "Program term",
   };
 }
 
 /**
- * Programme term detail: curriculum, money and roster.
+ * Program term detail: curriculum, money and roster.
  *
  * Server-rendered from the service, with an interactive panel below it so the
  * package price can be moved and the margin recomputed. The first paint is
  * complete rather than a spinner.
  *
  * **This is where a student is enrolled** (direction.md §7a, decided
- * 2026-09-15). Enrolment is entered at the programme level, so the act belongs
- * on the page that already knows which programme term is meant — the dialog
+ * 2026-09-15). Enrollment is entered at the program level, so the act belongs
+ * on the page that already knows which program term is meant — the dialog
  * then states the term rather than asking for it. The roster below is the list
  * it adds to.
  *

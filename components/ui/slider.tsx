@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils"
  * when the options are named things rather than points on a line, and for
  * `Input type="number"` when someone needs to type an exact figure.
  *
- * Radix supplies the behaviour that makes a slider usable without a mouse:
+ * Radix supplies the behavior that makes a slider usable without a mouse:
  * arrow keys step, Home and End jump to the ends, and Page Up and Page Down
  * move in larger increments. None of that has to be built here, which is most
  * of the reason to wrap the primitive rather than a native `input type=range` -

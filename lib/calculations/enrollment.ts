@@ -7,10 +7,10 @@ import type {
 } from "@/types";
 
 /**
- * Enrolment expansion (direction.md §7a).
+ * Enrollment expansion (direction.md §7a).
  *
- * A student joins a **programme term**, and that one act produces two kinds of
- * record: the programme membership that the package price is billed against,
+ * A student joins a **program term**, and that one act produces two kinds of
+ * record: the program membership that the package price is billed against,
  * and one course enrollment per curriculum course. Everything downstream —
  * grouping, evaluation, cost attribution, the invoice — hangs off the second,
  * but none of it is entered by hand.
@@ -27,17 +27,17 @@ import type {
  */
 
 /** What the caller must know about the term. The rest of it is not our business. */
-export type EnrolmentTerm = Pick<ProgramTerm, "id" | "programId" | "semesterCode" | "courseIds">;
+export type EnrollmentTerm = Pick<ProgramTerm, "id" | "programId" | "semesterCode" | "courseIds">;
 
-export interface EnrolmentRequest {
-  term: EnrolmentTerm;
+export interface EnrollmentRequest {
+  term: EnrollmentTerm;
   studentId: string;
   source: EnrollmentSource;
   /** Fixed timestamp supplied by the caller, never read from a clock here. */
   stamp: string;
 }
 
-export interface EnrolmentDraft {
+export interface EnrollmentDraft {
   programEnrollment: ProgramEnrollment;
   enrollments: Enrollment[];
 }
@@ -46,15 +46,15 @@ export interface EnrolmentDraft {
  * Ids are derived from the natural key, not from a counter.
  *
  * A running serial would be the obvious choice and is wrong here for the same
- * reason `AUD-013` was raised against `copyCatalogueItem`: writes are not
+ * reason `AUD-013` was raised against `copyCatalogItem`: writes are not
  * persisted, so the table never grows, so every create in a session would read
- * the same "next" serial and two enrolments made one after the other would
+ * the same "next" serial and two enrollments made one after the other would
  * collide — in the query cache, and in React keys. Student, course and semester
  * already identify the row uniquely, so they are the discriminator.
  *
- * `copyCatalogueItem` closed it differently, and the difference is instructive:
+ * `copyCatalogItem` closed it differently, and the difference is instructive:
  * a sheet's copies live inside one parent that can be counted, so an ordinal
- * within the sheet works there. An enrolment has no such parent.
+ * within the sheet works there. An enrollment has no such parent.
  */
 export function programEnrollmentIdFor(studentId: string, semesterCode: SemesterCode): string {
   return `pen-${studentId}-${semesterCode}`;
@@ -69,12 +69,12 @@ export function courseEnrollmentIdFor(
 }
 
 /**
- * One programme term in, one membership and N course enrollments out.
+ * One program term in, one membership and N course enrollments out.
  *
  * The new membership is `active` and the course rows are `enrolled`: the
- * student has joined the programme and has not yet started the individual
+ * student has joined the program and has not yet started the individual
  * courses. Those are the two statuses a completed "Review → Enrol" step should
- * produce — `pending` would describe an enrolment that had been requested and
+ * produce — `pending` would describe an enrollment that had been requested and
  * not yet acted on, which is not what just happened.
  */
 export function expandCurriculum({
@@ -82,7 +82,7 @@ export function expandCurriculum({
   studentId,
   source,
   stamp,
-}: EnrolmentRequest): EnrolmentDraft {
+}: EnrollmentRequest): EnrollmentDraft {
   const programEnrollment: ProgramEnrollment = {
     id: programEnrollmentIdFor(studentId, term.semesterCode),
     studentId,
@@ -100,7 +100,7 @@ export function expandCurriculum({
     semesterCode: term.semesterCode,
     status: "enrolled",
     // No evaluation group: a group is a partition of a cohort, assigned when
-    // the cohort is grouped, not a property a single enrolment carries in.
+    // the cohort is grouped, not a property a single enrollment carries in.
     source,
     enrolledAt: stamp,
     updatedAt: stamp,
@@ -110,19 +110,19 @@ export function expandCurriculum({
 }
 
 /**
- * The two rules that make "one student, one programme, one term per semester"
+ * The two rules that make "one student, one program, one term per semester"
  * true rather than merely observed (agreed 2026-09-15).
  *
- * It already holds across all 635 seeded programme enrolments — maximum one per
- * student per semester, and not one student who changes programme — but nothing
+ * It already holds across all 635 seeded program enrollments — maximum one per
+ * student per semester, and not one student who changes program — but nothing
  * enforced it, and the invoice depends on it: one invoice per student per
  * semester over one package price cannot represent a second package. `AUD-014`
  * is the same fact seen from the other end, a multi-term split that has never
  * run.
  */
-export type EnrolmentConflict =
+export type EnrollmentConflict =
   | { kind: "already-enrolled"; semesterCode: SemesterCode; programId: string }
-  | { kind: "other-programme"; programId: string };
+  | { kind: "other-program"; programId: string };
 
 export type ExistingMembership = Pick<
   ProgramEnrollment,
@@ -133,11 +133,11 @@ export type ExistingMembership = Pick<
  * A withdrawn membership is not a conflict — it is the record of a student who
  * left, and re-enrolling them is a legitimate act rather than a duplicate.
  */
-export function findEnrolmentConflict(
+export function findEnrollmentConflict(
   memberships: readonly ExistingMembership[],
   studentId: string,
-  term: Pick<EnrolmentTerm, "programId" | "semesterCode">,
-): EnrolmentConflict | undefined {
+  term: Pick<EnrollmentTerm, "programId" | "semesterCode">,
+): EnrollmentConflict | undefined {
   const held = memberships.filter(
     (membership) => membership.studentId === studentId && membership.status !== "withdrawn",
   );
@@ -153,14 +153,14 @@ export function findEnrolmentConflict(
 
   const elsewhere = held.find((membership) => membership.programId !== term.programId);
   if (elsewhere) {
-    return { kind: "other-programme", programId: elsewhere.programId };
+    return { kind: "other-program", programId: elsewhere.programId };
   }
 
   return undefined;
 }
 
 /**
- * The human-facing id for a student created during enrolment.
+ * The human-facing id for a student created during enrollment.
  *
  * Seeded students run `ST-2026-001` upward, so a created one must not take a
  * number from that range. The `N` prefix keeps it out of the way and is honest

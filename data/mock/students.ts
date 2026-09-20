@@ -70,7 +70,7 @@ export const mockStudents: Student[] = [
       program: "Data Science",
       major: "Applied Statistics",
       yearLevel: 3,
-      interests: ["Visualisation", "Forecasting"],
+      interests: ["Visualization", "Forecasting"],
       skills: ["Python", "R", "SQL"],
       certifications: [],
     },

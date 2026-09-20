@@ -13,20 +13,20 @@ export const routes = {
   semesters: () => "/semesters",
   semester: (code: string) => `/semesters/${enc(code)}`,
   enrollment: () => "/enrollment",
-  /** A programme term seen through the enrolment lens: its students. */
-  enrolmentTerm: (programTermId: string) => `/enrollment/${enc(programTermId)}`,
+  /** A program term seen through the enrollment lens: its students. */
+  enrollmentTerm: (programTermId: string) => `/enrollment/${enc(programTermId)}`,
   students: () => "/students",
   student: (studentId: string) => `/students/${enc(studentId)}`,
   /** The profile as a set of forms, one section per tab (direction.md 10). */
   studentEdit: (studentId: string) => `/students/${enc(studentId)}/edit`,
   costs: () => "/costs",
-  /** The course cost list. `/costs` itself now leads with programmes. */
+  /** The course cost list. `/costs` itself now leads with programs. */
   courseCosts: () => "/costs/courses",
   costSheet: (costSheetId: string) => `/costs/courses/${enc(costSheetId)}`,
-  costCatalogue: () => "/costs/catalogue",
-  /** The indirect cost sheet for a programme term (direction.md 11). */
+  costCatalog: () => "/costs/catalog",
+  /** The indirect cost sheet for a program term (direction.md 11). */
   programCost: (programTermId: string) =>
-    `/costs/programmes/${enc(programTermId)}`,
+    `/costs/programs/${enc(programTermId)}`,
   invoices: () => "/invoices",
   invoice: (invoiceId: string) => `/invoices/${enc(invoiceId)}`,
   /**

@@ -5,7 +5,7 @@ import {
   formReadiness,
   maxAssesseeShare,
   relationsWithoutQuestions,
-  summariseWeights,
+  summarizeWeights,
   toStoredDate,
   unbalancedAssessees,
   windowDateErrors,
@@ -63,7 +63,7 @@ const SORTABLE: Record<string, (row: EvaluationSetupSummary) => string | number>
   shortName: (row) => row.shortName,
 };
 
-/** Enrolments that take part in evaluation. A dropped student is not evaluated. */
+/** Enrollments that take part in evaluation. A dropped student is not evaluated. */
 const EVALUABLE = new Set(["enrolled", "active", "completed"]);
 
 function membersInScope(courseId: string, semesterCode: string) {
@@ -110,7 +110,7 @@ function readinessFor(
 /** The largest share any assessee gives to one kind of form. */
 function maxShare(
   setup: EvaluationSetup,
-  pick: (summary: ReturnType<typeof summariseWeights>) => number,
+  pick: (summary: ReturnType<typeof summarizeWeights>) => number,
 ): number {
   return maxAssesseeShare(setup.assessees, pick);
 }
@@ -193,7 +193,7 @@ function buildAssessee(
     selfEvaluation: false as const,
     graded: isGradedRole(assessee.role),
     subjectCount: subjectCountFor(assessee.role, groupedTotal),
-    weights: summariseWeights(assessee.assessors),
+    weights: summarizeWeights(assessee.assessors),
     relations: assessee.assessors.map<EvaluationRelation>((assessor: AssessorConfig) => ({
       assesseeRole: assessee.role,
       assessorRole: assessor.role,

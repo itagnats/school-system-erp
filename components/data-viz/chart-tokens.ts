@@ -3,7 +3,7 @@ import { formatNumber, formatPercent, formatScore } from "@/lib/utils";
 /**
  * The values charts are allowed to draw with.
  *
- * Recharts takes colours as strings on `fill` and `stroke`, so it cannot use a
+ * Recharts takes colors as strings on `fill` and `stroke`, so it cannot use a
  * Tailwind class. Passing `var(--chart-1)` keeps it on the token anyway: the
  * variable resolves in the browser, which means a chart follows the theme
  * switch for free and there is still no hex anywhere outside globals.css.
@@ -19,7 +19,7 @@ export const CHART_SERIES = [
   "var(--chart-5)",
 ] as const;
 
-/** Pick a series colour, wrapping rather than running out. */
+/** Pick a series color, wrapping rather than running out. */
 export function seriesColor(index: number): string {
   return CHART_SERIES[index % CHART_SERIES.length];
 }

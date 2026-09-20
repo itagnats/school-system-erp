@@ -30,7 +30,7 @@ export function useProgramCostSheets(params: ProgramCostQueryParams) {
 }
 
 /**
- * One programme cost sheet, seeded from the server render.
+ * One program cost sheet, seeded from the server render.
  *
  * Both halves of the screen read through this rather than holding their own
  * copy: the markup form and the line tables are different mutations, and two
@@ -57,7 +57,7 @@ export function useProgramCostSheet(
  * Change the markup, the rounding step, the driver or the status.
  *
  * Not optimistic. A markup change moves every course's share, every course
- * total, the programme total, the cost per student and the preferred price;
+ * total, the program total, the cost per student and the preferred price;
  * guessing those here would be the distribution written a second time in the
  * browser, which is what the calculation layer exists to prevent.
  */
@@ -72,7 +72,7 @@ export function useUpdateProgramCostSheet(programTermId: string) {
         queryKeys.programCosts.detail(programTermId),
         detail,
       );
-      toast.success("Programme costing recalculated");
+      toast.success("Program costing recalculated");
     },
     onError: () => {
       toast.error("That change could not be applied. Please try again.");

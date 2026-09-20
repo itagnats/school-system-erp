@@ -39,7 +39,7 @@ Course → Semester spine, joined at three points.
                      └──────────→ ProgramProfit ←──────────────────┼────────────────┘
                        collected − Σ(cost/student × head count)    │
                                                                    ▼
-                                            ┌──────── C. JUDGEMENT ──────────┐
+                                            ┌──────── C. JUDGMENT ──────────┐
                                             EvaluationSetup (36) — the blend
                                               └ questions copied from the bank
                                                 └ assignment (derived, never stored)
@@ -55,14 +55,14 @@ Course → Semester spine, joined at three points.
 Three joins, and all three are real joins rather than a number carried across.
 
 **A meets B in `programTermProfit()`** (`server/services/program-service.ts`).
-The head count per course is computed against programme members who actually
+The head count per course is computed against program members who actually
 enrolled in that course, not the term head count reused. A student in the
-programme has not necessarily taken every course of its curriculum, and charging
-the programme for absent students would overstate cost.
+program has not necessarily taken every course of its curriculum, and charging
+the program for absent students would overstate cost.
 
 **A meets B again in `invoicedRevenueForTerm()`**
-(`server/services/invoice-service.ts`). An invoice is derived from a programme
-enrolment and priced from the curriculum, so the money owed and the people who
+(`server/services/invoice-service.ts`). An invoice is derived from a program
+enrollment and priced from the curriculum, so the money owed and the people who
 owe it cannot disagree. This is the join that closes the money chain: cost says
 what delivery cost, an invoice says who owes for it, and profit is the difference
 between what arrived and what was spent.
@@ -70,19 +70,19 @@ between what arrived and what was spent.
 **B meets C in `generateEvaluationGroups()`** (`data/seed/generate.ts`). A group
 is a *partition of the enrollment rows* with the group id written back, so a
 group's members are always people enrolled in its course-semester. Groups
-generated independently was the mistake the programme layer had already made
+generated independently was the mistake the program layer had already made
 once.
 
 ### The order is the rule
 
-`generateDataset()` runs: semesters → courses → students → programme terms →
-programme enrolments → **course enrolments as a consequence** → groups → setups →
+`generateDataset()` runs: semesters → courses → students → program terms →
+program enrollments → **course enrollments as a consequence** → groups → setups →
 cost sheets → **invoices last**, because an invoice needs the curriculum for its
-lines and the course enrolments for its credits.
+lines and the course enrollments for its credits.
 
 That ordering is not a convenience. It is `direction.md` §7a — *a student enrols
-in a programme, not in a course* — expressed as code. A course enrolment cannot
-be generated before the programme enrolment it derives from.
+in a program, not in a course* — expressed as code. A course enrollment cannot
+be generated before the program enrollment it derives from.
 
 ---
 
@@ -97,8 +97,8 @@ per term        Indirect costs                            its own sheet
                 distributed by CREDITS                    shares total 100%
 per course      Direct + Share = Subtotal, + markup    =  Total Course Cost
                 Total ÷ its students                   =  Cost per Student
-per term        Σ Total Course Cost                    =  Total Programme Cost
-                ÷ programme enrolment                  =  Cost per Student
+per term        Σ Total Course Cost                    =  Total Program Cost
+                ÷ program enrollment                  =  Cost per Student
                 rounded up                             =  Preferred Price
 ```
 
@@ -114,10 +114,10 @@ process could go wrong:
 - **`distribute()` uses largest remainder**, so the parts sum to the pool to the
   satang. Rounding each share independently leaks, and a cost that leaks is the
   failure the rebuild existed to remove.
-- **Markup and rounding are per programme term**, not per course. Several
-  per-course markups leave a programme total that no screen adds up.
+- **Markup and rounding are per program term**, not per course. Several
+  per-course markups leave a program total that no screen adds up.
 
-Seven of the 56 course sheets belong to no programme term at all. They keep their
+Seven of the 56 course sheets belong to no program term at all. They keep their
 direct costs, take no share and no markup, and report `sharePercent: null` —
 **not zero**. They are reachable only from `/costs/courses`, which is why the
 costing module did not move inside Curriculum.
@@ -130,7 +130,7 @@ billed and has not paid is owed money rather than earned money. A draft or
 cancelled invoice contributes nothing at all.
 
 One invoice per student per semester (§13b). Its lines are the **curriculum**,
-not the student's own enrolments — a package is a package, so a course they
+not the student's own enrollments — a package is a package, so a course they
 skipped is still billed, and a course they dropped appears as a credit line
 instead. `CREDIT_RATE` lives in `lib/calculations/invoice.ts` and **the seed
 imports it** to build the package price; two copies of that number would let a
@@ -140,15 +140,15 @@ document disagree with the contract it bills, and nothing would catch it.
 
 ## B. The people chain, end to end
 
-**A student enrols in a programme term, not in a course** (§7a). Add Student
+**A student enrols in a program term, not in a course** (§7a). Add Student
 covers all three paths §7 describes — an existing profile, a student returning
 from a previous semester, or a new profile created on the way in — and all three
-send one `POST /api/enrollment` discriminated on `source`. One enrolment produces
-a programme membership plus a course enrollment per curriculum course, which is
+send one `POST /api/enrollment` discriminated on `source`. One enrollment produces
+a program membership plus a course enrollment per curriculum course, which is
 why a roster and a curriculum cannot disagree.
 
 Two rules are enforced server-side rather than assumed: a second term in the same
-semester is a **409**, and a term on another programme a **422**. Both were
+semester is a **409**, and a term on another program a **422**. Both were
 already true of all 635 seeded memberships. A withdrawn membership does not
 count — re-enrolling someone who left is a real act.
 
@@ -158,15 +158,15 @@ did. Pass and fail come from the grades and are never stored beside the status.
 The derivation itself is the one piece of this chain not yet built.
 
 A student may edit their own record — name, contact, major, year, skills — and
-never their programme, which the update path has always ignored for everybody,
-and never `DELETE`. Their dashboard is their own: programme, courses and
+never their program, which the update path has always ignored for everybody,
+and never `DELETE`. Their dashboard is their own: program, courses and
 evaluation queue, deliberately **not** scoped to the active semester, because the
 seeded student holds nothing in it and an empty landing page demonstrates
 nothing.
 
 ---
 
-## C. The judgement chain, end to end
+## C. The judgment chain, end to end
 
 Documented in full in [evaluation-model.md](evaluation-model.md). In process
 terms:
@@ -176,7 +176,7 @@ terms:
    cohort's enrollments.
 2. The setup **copies questions** from the master bank at
    `/evaluation/manage/questions`. A copy rather than a reference, for the same
-   reason a cost sheet copies a catalogue item: evidence of a past decision
+   reason a cost sheet copies a catalog item: evidence of a past decision
    copies, a current setting references. Deleting a question a setup has copied
    is a **409**.
 3. An **assignment** is derived, never stored — it exists because some assessee
@@ -196,16 +196,16 @@ terms:
 
 | Module | Read flow | Write flow | State |
 | --- | --- | --- | --- |
-| Dashboard | branches on role: the school, or one student's own programme, courses and queue | n/a | complete |
+| Dashboard | branches on role: the school, or one student's own program, courses and queue | n/a | complete |
 | Curriculum `/programs` | list, term detail with profit, billing and roster | `PATCH` package price and status · `DELETE` | complete |
 | Courses | list, detail (semesters, terms, sheets) | `POST` · `PATCH` · `DELETE`, archive/restore optimistic | complete |
 | Semesters | list, detail | none, by design — a semester is a calendar fact | read-only |
-| Enrollment | programme terms → a term's students → the same term at course grain | `POST` over all three §7 paths · `DELETE` a membership | complete |
+| Enrollment | program terms → a term's students → the same term at course grain | `POST` over all three §7 paths · `DELETE` a membership | complete |
 | Students | list, profile, own-record editing | `PATCH` · `DELETE` | complete |
-| Cost | programme list, course list, sheet details with the full breakdown | `PATCH` sheets · item `POST`/`PATCH`/`DELETE` | complete |
-| Cost Catalogue | master groups and items | `POST`/`PATCH` groups · `POST`/`PATCH`/`DELETE` items, 409 on a copied item | complete |
+| Cost | program list, course list, sheet details with the full breakdown | `PATCH` sheets · item `POST`/`PATCH`/`DELETE` | complete |
+| Cost Catalog | master groups and items | `POST`/`PATCH` groups · `POST`/`PATCH`/`DELETE` items, 409 on a copied item | complete |
 | Invoices | list, document detail with lines, totals and the payment barcode | `PATCH` status, validated against the transition table | complete; one transition by design |
-| Manage Evaluation | list, setup detail, readiness marks, per-assessee blend, results, report | `PATCH` the blend, server-validated and renormalising | config works, lifecycle does not — **F-5** |
+| Manage Evaluation | list, setup detail, readiness marks, per-assessee blend, results, report | `PATCH` the blend, server-validated and renormalizing | config works, lifecycle does not — **F-5** |
 | Question bank | list by assessee role and criterion | `POST` · `PATCH` · `DELETE` with a 409 guard | complete |
 | Your Evaluation | persona → derived queue → both form kinds | Submit is inert — **F-1** | the one visible dead end |
 | Reports | staff: setup → results → report dialog → print · student: their own published reports at `/reports/students/<id>` | n/a | complete |
@@ -215,15 +215,15 @@ terms:
 | | Count | |
 | --- | --- | --- |
 | Semesters · Courses · Students | 4 · 30 · 300 | |
-| Programmes · terms · programme enrolments | 5 · 19 · 635 | |
-| Course enrolments | 1,297 | derived from the curriculum, never entered |
+| Programs · terms · program enrollments | 5 · 19 · 635 | |
+| Course enrollments | 1,297 | derived from the curriculum, never entered |
 | Course-semester cohorts | 50 | every one has groups |
-| Evaluation setups | 36 | 35 of the 50 cohorts; one fixture sits on a cohort with no enrolments, to exercise the *not configured* mark |
+| Evaluation setups | 36 | 35 of the 50 cohorts; one fixture sits on a cohort with no enrollments, to exercise the *not configured* mark |
 | Evaluation groups | 134 | sizes 4–7, clustered on 5 and 6 |
-| Course cost sheets | 56 | direct costs only; 7 belong to no programme term |
-| Programme cost sheets | 19 | indirect costs, one per term |
+| Course cost sheets | 56 | direct costs only; 7 belong to no program term |
+| Program cost sheets | 19 | indirect costs, one per term |
 | Invoices | 635 | one per student per semester |
-| Catalogue groups · question groups | 3 · 2 | the two master tables sheets and setups copy from |
+| Catalog groups · question groups | 3 · 2 | the two master tables sheets and setups copy from |
 
 ---
 
@@ -271,7 +271,7 @@ student their whole cohort's grades (`AUD-029`, closed the same day): the access
 table matches by prefix and could not name a segment behind a dynamic id, so both
 checks moved into the handlers.
 
-Beyond these, the pass/fail derivation onto a programme enrolment (§8) and the
+Beyond these, the pass/fail derivation onto a program enrollment (§8) and the
 computed leaderboard are specified and unbuilt.
 
 ---
@@ -286,13 +286,13 @@ they are already correct.
   test, which is the priority `scaffold.md` §27 asks for.
 - **Null is not zero**, in every place it matters: `costPerStudent` with no
   students, a subject with no submissions, a course with no cost sheet
-  contributing *unknown* to a programme's profit, and `sharePercent: null` for a
-  sheet in no programme.
+  contributing *unknown* to a program's profit, and `sharePercent: null` for a
+  sheet in no program.
 - **Derived, not stored** — the assignment, the indirect share, the 360/ranking
   split, the headline weight summary and the grade. Two screens cannot disagree
   when there is no second copy to disagree with.
 - **Refused, not merely discouraged** — the blend total, the cost kind, the
-  programme-term conflict, the invoice transition, the copied-question delete and
+  program-term conflict, the invoice transition, the copied-question delete and
   self-assessment are all rejected server-side. A rule the client alone enforces
   is a suggestion.
 - **Determinism holds** — no `Math.random`, `Date.now` or bare `new Date()`
@@ -309,9 +309,9 @@ names the rule it changed.
 
 | Finding | Closed by |
 | --- | --- |
-| **F-2** · no student could enter the system through the UI — `/api/enrollment` and `/api/students` were `GET`-only, and every one of the 1,297 enrolments existed because the seed made it | Enrolment writes over all three §7 paths, plus profile editing and the first deletes (2026-09-15, 2026-09-16) |
-| **F-3** · Cost Management could not manage the cost structure — the update contract accepted `markupPercent` and `studentCount` only | The cost catalogue and sheet CRUD (2026-09-12); the allocation percentage the finding described no longer exists at all after the 2026-09-15 rebuild |
-| **F-4** · the flow was not walkable — seven of sixteen route builders had no caller, and student profile, semester detail and cost sheet detail each linked nowhere | Cross-links added module by module; the rule now is that **every link on a screen goes somewhere the reader may open**, so the dashboard, breadcrumbs, back control and programme history all drop an anchor the current role would be refused. `studentReport` was the one builder still unused; F-6 closed that on 2026-09-19 |
+| **F-2** · no student could enter the system through the UI — `/api/enrollment` and `/api/students` were `GET`-only, and every one of the 1,297 enrollments existed because the seed made it | Enrollment writes over all three §7 paths, plus profile editing and the first deletes (2026-09-15, 2026-09-16) |
+| **F-3** · Cost Management could not manage the cost structure — the update contract accepted `markupPercent` and `studentCount` only | The cost catalog and sheet CRUD (2026-09-12); the allocation percentage the finding described no longer exists at all after the 2026-09-15 rebuild |
+| **F-4** · the flow was not walkable — seven of sixteen route builders had no caller, and student profile, semester detail and cost sheet detail each linked nowhere | Cross-links added module by module; the rule now is that **every link on a screen goes somewhere the reader may open**, so the dashboard, breadcrumbs, back control and program history all drop an anchor the current role would be refused. `studentReport` was the one builder still unused; F-6 closed that on 2026-09-19 |
 | **F-7** · the coverage gap was invisible — 36 setups over 35 of 50 cohorts, with nothing saying so | Folded into F-5, where it belongs: the gap is invisible because there is no verb that would close it |
 | **F-8** · revenue was an entitlement presented as an earning — `packagePrice × enrolledCount` counted 143 pending members, ฿4.79M of ฿18.35M, 26% of booked revenue, from students who had not started | The invoice module. §13a was amended rather than merely obeyed, and `tests/calculations/profit.test.ts` pins it: *"does not count outstanding invoices as profit"* |
 

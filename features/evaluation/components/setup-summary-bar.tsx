@@ -215,7 +215,7 @@ function FormState({
  * A condition that produces a wrong result rather than an error (§15a).
  *
  * Tone is a visual weight; every one of these states its condition in words, so
- * nothing here is carried by colour alone.
+ * nothing here is carried by color alone.
  */
 function Warning({
   tone,

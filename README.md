@@ -10,7 +10,7 @@ are fictional.
 **Status: twelve modules built.** The design system, theme, application shell,
 shared components, routing, domain types, the API layer and the test harness are
 in place. Dashboard, Curriculum, Course, Semester, Enrollment, Student, Cost,
-Cost Catalogue, Invoices, Manage Evaluation and the Question Bank render real
+Cost Catalog, Invoices, Manage Evaluation and the Question Bank render real
 data from the BFF under `app/api/`. Your Evaluation is built but deliberately
 plain, pending a design pass. Every application route renders real data:
 `/reports/students/[studentId]` was the last placeholder and is now a student's
@@ -36,7 +36,7 @@ The reasoning behind the code, not just the shape of it:
 | [docs/architecture.md](docs/architecture.md) | The layering rule, folder map, routing, where state lives, the domain model, and an honest inventory of what is built |
 | [docs/design-system.md](docs/design-system.md) | Sakura — the six rules, the token contract, motion, contrast, accessibility |
 | [docs/data-flow.md](docs/data-flow.md) | Seed → repository → service → BFF → hook → component; the list and error contracts |
-| [docs/process-flow.md](docs/process-flow.md) | The three business chains end to end — curriculum to enrolment, cost to price, evaluation to report — and where each one currently stops |
+| [docs/process-flow.md](docs/process-flow.md) | The three business chains end to end — curriculum to enrollment, cost to price, evaluation to report — and where each one currently stops |
 | [docs/evaluation-model.md](docs/evaluation-model.md) | The 360° chain: four roles, the weighted score, ranking scope, derived grades |
 | [docs/decisions/](docs/decisions/) | Why feature-first architecture · why shadcn · why a BFF with no backend |
 
@@ -219,7 +219,7 @@ tests, because it is the part that can be wrong without looking wrong:
 - ranking, including ties
 - grade from score
 - invoice lines, the package reconciliation and the payment payload
-- enrolment expansion and the conflict rules
+- enrollment expansion and the conflict rules
 
 Grade is always derived from the score and never stored, so the two cannot drift
 apart. The same move recurs everywhere: **a share of an indirect cost pool is
@@ -233,19 +233,19 @@ it does. Anything derived cannot disagree with what it was derived from.
 
 **Sakura (桜)** — soft Japanese spring, at comfortable density. A barely-pink
 ground, white cards held by pale pink borders and low pink-tinted shadows,
-generous rounding, and sakura pink as the action colour. Six ideas hold it
+generous rounding, and sakura pink as the action color. Six ideas hold it
 together:
 
 1. **A card is a soft object.** It sits on a pink hairline *and* a pink shadow,
    and both are load-bearing: the border alone is only a 1.26 luminance delta
    against white, so a card without its shadow has no visible edge.
-2. **Sakura pink is the action colour.** A primary button is pink; ink is
+2. **Sakura pink is the action color.** A primary button is pink; ink is
    reserved for text. `--primary` is `#de2871` — a step deeper than the pink the
    eye expects, because white text on a lighter pink cannot clear 4.5:1.
 3. **Pink is allowed to be everywhere.** Unlike the earlier palettes there is no
    once-per-screen rule: the ground, the borders, the table headers and the
    shadows are all faintly pink, and the accent is a deeper step of the same
-   ramp rather than a separate hue. Status is still never signalled by colour
+   ramp rather than a separate hue. Status is still never signalled by color
    alone — the label always states it in words.
 4. **Corners are generous, never square.** `--radius` is 10px and the scale is
    derived from it; anything that reads as a pill is `rounded-full`.
@@ -255,14 +255,14 @@ together:
 6. **Motion reports, it never decorates.** Three durations (120 / 200 / 320ms)
    and four curves, registered in Tailwind's own namespaces so `duration-fast`
    cooperates with `transition-*`. Never a raw number: an arbitrary `duration-200`
-   cannot follow the token when the scale is re-tuned. Reduced motion is honoured
+   cannot follow the token when the scale is re-tuned. Reduced motion is honored
    once, globally, and the only element exempt is the spinner inside a pending
    button — a frozen spinner reads as a hung page.
 
 There are two ramps. `--sakura-*` (桜) does four specific jobs: 200 is the card
-border, 300 the decorative petal, 600 the action colour, and 700 the deepest
+border, 300 the decorative petal, 600 the action color, and 700 the deepest
 pink still safe as text. `--hai-*` (灰) is the neutral, warmed toward violet
-rather than left a true grey so nothing on the page reads cold against the pink.
+rather than left a true gray so nothing on the page reads cold against the pink.
 
 Four `--tone-*` pastels are the grounds a stat card can take. A tone is
 grouping, not meaning: it makes a row of metrics read as a set.
@@ -312,7 +312,7 @@ another. The reasoning and the three rejected alternatives are in
 `npm run verify` runs ESLint, `tsc --noEmit` and the test suite. ESLint includes
 **`eslint-plugin-sonarjs`** — Sonar's own plugin, carrying the same JS/TS rules
 the SonarQube IDE extension applies — so a smell is caught on every lint run
-rather than only when the editor happens to analyse the file. The project lints
+rather than only when the editor happens to analyze the file. The project lints
 clean: zero issues.
 
 Three sonarjs rules are switched off in `eslint.config.mjs`, each with the
@@ -337,13 +337,13 @@ presentation, whose tests would mostly assert on markup.
 
 ## Security posture
 
-### There is a demo sign-in, and it is authorisation without authentication
+### There is a demo sign-in, and it is authorization without authentication
 
 `/login` is a row of role cards — administrator, teacher, TA, student — and the
 choice lands in an unsigned `HttpOnly` cookie. **This is deliberately not
 authentication**: there is no password, no session store and no secret that is
 not also in this repository, and every surface says so. What it demonstrates is
-the layer above: where authorisation lives, and what it costs.
+the layer above: where authorization lives, and what it costs.
 
 - **One table decides everything.** `lib/access/policy.ts` maps each role to the
   pages and API methods it may reach. The sidebar filters itself with it and
@@ -405,7 +405,7 @@ Known gaps, stated rather than implied:
   there are no accounts.
 
 Real authentication (SSO) remains out of scope (`direction.md` §33).
-Authorisation is not: it was added on 2026-09-16 and is described above.
+Authorization is not: it was added on 2026-09-16 and is described above.
 
 ---
 

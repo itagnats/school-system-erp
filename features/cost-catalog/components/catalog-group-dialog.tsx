@@ -14,17 +14,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { HttpError } from "@/lib/api";
-import type { CatalogueGroup } from "@/types";
-import { useCatalogueMutations } from "../hooks/use-catalogue";
+import type { CatalogGroup } from "@/types";
+import { useCatalogMutations } from "../hooks/use-catalog";
 
 /** Create or rename a master cost group (direction.md §12a). */
-export function CatalogueGroupDialog({
+export function CatalogGroupDialog({
   group,
   open,
   onOpenChange,
 }: Readonly<{
   /** Absent when creating. */
-  group?: CatalogueGroup;
+  group?: CatalogGroup;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }>) {
@@ -48,8 +48,8 @@ export function CatalogueGroupDialog({
 function GroupForm({
   group,
   onDone,
-}: Readonly<{ group?: CatalogueGroup; onDone: () => void }>) {
-  const mutation = useCatalogueMutations();
+}: Readonly<{ group?: CatalogGroup; onDone: () => void }>) {
+  const mutation = useCatalogMutations();
   const [name, setName] = useState(group?.name ?? "");
   const [description, setDescription] = useState(group?.description ?? "");
 
@@ -67,7 +67,7 @@ function GroupForm({
         </DialogHeader>
 
         <form
-          id="catalogue-group-form"
+          id="catalog-group-form"
           className="grid gap-4"
           onSubmit={(event) => {
             event.preventDefault();
@@ -115,7 +115,7 @@ function GroupForm({
           <Button variant="ghost" onClick={onDone}>
             Cancel
           </Button>
-          <Button type="submit" form="catalogue-group-form" loading={mutation.isPending}>
+          <Button type="submit" form="catalog-group-form" loading={mutation.isPending}>
             {group ? "Save changes" : "Create group"}
           </Button>
         </DialogFooter>

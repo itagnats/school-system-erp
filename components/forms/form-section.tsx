@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * A labelled group of fields.
+ * A labeled group of fields.
  *
  * The student profile is explicitly not one giant form (direction.md §10), so
  * this is the unit long forms are assembled from: each section states what it

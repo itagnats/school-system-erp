@@ -16,7 +16,7 @@ export interface ChartDatum {
  *   2. A data table for assistive technology. The plot itself is marked
  *      `aria-hidden`, and this table is the accessible representation of the
  *      same numbers. That is a deliberate trade: a screen reader crawling an
- *      SVG produces a stream of unlabelled path elements, whereas a table is
+ *      SVG produces a stream of unlabeled path elements, whereas a table is
  *      navigable by row and column and states its own units. It is visually
  *      hidden, not display:none, so it stays in the accessibility tree.
  *   3. An empty state. A chart with no data must not render as an empty box

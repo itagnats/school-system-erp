@@ -104,7 +104,7 @@ Two relations cannot exist, and `relationIsPossible` is the guard:
 > **No person may assess themselves.**
 
 Note what this is *not*: a matching pair of roles. Student assessing student is
-peer assessment and is the centre of the feature. The rule is about people, and
+peer assessment and is the center of the feature. The rule is about people, and
 belongs where people are — enforced when assignments are generated and again
 when a submission is accepted, not in a check on role equality.
 
@@ -170,7 +170,7 @@ technical contribution. Only the teacher answers all seven.
 **A subset, not a separate wording per relation.** Wording each relation's questions
 independently was rejected: a criterion would then mean something slightly
 different depending on who answered it, and scores would stop being comparable
-across roles. A role's 360 score is normalised over the criteria it was actually
+across roles. A role's 360 score is normalized over the criteria it was actually
 asked, so a shorter set is not a penalty.
 
 The set lives on `AssessorConfig.criteria`, per relation. An assessor weighted
@@ -270,7 +270,7 @@ One decision it carries that is easy to miss: **a score with no submissions is
 has-not-passed are different claims, and a zero would quietly turn the first into
 the second on every screen that renders it.
 
-The returned figures also stay **on the rating scale** — behavioural, ranking and
+The returned figures also stay **on the rating scale** — behavioral, ranking and
 total are means out of `scaleMax` — with `percent` derived from them. A pass mark
 of 4 out of 5 is 80%, which is a B; the two scales were not designed together and
 happen to agree.
@@ -307,7 +307,7 @@ Two rules, both enforced in `lib/calculations/ranking.ts`:
 **Scope must be stated.** `RankingScope` is `group | course-semester`.
 `calculateRanking` ranks whatever set it is handed and deliberately does not know
 which of the two it is looking at — deciding the scope, and saying so in the UI,
-belongs to the caller. An unlabelled ranking is ambiguous in a way that matters
+belongs to the caller. An unlabeled ranking is ambiguous in a way that matters
 to the student being ranked.
 
 **Ties are shown, not broken.** Competition ranking: equal scores share a rank
@@ -378,7 +378,7 @@ rather than merely described.
 demo sign-in and four *app* roles were added on 2026-09-16 (`direction.md` §3a),
 and an app role is not an evaluation role: `inspector` is an evaluation role and
 not an app one, `administrator` the reverse. A persona is also **not an
-authorisation boundary** — it is a URL parameter, and it says so on the screen.
+authorization boundary** — it is a URL parameter, and it says so on the screen.
 It is a parameter rather than context or local storage because local storage is
 unreadable during a server render, and anything depending on it breaks
 hydration.
@@ -411,10 +411,10 @@ Four properties are load-bearing:
 
 - **Only `rankingSharePercent` is stored.** The 360 share is its
   complement. Two stored numbers that must total 100 will eventually disagree.
-- **The effective split is derived** by `summariseWeights`, never entered. A
+- **The effective split is derived** by `summarizeWeights`, never entered. A
   reference design offered both the headline and the per-role weights as inputs,
   which gives one quantity two sources of truth and no rule for which wins.
-- **A role can be switched off** and the rest renormalise, so a course without a
+- **A role can be switched off** and the rest renormalize, so a course without a
   teaching assistant does not leave 15% of every score unallocated.
 - **The total is validated server-side.** It is the one input whose corruption
   raises no error at all — an unbalanced blend simply scales every score in the
@@ -432,7 +432,7 @@ be checked against its parts.
 | Default weights, grade thresholds | **built** (`config/app.ts`) |
 | `calculateGrade`, `gradeRange` | **built**, tested |
 | `calculateRanking` | **built**, tested |
-| Weight blend — `summariseWeights`, `normaliseWeights`, role toggles | **built**, tested (14 tests) |
+| Weight blend — `summarizeWeights`, `normalizeWeights`, role toggles | **built**, tested (14 tests) |
 | Evaluation setup — types, seed, repository, service, contract, routes | **built** |
 | Manage Evaluation list and setup detail screens | **built** |
 | Evaluation groups | **built** — partitioned from each course-semester's enrollments |
@@ -445,7 +445,7 @@ be checked against its parts.
 | `data/mock/evaluation.ts` | **built** — default blends, guidance, setups |
 | Submission contracts | **not built** — nothing is written back, so a form's answers are shaped and discarded |
 | The computed leaderboard | **not built** — `calculateRanking` exists and nothing calls it over a cohort's final scores yet |
-| Pass/fail derived onto a programme enrolment | **not built** (`direction.md` §8) — the status stays progress, and the outcome has no derivation behind it |
+| Pass/fail derived onto a program enrollment | **not built** (`direction.md` §8) — the status stays progress, and the outcome has no derivation behind it |
 
 The types were further along than the logic for most of this project's life, and
 deliberately so: they encode the "show the arithmetic" and "state the scope"

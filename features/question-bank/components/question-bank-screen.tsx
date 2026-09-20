@@ -36,7 +36,7 @@ const ROLE_OPTIONS: Option[] = EVALUATION_ROLES.map((role) => ({
  *
  * A list of groups rather than one flat table, because the group is how the
  * bank is maintained and how a setup draws on it — the same shape the cost
- * catalogue settled on, for the same reason.
+ * catalog settled on, for the same reason.
  *
  * The screen leads with the copy rule. It is the one thing a reader is likely
  * to assume the opposite of: editing master data usually *does* reach

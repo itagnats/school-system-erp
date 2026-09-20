@@ -24,7 +24,7 @@ import type { ProgramProfit } from "@/types";
 import type { ProgramTermDetailResponse } from "../services/program-service";
 
 /**
- * Revenue against cost for one programme term (direction.md §13a).
+ * Revenue against cost for one program term (direction.md §13a).
  *
  * The pricing control is the point of the screen. Cost is largely fixed by the
  * cost sheets; price is the decision, so the reader should be able to move it
@@ -46,7 +46,7 @@ export function ProgramTermPanel({
     <>
       <Section
         title="Revenue against cost"
-        description="Revenue is what the invoices say, not what the price implies. Cost is each course charged at its own cost per student, for the students from this programme who actually took it."
+        description="Revenue is what the invoices say, not what the price implies. Cost is each course charged at its own cost per student, for the students from this program who actually took it."
         actions={
           <StatusBadge tone={TERM_STATUS_TONE[term.status]} label={TERM_STATUS_LABEL[term.status]} />
         }
@@ -149,7 +149,7 @@ export function ProgramTermPanel({
       </Section>
 
       <Section
-        title="Who is under this programme"
+        title="Who is under this program"
         description={`${roster.length} student${roster.length === 1 ? "" : "s"} enrolled this term.`}
         flush
         className="mt-4"

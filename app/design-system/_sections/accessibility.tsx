@@ -92,14 +92,14 @@ export function AccessibilitySection() {
           <div className="grid gap-3 sm:grid-cols-2">
             {[
               {
-                rule: "One focus colour, two mechanisms",
+                rule: "One focus color, two mechanisms",
                 detail:
-                  "Primitives carry a 3px ring in --ring/50 plus a --ring border, which sits tight against a rounded control. Everything else — links, rows, anything custom — falls back to the global :focus-visible rule in globals.css: a 2px outline in --ring at 2px offset. Both read the same token, so there is exactly one focus colour. Nothing removes focus without replacing it, and it is :focus-visible rather than :focus, so a mouse click leaves no ring behind.",
+                  "Primitives carry a 3px ring in --ring/50 plus a --ring border, which sits tight against a rounded control. Everything else — links, rows, anything custom — falls back to the global :focus-visible rule in globals.css: a 2px outline in --ring at 2px offset. Both read the same token, so there is exactly one focus color. Nothing removes focus without replacing it, and it is :focus-visible rather than :focus, so a mouse click leaves no ring behind.",
               },
               {
-                rule: "Status is never colour alone",
+                rule: "Status is never color alone",
                 detail:
-                  "StatusBadge always renders the word. The dot and the tint are redundant encodings of something the label already says, so a colour-blind reader loses nothing.",
+                  "StatusBadge always renders the word. The dot and the tint are redundant encodings of something the label already says, so a color-blind reader loses nothing.",
               },
               {
                 rule: "Errors are announced, not just drawn",
@@ -117,9 +117,9 @@ export function AccessibilitySection() {
                   "Everything in components/decor is aria-hidden and pointer-events-none, and tagged data-decor so the print rule strips it. The petal layer is invisible to assistive technology and to paper.",
               },
               {
-                rule: "Reduced motion is honoured globally",
+                rule: "Reduced motion is honored globally",
                 detail:
-                  "One rule in globals.css, with a single carve-out for spinners. A component writing its own media query is how one surface honours the preference and eleven quietly ignore it.",
+                  "One rule in globals.css, with a single carve-out for spinners. A component writing its own media query is how one surface honors the preference and eleven quietly ignore it.",
               },
             ].map((item) => (
               <div
@@ -221,7 +221,7 @@ export function AccessibilitySection() {
 
           <Demo
             title="Do not: a placeholder standing in for a label"
-            note="The name disappears the moment anything is typed, it is not reliably announced, and it fails contrast at most placeholder colours. A red border with no message says something is wrong without saying what."
+            note="The name disappears the moment anything is typed, it is not reliably announced, and it fails contrast at most placeholder colors. A red border with no message says something is wrong without saying what."
           >
             <div className="flex flex-col gap-1.5 opacity-70">
               <Input
@@ -352,13 +352,13 @@ export function AccessibilitySection() {
 
       <Section
         id="a11y-nonvisual"
-        title="Beyond colour"
+        title="Beyond color"
         description="Three places where the visual encoding is not the whole message."
       >
         <div className="grid gap-4 lg:grid-cols-3">
           <Demo
             title="Status carries its own label"
-            note="Tone and dot are redundant. Remove the colour entirely and the meaning survives."
+            note="Tone and dot are redundant. Remove the color entirely and the meaning survives."
           >
             <div className="flex flex-wrap gap-1.5">
               <StatusBadge tone="success" label="Enrolled" />
@@ -370,7 +370,7 @@ export function AccessibilitySection() {
 
           <Demo
             title="A chart exposes its numbers"
-            note="The plot is aria-hidden and a visually hidden table beside it holds the same figures. A screen reader crawling an SVG produces a stream of unlabelled paths; a table is navigable by row and states its units."
+            note="The plot is aria-hidden and a visually hidden table beside it holds the same figures. A screen reader crawling an SVG produces a stream of unlabeled paths; a table is navigable by row and states its units."
           >
             <CategoryBarChart
               title="Grade distribution"

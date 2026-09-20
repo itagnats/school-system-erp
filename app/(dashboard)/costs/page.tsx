@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/shared";
 import { ProgramCostsScreen } from "@/features/costs/components/program-costs-screen";
 import { courseSemesterOptions, programFilterOptions } from "@/server/services";
 
-export const metadata: Metadata = { title: "Programme costs" };
+export const metadata: Metadata = { title: "Program costs" };
 
 /**
  * The list screen reads its state from the URL through `useSearchParams`, which
@@ -17,8 +17,8 @@ export default function Page() {
   return (
     <>
       <PageHeader
-        title="Programme costs"
-        description="One cost sheet per programme term. Indirect costs are borne once and shared across the curriculum by credit hours; each course adds its own direct costs on top."
+        title="Program costs"
+        description="One cost sheet per program term. Indirect costs are borne once and shared across the curriculum by credit hours; each course adds its own direct costs on top."
       />
       <Suspense fallback={<TableSkeleton columns={8} />}>
         <ProgramCostsScreen

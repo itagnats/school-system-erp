@@ -71,10 +71,10 @@ export type SheetContentAction =
   | { kind: "remove-item"; itemId: string };
 
 const ACTION_MESSAGE: Record<SheetContentAction["kind"], string> = {
-  "add-item": "Line added from the catalogue",
+  "add-item": "Line added from the catalog",
   "add-group": "Cost group added",
   "update-item": "Line updated",
-  "realign-item": "Line moved back onto the catalogue price",
+  "realign-item": "Line moved back onto the catalog price",
   "remove-item": "Line removed",
 };
 
@@ -84,8 +84,8 @@ export function useSheetContents(
    * Where the recomputed detail lands.
    *
    * Passed in rather than derived, because the same five writes serve a course
-   * sheet and a programme one and the two live in different key spaces. A
-   * single key space would let a programme detail overwrite a course detail.
+   * sheet and a program one and the two live in different key spaces. A
+   * single key space would let a program detail overwrite a course detail.
    */
   detailKey: readonly unknown[] = queryKeys.costs.detail(costSheetId),
 ) {
@@ -120,7 +120,7 @@ function patchCachedRows(
   costSheetId: string,
   detail: { breakdown: { totalCost: number; costPerStudent: number | null; studentCount: number } },
 ) {
-  // A programme sheet id matches no row in the course list, so this is a
+  // A program sheet id matches no row in the course list, so this is a
   // harmless no-op for one rather than something to branch on.
   queryClient.setQueriesData<PaginatedResult<CostSheetRow>>(
     { queryKey: queryKeys.costs.all },

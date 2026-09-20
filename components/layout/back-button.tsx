@@ -22,7 +22,7 @@ let entryPathname: string | null = null;
  *
  * ## Why it is not simply `router.back()`
  *
- * History back is the right behaviour when the visitor walked here — it undoes
+ * History back is the right behavior when the visitor walked here — it undoes
  * a sideways move a parent link cannot, such as switching tabs within a page.
  * But the same call on a deep link walks out of the application, which is the
  * one thing a back control inside the application must not do. So: back when
@@ -78,7 +78,7 @@ export function BackButton({ principal }: Readonly<{ principal: DemoPrincipal }>
       // Chrome, not content: a printed page carries the document, not the way
       // back to the list it came from.
       data-print="hide"
-      // Labelled rather than an icon alone. The word is the accessible name, and
+      // Labeled rather than an icon alone. The word is the accessible name, and
       // it stays "Back" rather than naming the parent, because the destination
       // depends on history at click time and could be announced wrongly.
       onClick={goBack}

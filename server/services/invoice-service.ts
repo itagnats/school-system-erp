@@ -29,7 +29,7 @@ import type {
  * Invoice reads and the one write (direction.md §13b).
  *
  * This is the service the profit calculation leans on. A cost sheet answers
- * "what did this course cost" and a programme term answers "what was it
+ * "what did this course cost" and a program term answers "what was it
  * worth"; an invoice answers "who owes it, and have they paid" - which is the
  * difference between revenue a school can spend and revenue it can only hope
  * for.
@@ -57,7 +57,7 @@ const SORTABLE: Record<string, (row: InvoiceListItem) => string | number> = {
   total: (i) => i.total,
 };
 
-/** The programme a term belongs to, for labelling. */
+/** The program a term belongs to, for labeling. */
 function programForTerm(programTermId: string) {
   const term = programTermTable.find((t) => t.id === programTermId);
   if (!term) return undefined;
@@ -65,11 +65,11 @@ function programForTerm(programTermId: string) {
 }
 
 /**
- * Programme labels for one invoice.
+ * Program labels for one invoice.
  *
- * An invoice can bill more than one programme term, so the label is joined
+ * An invoice can bill more than one program term, so the label is joined
  * rather than assumed singular. The current seed gives each student one
- * programme, but a table column that breaks the day that changes is a column
+ * program, but a table column that breaks the day that changes is a column
  * written against the fixtures rather than against the domain.
  */
 function programLabels(invoice: Invoice): { programCode: string; programName: string } {
@@ -77,7 +77,7 @@ function programLabels(invoice: Invoice): { programCode: string; programName: st
     .map(programForTerm)
     .filter((program) => program !== undefined);
 
-  if (programs.length === 0) return { programCode: "-", programName: "Unknown programme" };
+  if (programs.length === 0) return { programCode: "-", programName: "Unknown program" };
   return {
     programCode: programs.map((p) => p.code).join(" + "),
     programName: programs.map((p) => p.name).join(" + "),
@@ -216,16 +216,16 @@ export function isTransitionError(
 }
 
 /**
- * What one programme term was billed (direction.md §13a).
+ * What one program term was billed (direction.md §13a).
  *
  * Only invoices that are actually a claim on someone count: a draft has not
  * been sent and a cancelled invoice has been withdrawn. Counting drafts would
- * let an unsent document inflate a programme's revenue, which is the same class
+ * let an unsent document inflate a program's revenue, which is the same class
  * of error as counting a pending student's package price as earned.
  *
- * An invoice billing two programme terms contributes the lines belonging to
+ * An invoice billing two program terms contributes the lines belonging to
  * each, not its whole total to both. Splitting by line is what keeps two
- * programmes from each claiming the same money.
+ * programs from each claiming the same money.
  */
 export function invoicedRevenueForTerm(programTermId: string): InvoicedRevenue {
   const term = programTermTable.find((row) => row.id === programTermId);
@@ -263,7 +263,7 @@ export function invoicedRevenueForTerm(programTermId: string): InvoicedRevenue {
 }
 
 /**
- * The share of an invoice belonging to one programme term.
+ * The share of an invoice belonging to one program term.
  *
  * Lines carry a course id, and a term carries its curriculum, so the split is a
  * real attribution rather than a division by the number of terms. The fee line

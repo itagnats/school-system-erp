@@ -8,12 +8,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 commit messages, and work-log entries in this repository are written in English.
 Reply in English even when the user writes in another language.
 
+**American English** (`scaffold.md` §23a, settled 2026-09-20) — in the code *and*
+in the prose: `program`, `catalog`, `enrollment`, `color`, `behavioral`,
+`center`, `normalize`, `analyze`, `labeled`, `gray`. Never `programme`,
+`catalogue`, `enrolment`, `colour`, `behavioural`. The tree previously held both
+at once — `enrolment-terms-screen.tsx` beside `enrollment-screen.tsx` in one
+folder — so this is a rule about being greppable, not about taste. Three
+exceptions: names owned by the platform keep theirs (**`aria-labelledby`** and
+the `labelledBy` prop that forwards it — respelling it silently broke the
+attribute and `verify` still passed, because `jsx-a11y/aria-props` is a
+warning), the stored status `"cancelled"` is a data value, and
+`.claude/worklog/` and `.claude/audit/` keep whatever they were written with,
+because they are dated records.
+
 ## Current state
 
 **Twelve modules built.** The token layer, theme, application shell, shared
 components, routing, domain types, API layer and test harness are in place.
 Dashboard, Curriculum, Course, Semester, Enrollment, Student, Cost, **Cost
-Catalogue**, **Invoices**, **Manage Evaluation** and the **Question Bank**
+Catalog**, **Invoices**, **Manage Evaluation** and the **Question Bank**
 render real data from the BFF under `app/api/`. **Your Evaluation** is
 scaffolded — the queue and both form kinds work; its layout is deliberately
 plain, pending the user's design pass.
@@ -49,14 +62,14 @@ compares the ids. **Passing the proxy is not the same as being allowed** - the
 only place in PRIME where those come apart, and the reason is that the edge
 sees a path and never a record. The collection stays staff-only. The
 principal's `studentId` is resolved server-side from the demo persona's
-enrolment and is never carried in the cookie.
+enrollment and is never carried in the cookie.
 
 **A student gets their own dashboard and their own profile** (2026-09-16).
 `/dashboard` branches on role: staff see the school, a student sees their
-programme, their courses and their evaluation queue - and it is deliberately
+program, their courses and their evaluation queue - and it is deliberately
 **not** scoped to the active semester, because the seeded student holds nothing
 in it and an empty landing page demonstrates nothing. They may edit their own
-record (name, contact, major, year, skills); never their programme, which the
+record (name, contact, major, year, skills); never their program, which the
 update path has always ignored for everybody, and never DELETE.
 
 **And their own reports** (2026-09-19, `direction.md` §23).
@@ -75,24 +88,24 @@ behind a dynamic id - when that happens, the check goes downstream and
 `server/principal.ts` is where it lives.
 
 **Every link on a screen goes somewhere the reader may open.** `DashboardScreen`,
-the breadcrumb trail, the back control and the programme history all take the
+the breadcrumb trail, the back control and the program history all take the
 role and drop the anchor where it would refuse. The two Develop pages are the
 deliberate exception - the System Guide documents the whole route tree.
 
 Next 16 renamed Middleware to **Proxy**: the file is `proxy.ts` at the root and
 `middleware.ts` is deprecated.
 
-**Enrollment is programme-first** (2026-09-16): `/enrollment` lists programme
+**Enrollment is program-first** (2026-09-16): `/enrollment` lists program
 terms, `/enrollment/[programTermId]` shows that term's students and, below
 them, the same term at course grain. A student is added from the term page or
-from the programme term page under Curriculum — never from a flat list, because
+from the program term page under Curriculum — never from a flat list, because
 a term is what a student joins.
 
-**Enrolment writes are built** (2026-09-15): Add Student covers all three paths
+**Enrollment writes are built** (2026-09-15): Add Student covers all three paths
 in `direction.md` §7 - an existing profile, a
 student from a previous semester, or a new profile created on the way in. All
 three send one `POST /api/enrollment` discriminated on `source`, and one
-enrolment produces a programme membership plus a course enrollment per
+enrollment produces a program membership plus a course enrollment per
 curriculum course. Expansion and the conflict rules live in
 `lib/calculations/enrollment.ts` so they are testable; `server/` is not.
 
@@ -188,21 +201,28 @@ Design Tokens → Theme → components/ui → components/decor → components/da
 - `components/shared/` — app-level reusable patterns (page header, data table, filter bar, status badge, empty/error/loading states, form section, stat card). Still no business logic.
 - `features/<domain>/` — self-contained: `components/`, `hooks/`, `services/`, `validations/`, `calculations/`, `types.ts`, `constants.ts`. Business rules live here. A feature composing another feature is `app/*`'s job, not a feature's.
 
-**Self-containment is currently broken in two places** (`AUD-012`, open):
-`features/costs/components/add-from-catalogue-dialog.tsx` imports a hook and
-`sheet-groups-panel.tsx` imports constants, both from `features/cost-catalogue/`.
-The rule above still stands and this is recorded as a violation, not an
-exception — it awaits a decision between a shared module and an explicit
-carve-out. Until then **do not add a third edge**: duplicate the strings, as
-`features/dashboard/constants.ts` already does deliberately, or raise the
-question. Check with:
+**No feature imports another, and the grep is now empty** (`AUD-012`, closed
+2026-09-20). The two edges that stood here were not the same kind of problem.
+`sheet-groups-panel.tsx` imported `DRIFT_LABEL` / `DRIFT_TONE` from
+`features/cost-catalog/`, but the catalog screen never read them and drift is a
+property of *a sheet line* — so they moved to `features/costs/constants.ts` and
+the edge went away with nothing duplicated. `add-from-catalog-dialog.tsx`
+imported `useCatalog`, and that one **was** duplicated: the read half now lives
+in `features/costs/services/catalog-picker-service.ts` and
+`hooks/use-catalog-picker.ts`. Both copies hit the same endpoint, the same
+`catalogListSchema` and the same `queryKeys.catalog` entry, so they cannot
+disagree — fifteen lines of plumbing is the price, and it is the price
+`features/dashboard/constants.ts` already pays twice.
+
+**Do not add an edge.** Duplicate the strings with a comment saying why, or
+raise the question. Check with:
 
 ```bash
-grep -rn 'from "@/features/' features/    # expect exactly the two above
+grep -rn 'from "@/features/' features/    # expect no output
 ```
 
 Domains: `programs`, `courses`, `semesters`, `enrollment`, `students`, `costs`,
-`cost-catalogue`, `invoices`, `evaluation`, `question-bank`, `reports`, `dashboard`.
+`cost-catalog`, `invoices`, `evaluation`, `question-bank`, `reports`, `dashboard`.
 
 **Identity is not a domain.** The access table lives in `lib/access/` and the
 session helpers in `lib/api/session.ts`, below `components/` - because
@@ -234,28 +254,28 @@ Two hierarchies hang off Course → Semester:
 Program → Program Term → Courses + Package price → Program Enrollment → Student
 Course → Semester → Enrollment → Student → Evaluation Group → 360° Evaluation → Score → Grade → Report
 Course → Semester → Course Cost Sheet → DIRECT costs only
-Program Term → Programme Cost Sheet → INDIRECT costs → shared out by credits
+Program Term → Program Cost Sheet → INDIRECT costs → shared out by credits
 Program Term → Program Enrollment → Invoice → Invoice Line → Collected / Outstanding
-Catalogue Group → Catalogue Item ⇢ (copied onto) Cost Group → Cost Item
+Catalog Group → Catalog Item ⇢ (copied onto) Cost Group → Cost Item
 ```
 
-**A student holds one programme, and one programme term per semester** (§7a,
+**A student holds one program, and one program term per semester** (§7a,
 added 2026-09-15). Enforced server-side: a second term in the same semester is
-409, a term on another programme is 422. It was already true of all 635 seeded
+409, a term on another program is 422. It was already true of all 635 seeded
 memberships and is what makes one invoice per student per semester
 representable. A withdrawn membership does not count - re-enrolling someone who
 left is a real act.
 
-**Status is progress; outcome is derived** (§8, added 2026-09-15). A programme
-enrolment is `pending | active | completed | withdrawn` - where the student is,
+**Status is progress; outcome is derived** (§8, added 2026-09-15). A program
+enrollment is `pending | active | completed | withdrawn` - where the student is,
 never how they did. Pass and fail come from the grades, are never stored beside
 the status, and derive to **unknown** where a term carries no evaluation. The
 derivation itself is not built yet.
 
-A **programme term** is what a student enrols in: a curriculum for one semester
-plus a package price. Enrolment is entered at the programme level and the course
+A **program term** is what a student enrols in: a curriculum for one semester
+plus a package price. Enrollment is entered at the program level and the course
 enrollments follow from the curriculum (`direction.md` §4a, §7a). Cost is each
-course charged at its own cost per student for the programme members who took it
+course charged at its own cost per student for the program members who took it
 (§13a). A course with no cost sheet contributes **unknown**, never zero.
 
 **Revenue is invoiced, not implied** (§13a, revised 2026-09-12). `package price ×
@@ -269,13 +289,13 @@ cancelled invoice contributes nothing at all.
 ### Invoicing (`direction.md` §13b)
 
 One invoice **per student per semester** — not per course, because a student
-enrols in a programme; not per programme, because one person receives one
-document. Lines are the **curriculum**, not the student's own enrolments: a
+enrols in a program; not per program, because one person receives one
+document. Lines are the **curriculum**, not the student's own enrollments: a
 package is a package, so a course they skipped is still billed.
 
 ```
 one line per curriculum course     credits × CREDIT_RATE
-one programme fee line             package price − the course lines
+one program fee line             package price − the course lines
 one credit line per unfinished     cancelled 100% · dropped 50% · never enrolled nothing
 ```
 
@@ -283,7 +303,7 @@ one credit line per unfinished     cancelled 100% · dropped 50% · never enroll
 to build the package price. Two copies of that number would let a document
 disagree with the contract it bills, and nothing would catch it. The fee line is
 what makes the course lines and the package price reconcile exactly — it is a
-labelled charge, not a rounding plug.
+labeled charge, not a rounding plug.
 
 Status is `draft → issued → paid | overdue | cancelled`, **stored rather than
 computed against a clock**, so `overdue` cannot change because a month passed.
@@ -329,7 +349,7 @@ each total 100 separately, which is why the weight meter lives inside the
 assessee card rather than once at the top of the screen.
 
 **A same-role pair is peer assessment, not self-assessment.** Student assessing
-student is the centre of the feature. "Nobody assesses themselves" is a rule
+student is the center of the feature. "Nobody assesses themselves" is a rule
 about *people*, enforced where people are. A same-role pair is impossible only
 where the role holds one person — one teacher, one TA — and an `inspector` only
 ever assesses a student (`relationIsPossible`). Collapsing those two rules once
@@ -343,7 +363,7 @@ control so the rule is visible, and never accepted from a client.
 score and a feedback report; `isGradedRole` is the guard.
 
 **The score stays on the rating scale.** `calculateEvaluationScore` returns
-behavioural, ranking and total as means out of `scaleMax`, plus a derived
+behavioral, ranking and total as means out of `scaleMax`, plus a derived
 `percent` (`total / scaleMax × 100`), `grade` and `passed` (total ≥ 4). A pass
 mark of 4/5 is 80%, which is a B — the two scales were not designed together and
 happen to agree. **A score with no submissions is `null`**, never zero and never
@@ -391,8 +411,8 @@ reach the report's feedback section by role.
 `rankingSharePercent`; the 360 share is its complement and is never stored. A teacher who both rates and ranks therefore
 counts once. Each assessee's enabled assessor weights must total 100 — validated **server-side**,
 because an unbalanced blend produces no error, only uniformly wrong scores. A role
-can be switched off and the rest renormalise. The headline criteria-to-ordering
-split is **derived** (`summariseWeights`) and must never become an input.
+can be switched off and the rest renormalize. The headline criteria-to-ordering
+split is **derived** (`summarizeWeights`) and must never become an input.
 
 **Ranking means two things.** An ordering submitted by an evaluator is an input;
 the computed leaderboard is an output. The leaderboard is not a route — it lives
@@ -411,7 +431,7 @@ administrator view, `/evaluation` is the evaluator's own queue.
 so "you" comes from a demo persona switcher — built. It is a URL parameter and
 not context or local storage, because local storage is unreadable during a
 server render and any component depending on it breaks hydration. **A persona is
-not an authorisation boundary**; real users would need server-side checks on the
+not an authorization boundary**; real users would need server-side checks on the
 actual principal.
 
 **An assignment is derived, never stored** — it exists because some assessee
@@ -422,10 +442,10 @@ queue of zeros would demonstrate none of its states.
 
 Final score is a configurable weighted blend — the demo default is Peer 30% / Inspector 20% / Teacher 35% / TA 15%, with per-role rating/ordering splits of 60/40, 70/30, 70/30 and 100/0 — and the UI should show the arithmetic rather than hide it. Grade is **derived** from the final score (90+ A, 80+ B, 70+ C, 60+ D, else F) and must not be stored as an independent source of truth. Ranking must always state its scope (group vs. course/semester).
 
-### The cost catalogue (`direction.md` §12a)
+### The cost catalog (`direction.md` §12a)
 
 Master cost groups and items, maintained on their own screen and drawn on by
-every sheet. **A sheet takes a copy, never a reference.** Adding a catalogue item
+every sheet. **A sheet takes a copy, never a reference.** Adding a catalog item
 snapshots its name, kind, price, quantity, allocation and options onto the sheet;
 only the id survives, for provenance.
 
@@ -434,10 +454,10 @@ used it, approved sheets from closed semesters included — a signed-off total
 changing because someone edited a lookup table. A cost sheet is a record of what
 something cost, not a live query.
 
-`copyCatalogueItem` is the **only** implementation of that copy. Drift is
-**computed on read** (`catalogueDriftFor`) and never stored, and only the unit
+`copyCatalogItem` is the **only** implementation of that copy. Drift is
+**computed on read** (`catalogDriftFor`) and never stored, and only the unit
 price is compared — quantity and allocation are expected to differ per sheet,
-because the catalogue carries defaults rather than truths. Deleting a catalogue
+because the catalog carries defaults rather than truths. Deleting a catalog
 item that sheets have copied returns **409**: archive it instead, or their
 provenance points at nothing.
 
@@ -449,8 +469,8 @@ evaluation blend on a setup is a setting.
 
 **Two sheets, because there are two kinds of cost.** A `CourseCostSheet` holds
 **direct** costs only — lecturer, TA, materials — and travels with the course
-into any programme. A `ProgramCostSheet` holds **indirect** costs only —
-classroom, utilities, workshop, industry visit — borne once by the programme
+into any program. A `ProgramCostSheet` holds **indirect** costs only —
+classroom, utilities, workshop, industry visit — borne once by the program
 term and shared across its curriculum.
 
 ```
@@ -458,8 +478,8 @@ per course      Direct                                     (its own sheet)
 per term        Indirect, distributed by the DRIVER        (its own sheet)
 per course      Direct + Share = Subtotal, + markup = Total Course Cost
                 Total ÷ its students        = Cost per Student
-per term        Σ Total Course Cost         = Total Programme Cost
-                ÷ programme enrolment       = Cost per Student, programme basis
+per term        Σ Total Course Cost         = Total Program Cost
+                ÷ program enrollment       = Cost per Student, program basis
                 rounded up                  = Preferred Price
 ```
 
@@ -468,7 +488,7 @@ item to a course sheet is a 422, and vice versa. That is what makes
 double-counting unrepresentable rather than merely detectable.
 
 **`allocationPercent` is gone.** It used to be typed onto each course and had
-nothing to be a percentage *of*: measured across the seed, 82 of 92 programme
+nothing to be a percentage *of*: measured across the seed, 82 of 92 program
 pools recovered **less** than the cost (median 50%) and 7 recovered more. A
 share is now **derived** from the driver, so the shares cannot fail to total
 100 — the same move as "an assignment is derived, never stored".
@@ -482,19 +502,19 @@ means first making hours mean something in the data.
 satang. Rounding each share independently leaks, and a cost that leaks is the
 failure this revision exists to remove.
 
-**Markup and the price rounding step are per programme term**, not per course —
-several per-course markups would leave a programme total that no screen adds up.
+**Markup and the price rounding step are per program term**, not per course —
+several per-course markups would leave a program total that no screen adds up.
 
-A course-semester in no programme term (7 of 57) keeps its direct sheet, takes
+A course-semester in no program term (7 of 57) keeps its direct sheet, takes
 no share and no markup, and reports `sharePercent: null` — not zero. Keep the
 calculation visible in the UI.
 
-**Cost Management leads with the programme** (revised 2026-09-16): `/costs` is
-the programme cost list, `/costs/courses` the course list (the only place the 7
-unaffiliated sheets can be found), `/costs/catalogue` the catalogue. Details are
-`/costs/programmes/<programTermId>` and `/costs/courses/<costSheetId>`. Costing
-did **not** move into the Programme module: those 7 sheets would have no route,
-and the catalogue belongs to neither programme.
+**Cost Management leads with the program** (revised 2026-09-16): `/costs` is
+the program cost list, `/costs/courses` the course list (the only place the 7
+unaffiliated sheets can be found), `/costs/catalog` the catalog. Details are
+`/costs/programs/<programTermId>` and `/costs/courses/<costSheetId>`. Costing
+did **not** move into the Program module: those 7 sheets would have no route,
+and the catalog belongs to neither program.
 
 ## Conventions
 
@@ -524,7 +544,7 @@ Score, grade and the individual report are built.
 An **evaluation setup** is the configuration for one course-semester
 (`direction.md` §15a): window, scale, guidance and the blend. Groups are
 membership beside it, partitioned from that cohort's enrollments — never
-generated independently, which is the rule the programme layer learned the hard
+generated independently, which is the rule the program layer learned the hard
 way.
 
 When uncertain, pick the smallest implementation that demonstrates the intended capability.
@@ -534,7 +554,7 @@ When uncertain, pick the smallest implementation that demonstrates the intended 
 - **`design-system`** (`.claude/skills/design-system/SKILL.md`) — load before touching
   `app/globals.css`, `components/ui`, `components/decor`, `components/shared`,
   `components/feedback`, `components/forms` or `components/data-table`, or whenever a
-  feature needs a colour, size or spacing decision. Covers the Sakura rules, the
+  feature needs a color, size or spacing decision. Covers the Sakura rules, the
   semantic-token contract, card tones, the decoration layer, contrast floors, the
   interpolated-class trap, dark mode, the layering boundary, and the three edits a new
   shared component needs on the design system page. The reference mockup is
@@ -547,7 +567,7 @@ When uncertain, pick the smallest implementation that demonstrates the intended 
 - **`worklog`** (`.claude/skills/worklog/SKILL.md`) — read recent entries before non-trivial
   work, write one when a step is finished.
 - **`commit-review`** (`.claude/skills/commit-review/SKILL.md`) — **use it every time you
-  commit**, without exception. Inspect, analyse, draft a Conventional Commits message about
+  commit**, without exception. Inspect, analyze, draft a Conventional Commits message about
   the *why*, then wait for an explicit approval keyword before staging. Stage by name, never
   `git add -A` or `git add .`, and never push.
 
@@ -570,13 +590,13 @@ models.
 ## Design system
 
 **Sakura (桜)** — soft Japanese spring: a barely-pink ground, white cards on pale pink
-borders and low pink shadows, generous rounding, sakura pink as the action colour, a
+borders and low pink shadows, generous rounding, sakura pink as the action color, a
 decorative petal layer, comfortable density. Tokens in `app/globals.css`, live
 documentation at `/design-system`. Five rules, expanded in the `design-system` skill:
 
 1. A card is a soft object — `bg-card border-hairline rounded-lg shadow-xs`. The border
    and the shadow are both load-bearing; the pink border alone is a 1.26 luminance delta.
-2. Sakura pink is the action colour — a primary button is pink, ink is for text.
+2. Sakura pink is the action color — a primary button is pink, ink is for text.
 3. Pink is allowed to be everywhere. This palette has **no** once-per-screen rule, unlike
    the two before it.
 4. Corners are generous, never square. `--radius` is 10px; pills are `rounded-full`.

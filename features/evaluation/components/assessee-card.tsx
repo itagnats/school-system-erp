@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { summariseWeights, threeSixtySharePercent } from "@/lib/calculations";
+import { summarizeWeights, threeSixtySharePercent } from "@/lib/calculations";
 import { cn } from "@/lib/utils";
 import type {
   AssesseeConfig,
@@ -66,7 +66,7 @@ export function AssesseeCard({
   onCriteriaChange: (assessor: EvaluationRole, criteria: EvaluationCriterion[]) => void;
   onRemove: () => void;
 }>) {
-  const weights = summariseWeights(config.assessors);
+  const weights = summarizeWeights(config.assessors);
   const label = ASSESSEE_ROLE_LABEL[config.role];
   const active = config.assessors.filter((assessor) => assessor.enabled);
   const bodyId = `assessee-${config.role}-detail`;

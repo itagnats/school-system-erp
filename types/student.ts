@@ -15,16 +15,16 @@ export interface StudentPersonalInfo {
 
 export interface StudentAcademicInfo {
   /**
-   * The programme this student belongs to (direction.md §7a).
+   * The program this student belongs to (direction.md §7a).
    *
    * The id is the join; `program` beside it is what a reader sees. Until
    * 2026-09-20 there was only the name, and "one student belongs to one
-   * programme" was enforced by comparing it to `Program.name` - so renaming a
-   * programme would have started refusing its own students, and two programmes
+   * program" was enforced by comparing it to `Program.name` - so renaming a
+   * program would have started refusing its own students, and two programs
    * sharing a name would have let one enrol into the other (`AUD-021`).
    */
   programId: string;
-  /** The programme's display name. Never compared; see `programId`. */
+  /** The program's display name. Never compared; see `programId`. */
   program: string;
   major: string;
   /** Year of study, 1-based. */
@@ -87,11 +87,11 @@ export interface StudentListFilters {
 }
 
 /**
- * One programme term a student has held a place in (direction.md 7a, 9).
+ * One program term a student has held a place in (direction.md 7a, 9).
  *
- * The profile shows enrolment history at **programme** grain, not course
- * grain: a student joins a programme term and the course enrollments follow,
- * so one row per term is the history a person recognises. The semester supplies
+ * The profile shows enrollment history at **program** grain, not course
+ * grain: a student joins a program term and the course enrollments follow,
+ * so one row per term is the history a person recognizes. The semester supplies
  * the dates, because a term is a period rather than a label.
  */
 export interface StudentProgramTerm {

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * A colour chip that reads its own value back out of the cascade.
+ * A color chip that reads its own value back out of the cascade.
  *
  * The resolved value is read with getComputedStyle rather than written into
  * this file, so the documentation cannot drift away from globals.css and it

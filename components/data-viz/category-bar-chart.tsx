@@ -38,7 +38,7 @@ export function CategoryBarChart({
   format,
   valuePrefix,
   height = CHART_HEIGHT,
-  /** One colour per bar. Off by default: a single measure is one series. */
+  /** One color per bar. Off by default: a single measure is one series. */
   colorPerCategory = false,
   className,
 }: {

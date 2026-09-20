@@ -6,7 +6,7 @@ import type {
 } from "@/types";
 
 export interface EnrollmentQueryParams extends ListQuery {
-  /** Enrolment is entered at the programme level (direction.md §7a). */
+  /** Enrollment is entered at the program level (direction.md §7a). */
   programId?: string;
   courseId?: string;
   semester?: SemesterCode;
@@ -15,11 +15,11 @@ export interface EnrollmentQueryParams extends ListQuery {
 }
 
 /**
- * The programme term list, which is now the enrolment screen itself
+ * The program term list, which is now the enrollment screen itself
  * (decided 2026-09-16). Same endpoint as the curriculum screen, narrower
  * question: which terms are taking students, and how many have they got.
  */
-export interface EnrolmentTermQueryParams extends ListQuery {
+export interface EnrollmentTermQueryParams extends ListQuery {
   status?: ProgramTermStatus;
   semester?: SemesterCode;
 }

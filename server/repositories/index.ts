@@ -2,7 +2,7 @@ import "server-only";
 
 import { seed } from "@/data/seed";
 import type {
-  CatalogueGroup,
+  CatalogGroup,
   CourseCostSheet,
   Course,
   Enrollment,
@@ -38,7 +38,7 @@ export const studentTable: Student[] = [...seed.students];
 export const enrollmentTable: Enrollment[] = [...seed.enrollments];
 export const courseCostSheetTable: CourseCostSheet[] = [...seed.courseCostSheets];
 export const programCostSheetTable: ProgramCostSheet[] = [...seed.programCostSheets];
-export const catalogueGroupTable: CatalogueGroup[] = [...seed.catalogueGroups];
+export const catalogGroupTable: CatalogGroup[] = [...seed.catalogGroups];
 export const programTable: Program[] = [...seed.programs];
 export const programTermTable: ProgramTerm[] = [...seed.programTerms];
 export const programEnrollmentTable: ProgramEnrollment[] = [...seed.programEnrollments];

@@ -13,14 +13,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { HttpError } from "@/lib/api";
-import type { EnrolmentTermOption, EnrolmentResult, SemesterCode } from "@/types";
+import type { EnrollmentTermOption, EnrollmentResult, SemesterCode } from "@/types";
 import { useEnrolStudent } from "../hooks/use-enrol-student";
 import {
   pickStudentFormSchema,
   toEnrolRequest,
   type PickStudentFormValues,
-} from "../validations/enrolment-schema";
-import { EnrolmentTermField } from "./enrolment-term-field";
+} from "../validations/enrollment-schema";
+import { EnrollmentTermField } from "./enrollment-term-field";
 import { StudentPicker } from "./student-picker";
 
 /**
@@ -44,11 +44,11 @@ export function PickStudentForm({
   onCancel,
 }: {
   source: "existing-profile" | "previous-course";
-  terms: EnrolmentTermOption[];
+  terms: EnrollmentTermOption[];
   /** Preselected when the screen already knows which term is meant. */
   defaultTermId?: string;
   semesterOptions: SemesterCode[];
-  onDone: (result: EnrolmentResult) => void;
+  onDone: (result: EnrollmentResult) => void;
   onCancel: () => void;
 }) {
   const enrol = useEnrolStudent();
@@ -83,7 +83,7 @@ export function PickStudentForm({
       }
       form.setError("root", {
         type: "server",
-        message: "That enrolment could not be made. Please try again.",
+        message: "That enrollment could not be made. Please try again.",
       });
     }
   }
@@ -95,12 +95,12 @@ export function PickStudentForm({
           control={form.control}
           name="programTermId"
           render={({ field }) => (
-            <EnrolmentTermField
+            <EnrollmentTermField
               terms={terms}
               value={field.value}
               onChange={(value) => {
                 field.onChange(value);
-                // The candidate list is scoped to the programme, so a student
+                // The candidate list is scoped to the program, so a student
                 // chosen under the previous term is no longer necessarily
                 // enrollable. Clearing is safer than carrying it over.
                 form.setValue("studentId", "");

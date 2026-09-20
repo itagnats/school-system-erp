@@ -9,15 +9,15 @@
    ----------------------------------------------------------------------------
    Soft Japanese spring: a barely-pink paper ground, white cards held by pale
    pink borders and low pink-tinted shadows, generous rounding, and sakura pink
-   as the action colour. Petal motifs and a gradient wash sit behind the page.
+   as the action color. Petal motifs and a gradient wash sit behind the page.
 
    Five ideas hold the system together:
 
      1. A card is a soft object. It floats on a pale pink shadow and is bounded
-        by a pink hairline, not a grey one. Both signals are deliberate: the
+        by a pink hairline, not a gray one. Both signals are deliberate: the
         border alone is only a 1.26 luminance delta, which is why the shadow
         carries the boundary with it.
-     2. Sakura pink is the action colour. A primary button is pink; ink is
+     2. Sakura pink is the action color. A primary button is pink; ink is
         reserved for text. --primary is #de2871 rather than the lighter pink the
         eye expects, because white text on a lighter pink fails contrast.
      3. Pink is allowed to be everywhere. Unlike the previous palettes there is
@@ -30,9 +30,9 @@
         soft cards need the air to read as designed.
 
    Decoration is part of the system, not an extra: --blossom is the petal
-   colour and --wash-* are the page gradient stops. See components/decor.
+   color and --wash-* are the page gradient stops. See components/decor.
 
-   Status colours are pastel soft pairs, deepened until every text pair clears
+   Status colors are pastel soft pairs, deepened until every text pair clears
    4.5:1 — including against the tinted stat card grounds, which cost about
    0.8 of a ratio point compared with white.
 
@@ -230,7 +230,7 @@
 
 :root {
     /* ---- Accent ramp: sakura 桜 -------------------------------------------
-       200 is the card border, 300 the decorative petal, 600 the action colour
+       200 is the card border, 300 the decorative petal, 600 the action color
        and 700 the pink that is safe as text on white. */
     --sakura-50: #fef6f9;
     --sakura-100: #fdeaf1;
@@ -244,7 +244,7 @@
     --sakura-900: #6b1035;
 
     /* ---- Neutral ramp: hai 灰 ---------------------------------------------
-       Warmed toward violet rather than a true grey, so nothing on the page
+       Warmed toward violet rather than a true gray, so nothing on the page
        reads as cold against the pink. */
     --hai-50: #faf8fa;
     --hai-100: #f4f1f5;
@@ -264,11 +264,11 @@
     --card-foreground: var(--hai-900);
     --popover: #ffffff;
     --popover-foreground: var(--hai-900);
-    /* Table headers and inset panels take a pink tint, not a grey one. */
+    /* Table headers and inset panels take a pink tint, not a gray one. */
     --surface-sunken: #f6eef2;
     --surface-raised: #ffffff;
 
-    /* Sakura is the action colour. 600 rather than 500 so white text on a
+    /* Sakura is the action color. 600 rather than 500 so white text on a
        primary button clears 4.5:1. */
     --primary: var(--sakura-600);
     --primary-foreground: #ffffff;
@@ -385,8 +385,8 @@
                  dialog, sheet, page transition
 
        Unlike every other token here these are NOT redefined in .dark. The
-       rule that a token must exist in all three places is about colour: a
-       colour defined only in :root breaks dark mode silently. A duration has
+       rule that a token must exist in all three places is about color: a
+       color defined only in :root breaks dark mode silently. A duration has
        no dark value to break, and duplicating it would only create two places
        to forget.
 
@@ -432,7 +432,7 @@
         --primary: #f0759f;
         --primary-foreground: #23101a;
         /* Already light enough to read as type on the dusk ground, so the text
-           step and the action colour converge here rather than diverging. */
+           step and the action color converge here rather than diverging. */
         --primary-strong: var(--primary);
         --secondary: #2e2735;
         --secondary-foreground: #f2edf2;
@@ -612,7 +612,7 @@
        the rule applies only while a [data-print="report"] element exists in the
        DOM, which is exactly while the dialog is mounted.
        
-       The dialog is centred, height-capped and scrollable on screen. On paper
+       The dialog is centered, height-capped and scrollable on screen. On paper
        all three are wrong - a printed page has no viewport - so they are undone
        here rather than compromised on screen. */
     /* A4 portrait. Declared rather than left to the browser so the sheet is

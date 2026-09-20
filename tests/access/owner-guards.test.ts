@@ -63,7 +63,7 @@ function appRoutes(): { file: string; path: string }[] {
       const segments = relative(join(ROOT, "app"), full).split(sep).slice(0, -1);
       found.push({
         file: relative(ROOT, full).split(sep).join("/"),
-        // A route group - `(dashboard)` - organises files and does not appear
+        // A route group - `(dashboard)` - organizes files and does not appear
         // in the URL, so a check that kept it would match no prefix at all and
         // report a clean pass over routes it had never looked at.
         path: `/${segments.filter((s) => !s.startsWith("(")).join("/")}`,

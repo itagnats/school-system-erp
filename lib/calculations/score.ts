@@ -1,6 +1,6 @@
 import { calculateGrade } from "./grade";
 import { clamp, round } from "./number";
-import { summariseWeights, threeSixtySharePercent } from "./evaluation-weights";
+import { summarizeWeights, threeSixtySharePercent } from "./evaluation-weights";
 import type {
   AssesseeConfig,
   AssessorConfig,
@@ -14,7 +14,7 @@ import type {
  *
  * Three figures and the relationship between them:
  *
- *   behavioural  the weighted mean of what each role rated on the 360 form
+ *   behavioral  the weighted mean of what each role rated on the 360 form
  *   ranking      the weighted mean of what each role submitted as an ordering
  *   total        those two, blended by the shares they derive
  *
@@ -26,10 +26,10 @@ import type {
  *
  * The identity that makes the report readable:
  *
- *   total = (behaviouralShare x behavioural + rankingShare x ranking) / 100
+ *   total = (behavioralShare x behavioral + rankingShare x ranking) / 100
  *
- * where the two shares are `summariseWeights`' derived effective split. So the
- * report's headline - "Total (Behavioural 60% + Ranking 40%)" - is the same
+ * where the two shares are `summarizeWeights`' derived effective split. So the
+ * report's headline - "Total (Behavioral 60% + Ranking 40%)" - is the same
  * arithmetic the score actually used, not a restatement of it.
  */
 
@@ -91,7 +91,7 @@ export function calculateEvaluationScore({
   scaleMax: number;
   passThreshold: number;
 }): ScoreResult {
-  const summary = summariseWeights(assessee.assessors);
+  const summary = summarizeWeights(assessee.assessors);
   const byRole = new Map(submissions.map((entry) => [entry.role, entry]));
 
   const roles: RoleScore[] = assessee.assessors
@@ -100,7 +100,7 @@ export function calculateEvaluationScore({
 
   // Weighted means, skipping roles that have not reported. A missing role
   // lowers coverage; it never counts as a zero.
-  const behavioural = weightedMean(
+  const behavioral = weightedMean(
     assessee.assessors,
     byRole,
     (assessor) => (assessor.weightPercent * threeSixtySharePercent(assessor)) / 100,
@@ -114,7 +114,7 @@ export function calculateEvaluationScore({
   );
 
   const totalScore = blend(
-    behavioural.value,
+    behavioral.value,
     summary.effective360Percent,
     ranking.value,
     summary.effectiveRankingPercent,
@@ -125,17 +125,17 @@ export function calculateEvaluationScore({
   // together, and it is worth knowing that they happen to line up.
   const percent = totalScore === null ? null : round((totalScore / scaleMax) * 100, 2);
 
-  const covered = behavioural.weight + ranking.weight;
+  const covered = behavioral.weight + ranking.weight;
   const available = summary.effective360Percent + summary.effectiveRankingPercent;
 
   return {
     subjectId,
     assesseeRole: assessee.role,
     roles,
-    behaviouralScore: behavioural.value,
+    behavioralScore: behavioral.value,
     rankingScore: ranking.value,
     totalScore,
-    behaviouralSharePercent: summary.effective360Percent,
+    behavioralSharePercent: summary.effective360Percent,
     rankingSharePercent: summary.effectiveRankingPercent,
     percent,
     grade: percent === null ? null : calculateGrade(percent),
@@ -169,7 +169,7 @@ function buildRoleScore(
 /**
  * Blend two figures by their shares, ignoring whichever is missing.
  *
- * Renormalising over what is present is the whole reason this is a function:
+ * Renormalizing over what is present is the whole reason this is a function:
  * treating an unreported half as zero would halve a score for an
  * administrative gap rather than for anything the subject did.
  */

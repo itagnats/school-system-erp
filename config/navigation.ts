@@ -71,12 +71,12 @@ export const NAVIGATION: NavSection[] = [
     // Cost and billing are the two sides of the money: a sheet says what
     // delivery cost, an invoice says who owes for it (direction.md §13a, §13b).
     items: [
-      // The programme term is where a costing is finished, so it leads
+      // The program term is where a costing is finished, so it leads
       // (direction.md 11, revised 2026-09-16). A course sheet is a
       // contributing part and lists second.
-      { label: "Programme Costs", href: routes.costs(), icon: Receipt },
+      { label: "Program Costs", href: routes.costs(), icon: Receipt },
       { label: "Course Costs", href: routes.courseCosts(), icon: Receipt },
-      { label: "Cost Catalogue", href: routes.costCatalogue(), icon: Library },
+      { label: "Cost Catalog", href: routes.costCatalog(), icon: Library },
       { label: "Invoices", href: routes.invoices(), icon: FileSpreadsheet },
     ],
   },
@@ -98,7 +98,7 @@ export const NAVIGATION: NavSection[] = [
     items: [{ label: "Student Reports", href: routes.reports(), icon: FileText }],
   },
   {
-    // Its own named section rather than an unlabelled tail. The design system
+    // Its own named section rather than an unlabeled tail. The design system
     // is not a feature of the school - it is the tooling the school is built
     // from - and a heading says so where a bare item at the bottom of the list
     // read as one more destination.

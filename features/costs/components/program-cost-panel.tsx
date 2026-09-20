@@ -6,7 +6,7 @@ import type { ProgramCostSheetDetail } from "@/server/services";
 import { COST_STATUS_LABEL, COST_STATUS_TONE } from "../constants";
 
 /**
- * The programme term's indirect costs, and how they reach its courses
+ * The program term's indirect costs, and how they reach its courses
  * (direction.md §11-13).
  *
  * A server component: nothing here is interactive, and a client component would
@@ -27,7 +27,7 @@ export function ProgramCostPanel({
     <Section
       className="mt-4"
       title="Indirect costs, and how they are shared"
-      description="Borne once by the programme, distributed across the curriculum by credit hours."
+      description="Borne once by the program, distributed across the curriculum by credit hours."
       actions={
         <div className="flex items-center gap-3">
           <StatusBadge
@@ -54,13 +54,13 @@ export function ProgramCostPanel({
           label={`Markup, ${formatPercent(b.markupPercent)}`}
           value={money(b.markupAmount)}
         />
-        <Figure label="Total programme cost" value={money(b.totalCost)} strong />
+        <Figure label="Total program cost" value={money(b.totalCost)} strong />
       </dl>
 
       <dl className="mt-4 grid gap-3 rounded-lg border border-hairline bg-surface-sunken p-4 sm:grid-cols-3">
-        <Figure label="Students on the programme" value={String(b.studentCount)} />
+        <Figure label="Students on the program" value={String(b.studentCount)} />
         <Figure
-          label="Cost per student, programme"
+          label="Cost per student, program"
           value={b.costPerStudent === null ? "Nobody enrolled" : money(b.costPerStudent)}
           hint="The whole curriculum, per head. Comparable to the package price."
           strong

@@ -48,7 +48,7 @@ export function FoundationsSection() {
     <div className="flex flex-col" style={{ gap: "var(--section-gap)" }}>
       <Section id="palette"
         title="Sakura 桜"
-        description="Soft Japanese spring. A barely-pink ground, white cards held by pale pink borders and low pink shadows, generous rounding, and sakura pink as the action colour. Unlike the earlier palettes there is no once-per-screen rule: pink is allowed to be everywhere."
+        description="Soft Japanese spring. A barely-pink ground, white cards held by pale pink borders and low pink shadows, generous rounding, and sakura pink as the action color. Unlike the earlier palettes there is no once-per-screen rule: pink is allowed to be everywhere."
       >
         <div className="flex flex-col gap-4">
           <div>
@@ -91,9 +91,9 @@ export function FoundationsSection() {
             Feature code never references these ramps. They exist so the semantic tokens
             below have somewhere to point, and so a new semantic token can be picked from
             a step that already belongs to the system. Four steps of sakura do specific
-            jobs: 200 is the card border, 300 the decorative petal, 600 the action colour,
+            jobs: 200 is the card border, 300 the decorative petal, 600 the action color,
             and 700 the deepest pink that is still safe as text. The neutral ramp is warmed
-            toward violet rather than left a true grey, so nothing on the page reads cold
+            toward violet rather than left a true gray, so nothing on the page reads cold
             against the pink.
           </p>
         </div>
@@ -112,7 +112,7 @@ export function FoundationsSection() {
 
       <Section id="status-tokens"
         title="Status tokens"
-        description="Pastel soft pairs, each deepened until its text clears 4.5:1 — including against the tinted card grounds, which cost about 0.8 of a ratio point compared with white. Warning is the one status with a near-black foreground, because white on amber cannot reach 4.5:1 without turning the amber brown. Status is never communicated by colour alone: the label always states it in words."
+        description="Pastel soft pairs, each deepened until its text clears 4.5:1 — including against the tinted card grounds, which cost about 0.8 of a ratio point compared with white. Warning is the one status with a near-black foreground, because white on amber cannot reach 4.5:1 without turning the amber brown. Status is never communicated by color alone: the label always states it in words."
       >
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {STATUS_TOKENS.map((t) => (
@@ -231,7 +231,7 @@ export function FoundationsSection() {
 
       <Section id="structure"
         title="Structure"
-        description="Rules divide the inside of a panel, at two weights: --hairline is the pale pink used almost everywhere, and --hairline-strong is one step deeper for a boundary that needs to be felt. These utilities exist so a border is never re-declared with a slightly different colour."
+        description="Rules divide the inside of a panel, at two weights: --hairline is the pale pink used almost everywhere, and --hairline-strong is one step deeper for a boundary that needs to be felt. These utilities exist so a border is never re-declared with a slightly different color."
       >
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Demo title="hairline-b" note="Row and header separation.">

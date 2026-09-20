@@ -5,53 +5,53 @@ import { toast } from "sonner";
 import { HttpError } from "@/lib/api";
 import { queryKeys } from "@/lib/constants";
 import type {
-  CatalogueGroupCreateInput,
-  CatalogueGroupUpdateInput,
-  CatalogueItemCreateInput,
-  CatalogueItemUpdateInput,
+  CatalogGroupCreateInput,
+  CatalogGroupUpdateInput,
+  CatalogItemCreateInput,
+  CatalogItemUpdateInput,
 } from "@/lib/api/contracts";
-import type { CatalogueGroup } from "@/types";
+import type { CatalogGroup } from "@/types";
 import {
-  createCatalogueGroup,
-  createCatalogueItem,
-  deleteCatalogueItem,
-  fetchCatalogue,
-  updateCatalogueGroup,
-  updateCatalogueItem,
-  type CatalogueQueryParams,
-} from "../services/catalogue-service";
+  createCatalogGroup,
+  createCatalogItem,
+  deleteCatalogItem,
+  fetchCatalog,
+  updateCatalogGroup,
+  updateCatalogItem,
+  type CatalogQueryParams,
+} from "../services/catalog-service";
 
-export function useCatalogue(params: CatalogueQueryParams = {}) {
+export function useCatalog(params: CatalogQueryParams = {}) {
   return useQuery({
-    queryKey: queryKeys.catalogue.list(params),
-    queryFn: () => fetchCatalogue(params),
+    queryKey: queryKeys.catalog.list(params),
+    queryFn: () => fetchCatalog(params),
   });
 }
 
 /**
- * Every catalogue write (direction.md §12a).
+ * Every catalog write (direction.md §12a).
  *
  * Gathered into one hook because they share a cache update: each returns the
- * affected group, and the screen holds the catalogue as a list of groups. Only
+ * affected group, and the screen holds the catalog as a list of groups. Only
  * the message differs.
  *
  * As everywhere else in PRIME, the response is written into the cache rather
  * than invalidated. The BFF stores nothing, so a refetch would return the seed
  * and undo the change a second after it was made (docs/decisions/why-bff.md).
  */
-export type CatalogueAction =
-  | { kind: "create-group"; input: CatalogueGroupCreateInput }
-  | { kind: "update-group"; groupId: string; input: CatalogueGroupUpdateInput }
-  | { kind: "create-item"; groupId: string; input: CatalogueItemCreateInput }
+export type CatalogAction =
+  | { kind: "create-group"; input: CatalogGroupCreateInput }
+  | { kind: "update-group"; groupId: string; input: CatalogGroupUpdateInput }
+  | { kind: "create-item"; groupId: string; input: CatalogItemCreateInput }
   | {
       kind: "update-item";
       groupId: string;
       itemId: string;
-      input: CatalogueItemUpdateInput;
+      input: CatalogItemUpdateInput;
     }
   | { kind: "delete-item"; groupId: string; itemId: string };
 
-const ACTION_MESSAGE: Record<CatalogueAction["kind"], string> = {
+const ACTION_MESSAGE: Record<CatalogAction["kind"], string> = {
   "create-group": "Cost group created",
   "update-group": "Cost group updated",
   "create-item": "Cost item created",
@@ -59,11 +59,11 @@ const ACTION_MESSAGE: Record<CatalogueAction["kind"], string> = {
   "delete-item": "Cost item deleted",
 };
 
-export function useCatalogueMutations() {
+export function useCatalogMutations() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (action: CatalogueAction) => runAction(action),
+    mutationFn: (action: CatalogAction) => runAction(action),
     onSuccess: (group, action) => {
       writeGroupIntoCache(queryClient, group, action.kind === "create-group");
       toast.success(ACTION_MESSAGE[action.kind]);
@@ -77,29 +77,29 @@ export function useCatalogueMutations() {
   });
 }
 
-function runAction(action: CatalogueAction): Promise<CatalogueGroup> {
+function runAction(action: CatalogAction): Promise<CatalogGroup> {
   switch (action.kind) {
     case "create-group":
-      return createCatalogueGroup(action.input);
+      return createCatalogGroup(action.input);
     case "update-group":
-      return updateCatalogueGroup(action.groupId, action.input);
+      return updateCatalogGroup(action.groupId, action.input);
     case "create-item":
-      return createCatalogueItem(action.groupId, action.input);
+      return createCatalogItem(action.groupId, action.input);
     case "update-item":
-      return updateCatalogueItem(action.groupId, action.itemId, action.input);
+      return updateCatalogItem(action.groupId, action.itemId, action.input);
     case "delete-item":
-      return deleteCatalogueItem(action.groupId, action.itemId);
+      return deleteCatalogItem(action.groupId, action.itemId);
   }
 }
 
-/** Replace one group in every cached catalogue query, or append a new one. */
+/** Replace one group in every cached catalog query, or append a new one. */
 function writeGroupIntoCache(
   queryClient: ReturnType<typeof useQueryClient>,
-  group: CatalogueGroup,
+  group: CatalogGroup,
   isNew: boolean,
 ) {
-  queryClient.setQueriesData<CatalogueGroup[]>(
-    { queryKey: queryKeys.catalogue.all },
+  queryClient.setQueriesData<CatalogGroup[]>(
+    { queryKey: queryKeys.catalog.all },
     (cached) => {
       if (!Array.isArray(cached)) return cached;
       if (isNew) return [...cached, group];

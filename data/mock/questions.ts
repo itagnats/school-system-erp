@@ -94,7 +94,7 @@ export const mockQuestionGroups: QuestionGroup[] = [
         groupId: "qg-student",
         type: "rating",
         criterion: "leadership",
-        prompt: "How much did they help the group organise itself?",
+        prompt: "How much did they help the group organize itself?",
         helpText:
           "Leading is not the same as talking most. Somebody who quietly kept the plan straight scores well here.",
         appliesTo: ["student"],

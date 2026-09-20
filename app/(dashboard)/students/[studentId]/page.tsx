@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: PageParams): Promise<Metadata
  * The student profile, read-only (direction.md §9).
  *
  * **Reading and editing are separate screens** (decided 2026-09-16). The
- * profile opens as a record to be read — identity on the left, enrolment
+ * profile opens as a record to be read — identity on the left, enrollment
  * history on the right, the rest below — and Edit leads to `/edit`, where the
  * same content is a set of forms behind tabs. An inline edit toggle per section
  * was built first and put aside: it made every section carry a control for an
@@ -57,7 +57,7 @@ export default async function Page({ params }: PageParams) {
       <div className="grid gap-4 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:items-start">
         {/*
           The left column is who this student is and where they have been: the
-          identity card, then the enrolment history beneath it. Both are the
+          identity card, then the enrollment history beneath it. Both are the
           reader confirming they are on the right profile. The right column is
           the profile proper, so the history does not push the first section of
           it below the fold.
@@ -81,7 +81,7 @@ export default async function Page({ params }: PageParams) {
 
           <Section
             title="Academic"
-            description={`Programme is ${academic.program}, set by enrolment rather than on this profile.`}
+            description={`Program is ${academic.program}, set by enrollment rather than on this profile.`}
           >
             <DescriptionList
               items={[

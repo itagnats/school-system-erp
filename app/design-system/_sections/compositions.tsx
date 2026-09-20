@@ -79,7 +79,7 @@ const ANATOMIES: Anatomy[] = [
     steps: [
       { part: "Breadcrumb", note: "In the shell, not in the page. It is navigation, so it sits with the navigation." },
       { part: "PageHeader", note: "The entity name, its status, and its actions." },
-      { part: "StatCard row", note: "The three or four numbers that summarise the record.", optional: true },
+      { part: "StatCard row", note: "The three or four numbers that summarize the record.", optional: true },
       { part: "DescriptionList", note: "The fields, as a real definition list." },
       { part: "Section per grouping", note: "Enrollments, evaluations, cost breakdown — one panel each." },
     ],
@@ -213,7 +213,7 @@ function AnatomyCard({ anatomy }: { anatomy: Anatomy }) {
 /** The layer chain, as a diagram rather than a sentence. */
 function LayerDiagram() {
   const layers: { name: string; detail: string; badge?: ReactNode }[] = [
-    { name: "Design tokens", detail: "app/globals.css — colour, type, spacing, radius, elevation, motion" },
+    { name: "Design tokens", detail: "app/globals.css — color, type, spacing, radius, elevation, motion" },
     { name: "components/ui", detail: "Generic primitives on the Radix base. No domain vocabulary." },
     { name: "components/decor", detail: "The petal layer. Inert: aria-hidden, pointer-events-none, stripped in print." },
     { name: "components/data-viz", detail: "The only place recharts is imported. Takes { label, value }." },
@@ -266,7 +266,7 @@ export function CompositionsSection() {
             </p>
             <p>
               <code className="text-foreground">components/data-viz</code> exists
-              because recharts takes colours as strings and cannot read a Tailwind
+              because recharts takes colors as strings and cannot read a Tailwind
               class. Wrapping it once means the library is named in one folder instead
               of seven, and a chart still follows the theme switch — the wrappers pass
               <code className="mx-1 text-foreground">var(--chart-1)</code>, which the
@@ -291,7 +291,7 @@ export function CompositionsSection() {
       <Section
         id="charts"
         title="Charts"
-        description="Four chart types and a hard rule about which to reach for. Each takes an array of { label, value } and nothing else, so a feature module never imports recharts or picks a colour."
+        description="Four chart types and a hard rule about which to reach for. Each takes an array of { label, value } and nothing else, so a feature module never imports recharts or picks a color."
         decor
       >
         <div className="flex flex-col gap-5">
@@ -348,7 +348,7 @@ export function CompositionsSection() {
             contentClassName="bg-card"
           >
             <CriteriaRadarChart
-              title="Behavioural profile"
+              title="Behavioral profile"
               description="Student 222 · IT101 202601 · peers, inspector, teacher and TA"
               data={CRITERIA_PROFILE}
               unit="Mean rating"
@@ -376,7 +376,7 @@ export function CompositionsSection() {
               <li>
                 <span className="text-foreground">It exposes its numbers.</span> The
                 plot is aria-hidden and a visually hidden table carries the same
-                figures, because an SVG read aloud is a stream of unlabelled paths.
+                figures, because an SVG read aloud is a stream of unlabeled paths.
               </li>
             </ul>
           </div>

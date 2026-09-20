@@ -28,11 +28,11 @@ export const costSheetListSchema = paginatedSchema(costSheetListItemSchema);
 export type CostSheetListResponse = z.infer<typeof costSheetListSchema>;
 
 /**
- * A programme cost sheet as a table row (direction.md §11, revised 2026-09-16).
+ * A program cost sheet as a table row (direction.md §11, revised 2026-09-16).
  *
  * Carries the package price beside the cost, because the comparison is the
- * reason the list exists: a programme costing is only interesting against what
- * the programme charges.
+ * reason the list exists: a program costing is only interesting against what
+ * the program charges.
  */
 export const programCostListItemSchema = z.object({
   id: z.string(),
@@ -63,8 +63,8 @@ export type ProgramCostListResponse = z.infer<typeof programCostListSchema>;
  * What a client may change on a COURSE cost sheet.
  *
  * Head count and status only. Markup and the rounding step moved to the
- * programme term on 2026-09-15 (§13) — a package is priced once, and several
- * per-course markups would leave a programme total that no screen adds up.
+ * program term on 2026-09-15 (§13) — a package is priced once, and several
+ * per-course markups would leave a program total that no screen adds up.
  * `allocationPercent` is gone entirely: a share of the indirect pool is derived
  * from the driver, never entered.
  */
@@ -81,7 +81,7 @@ export const costSheetUpdateSchema = z.object({
 export type CostSheetUpdateInput = z.infer<typeof costSheetUpdateSchema>;
 
 /**
- * What a client may change on a PROGRAMME cost sheet.
+ * What a client may change on a PROGRAM cost sheet.
  *
  * The driver is accepted even though the union has one member: refusing a field
  * the type allows would be a lie about what the endpoint supports, and the day

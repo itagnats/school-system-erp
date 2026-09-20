@@ -119,7 +119,7 @@ export function StudentEditScreen({ initial }: { initial: Student }) {
         <TabsContent value="academic" className="mt-3">
           <Section
             title="Academic information"
-            description={`Programme is ${student.academic.program}, set by enrolment rather than here.`}
+            description={`Program is ${student.academic.program}, set by enrollment rather than here.`}
           >
             <AcademicForm student={student} onSaved={setStudent} onDone={done} />
           </Section>

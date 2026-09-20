@@ -14,16 +14,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCurrency } from "@/lib/utils";
-import type { CatalogueGroup, CatalogueItem, Option } from "@/types";
+import type { CatalogGroup, CatalogItem, Option } from "@/types";
 import {
-  CATALOGUE_STATUS_LABEL,
-  CATALOGUE_STATUS_OPTIONS,
-  CATALOGUE_STATUS_TONE,
+  CATALOG_STATUS_LABEL,
+  CATALOG_STATUS_OPTIONS,
+  CATALOG_STATUS_TONE,
   SNAPSHOT_NOTE,
 } from "../constants";
-import { useCatalogue, useCatalogueMutations } from "../hooks/use-catalogue";
-import { CatalogueGroupDialog } from "./catalogue-group-dialog";
-import { CatalogueItemDialog } from "./catalogue-item-dialog";
+import { useCatalog, useCatalogMutations } from "../hooks/use-catalog";
+import { CatalogGroupDialog } from "./catalog-group-dialog";
+import { CatalogItemDialog } from "./catalog-item-dialog";
 
 const KIND_OPTIONS: Option[] = [
   { value: "direct", label: "Direct" },
@@ -31,31 +31,31 @@ const KIND_OPTIONS: Option[] = [
 ];
 
 /**
- * The master cost catalogue (direction.md §12a).
+ * The master cost catalog (direction.md §12a).
  *
  * Rendered as a list of groups rather than one flat table, because the group is
- * how the catalogue is maintained and how a sheet draws on it. A flat table
+ * how the catalog is maintained and how a sheet draws on it. A flat table
  * sorted by group would look tidier and would lose the thing being edited.
  */
-export function CatalogueScreen() {
+export function CatalogScreen() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [kind, setKind] = useState("all");
 
-  const query = useCatalogue({
+  const query = useCatalog({
     search: search || undefined,
     status: status === "all" ? undefined : status,
     kind: kind === "all" ? undefined : kind,
   });
 
-  const [groupDialog, setGroupDialog] = useState<{ group?: CatalogueGroup } | null>(null);
+  const [groupDialog, setGroupDialog] = useState<{ group?: CatalogGroup } | null>(null);
   const activeFilters = [search !== "", status !== "all", kind !== "all"].filter(
     Boolean,
   ).length;
 
   return (
     <>
-      <Section title="How the catalogue reaches a sheet" description={SNAPSHOT_NOTE}>
+      <Section title="How the catalog reaches a sheet" description={SNAPSHOT_NOTE}>
         <FilterBar
           activeCount={activeFilters}
           onClear={() => {
@@ -74,13 +74,13 @@ export function CatalogueScreen() {
             value={search}
             onValueChange={setSearch}
             placeholder="Search groups or items"
-            aria-label="Search the cost catalogue"
+            aria-label="Search the cost catalog"
             className="w-full max-w-xs"
           />
           <FilterSelect
             label="Status"
             value={status}
-            options={CATALOGUE_STATUS_OPTIONS}
+            options={CATALOG_STATUS_OPTIONS}
             onValueChange={setStatus}
           />
           <FilterSelect
@@ -104,8 +104,8 @@ export function CatalogueScreen() {
             variant={activeFilters > 0 ? "no-results" : "empty"}
             title={
               activeFilters > 0
-                ? "No catalogue entry matches these filters"
-                : "The catalogue is empty"
+                ? "No catalog entry matches these filters"
+                : "The catalog is empty"
             }
             description={
               activeFilters > 0
@@ -117,14 +117,14 @@ export function CatalogueScreen() {
       ) : null}
 
       {query.data?.map((group) => (
-        <CatalogueGroupPanel
+        <CatalogGroupPanel
           key={group.id}
           group={group}
           onEdit={() => setGroupDialog({ group })}
         />
       ))}
 
-      <CatalogueGroupDialog
+      <CatalogGroupDialog
         group={groupDialog?.group}
         open={groupDialog !== null}
         onOpenChange={(open) => setGroupDialog(open ? groupDialog : null)}
@@ -133,12 +133,12 @@ export function CatalogueScreen() {
   );
 }
 
-function CatalogueGroupPanel({
+function CatalogGroupPanel({
   group,
   onEdit,
-}: Readonly<{ group: CatalogueGroup; onEdit: () => void }>) {
-  const mutation = useCatalogueMutations();
-  const [itemDialog, setItemDialog] = useState<{ item?: CatalogueItem } | null>(null);
+}: Readonly<{ group: CatalogGroup; onEdit: () => void }>) {
+  const mutation = useCatalogMutations();
+  const [itemDialog, setItemDialog] = useState<{ item?: CatalogItem } | null>(null);
 
   return (
     <Section
@@ -149,8 +149,8 @@ function CatalogueGroupPanel({
       actions={
         <div className="flex items-center gap-2">
           <StatusBadge
-            tone={CATALOGUE_STATUS_TONE[group.status]}
-            label={CATALOGUE_STATUS_LABEL[group.status]}
+            tone={CATALOG_STATUS_TONE[group.status]}
+            label={CATALOG_STATUS_LABEL[group.status]}
           />
           <Button variant="outline" size="xs" onClick={onEdit}>
             <Pencil aria-hidden className="size-3.5" />
@@ -186,7 +186,7 @@ function CatalogueGroupPanel({
                   {item.status === "archived" ? (
                     <StatusBadge
                       className="ml-2"
-                      tone={CATALOGUE_STATUS_TONE.archived}
+                      tone={CATALOG_STATUS_TONE.archived}
                       label="Archived"
                     />
                   ) : null}
@@ -272,7 +272,7 @@ function CatalogueGroupPanel({
         </p>
       ) : null}
 
-      <CatalogueItemDialog
+      <CatalogItemDialog
         groupId={group.id}
         groupName={group.name}
         item={itemDialog?.item}
