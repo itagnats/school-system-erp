@@ -18,6 +18,7 @@ import { HttpError } from "@/lib/api";
 import { routes } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
 import { TERM_STATUS_LABEL, TERM_STATUS_TONE } from "../constants";
+import { CurriculumEditor } from "./curriculum-editor";
 import { useUpdateProgramTerm } from "../hooks/use-program-terms";
 import type { ProgramTermDetailResponse } from "../services/program-service";
 
@@ -111,50 +112,14 @@ export function ProgramTermPanel({
         </form>
       </Section>
 
-      <Section
-        title="Curriculum"
-        description={`${curriculum.length} courses this term, in teaching order.`}
-        flush
-        className="mt-4"
-      >
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-surface-sunken hover:bg-surface-sunken">
-              <TableHead className="w-12 text-right">#</TableHead>
-              <TableHead>Course</TableHead>
-              <TableHead className="text-right">Credits</TableHead>
-              <TableHead className="text-right">Taking it</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {curriculum.map((course) => (
-              <TableRow key={course.courseId}>
-                <TableCell className="text-right text-muted-foreground" data-numeric>
-                  {course.position}
-                </TableCell>
-                <TableCell>
-                  <Link
-                    href={routes.course(course.courseId)}
-                    className="rounded-sm font-medium underline-offset-4 hover:underline"
-                  >
-                    {course.courseCode}
-                  </Link>
-                  <span className="ml-2 text-muted-foreground">{course.courseName}</span>
-                </TableCell>
-                <TableCell className="text-right" data-numeric>
-                  {course.credits}
-                </TableCell>
-                {/* A package bills the curriculum, so take-up below the roster
-                    is a real fact about the term rather than a billing gap
-                    (§13b). It is a head count, not a cost. */}
-                <TableCell className="text-right" data-numeric>
-                  {course.headCount}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Section>
+      {/* Editable since 2026-09-21. §4a promises "which courses, in teaching
+          order" and nothing could change either half until then. */}
+      <CurriculumEditor
+        termId={term.id}
+        semesterCode={term.semesterCode}
+        curriculum={curriculum}
+        memberCount={roster.filter((entry) => entry.status !== "withdrawn").length}
+      />
 
       <Section
         title="Who is under this program"

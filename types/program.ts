@@ -145,6 +145,37 @@ export interface ProgramProfit {
   overdueCount: number;
 }
 
+/**
+ * A program as the Curriculum list shows it (added 2026-09-21).
+ *
+ * The list was 19 program *terms* until this date, which made BSC-IT read as
+ * four unrelated rows. A program is the thing that has a history; a term is
+ * one semester of it.
+ *
+ * The counts are derived on read, never stored — the same reason
+ * `ProgramTermSummary.enrolledCount` is.
+ */
+export interface ProgramSummary {
+  id: string;
+  code: string;
+  name: string;
+  credential: string;
+  status: ProgramStatus;
+  /** How many semesters this program has been offered in. */
+  termCount: number;
+  /** Distinct students across every term, so one person counts once. */
+  studentCount: number;
+  /** The semester of its most recent term, or null if it has none. */
+  latestSemesterCode: SemesterCode | null;
+}
+
+/** One program and every term under it. */
+export interface ProgramDetail {
+  program: Program;
+  terms: ProgramTermSummary[];
+  studentCount: number;
+}
+
 export interface ProgramTermSummary {
   id: string;
   programId: string;

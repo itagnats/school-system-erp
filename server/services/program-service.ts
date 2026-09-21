@@ -8,20 +8,33 @@ import {
   programTable,
   invoiceTable,
   programTermTable,
+  semesterTable,
   studentTable,
 } from "@/server/repositories";
 import { matchesSearch, paginate, sortRows, type ListQueryInput } from "@/server/query";
 import type { RemovalResult } from "@/server/http";
-import { programCostBreakdownFor, type ProgramCostProfit } from "./cost-service";
+import {
+  emptyProgramCostSheet,
+  programCostBreakdownFor,
+  type ProgramCostProfit,
+} from "./cost-service";
+import type { WriteResult } from "./course-service";
 import { invoicedRevenueForTerm } from "./invoice-service";
 import { toSummary } from "./student-service";
-import type { ProgramTermUpdateInput } from "@/lib/api/contracts";
+import type {
+  ProgramCreateInput,
+  ProgramTermCreateInput,
+  ProgramTermUpdateInput,
+} from "@/lib/api/contracts";
 import type {
   EnrollmentTermOption,
   PaginatedResult,
   Program,
+  ProgramCostSheet,
   ProgramCurriculumEntry,
+  ProgramDetail,
   ProgramProfit,
+  ProgramSummary,
   ProgramTermStatus,
   ProgramRosterEntry,
   ProgramTerm,
@@ -362,35 +375,96 @@ export function programTermsForCourse(courseId: string): ProgramTermSummary[] {
 }
 
 /**
- * Adjust the price or the status of a term.
+ * Whether a proposed curriculum may replace the one the term holds.
+ *
+ * **Only what is newly added is policed, and that is the whole design.** The
+ * write carries the entire array, because `courseIds` is the teaching order
+ * and a reorder cannot be expressed any other way — so every rule applied to
+ * the array as a whole is also applied to the courses that were already in it.
+ *
+ * Measured before this was written: **13 curriculum entries across 9 of the
+ * 19 terms hold an archived course** — `DE248` sits in all four BFA-DE terms.
+ * Refusing archived courses outright would therefore refuse the resend that
+ * moves an unrelated row, and nine terms would be un-editable by the feature
+ * built to edit them. Archiving a course does not retroactively invalidate the
+ * terms that already taught it.
+ *
+ * The message is prose because it names a course the reader can see on screen;
+ * it travels in `fieldErrors.courseIds`, which is the only part of the body
+ * `lib/api/client.ts` shows anyone.
+ */
+function curriculumProblem(term: ProgramTerm, courseIds: string[]): string | undefined {
+  const coursesById = new Map(courseTable.map((course) => [course.id, course]));
+  const alreadyHere = new Set(term.courseIds);
+
+  for (const courseId of courseIds) {
+    const course = coursesById.get(courseId);
+    if (!course) return `No course has the id ${courseId}`;
+    if (alreadyHere.has(courseId)) continue;
+
+    // **A curriculum schedules the course** (decided 2026-09-21, `AUD-035`).
+    // This used to refuse a course whose `offeredIn` did not already list the
+    // semester, and that rule made a newly created semester a dead end: no
+    // course is offered in it, and no screen in the application writes
+    // `offeredIn` - it is read in three places and written in none. Putting a
+    // course in a term's curriculum *is* the act of scheduling it, so the
+    // refusal is gone and the write carries the scheduling with it.
+    if (course.status !== "active") {
+      return `${course.code} is ${course.status}, so it cannot be added to a curriculum`;
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Adjust the price, the status or the curriculum of a term.
  *
  * Nothing is stored - see docs/decisions/why-bff.md. The response used to
  * carry the recalculated profit so the screen could show the consequence of a
  * new price; since 2026-09-20 the consequence is read under Cost Management
  * (§13a) and this returns the academic record only. The screen links there
  * rather than answering the question itself.
+ *
+ * **Curriculum editing is allowed on any term** (decided 2026-09-21), and the
+ * screen says what it does not do rather than the server preventing it. The
+ * alternative rules were measured and both fail: no term in the seed is free
+ * of members and invoices (0 of 19), so the strict lock would disable the
+ * control everywhere; and all five `planning` terms already carry 25-38
+ * members, so locking by status would permit exactly the edits the lock exists
+ * to stop. Changing a curriculum re-bills nobody and re-enrolls nobody — the
+ * invoices that name this term were priced from the old array (§13b) and the
+ * course enrollments were expanded at the time each student joined (§7a).
  */
 export function updateProgramTerm(
   programTermId: string,
   input: ProgramTermUpdateInput,
-): ProgramTermDetail | undefined {
+): WriteResult<ProgramTermDetail> | undefined {
   const current = getProgramTerm(programTermId);
   if (!current) return undefined;
+
+  if (input.courseIds) {
+    const problem = curriculumProblem(current.term, input.courseIds);
+    if (problem) return { ok: false, fieldErrors: { courseIds: problem } };
+  }
 
   const next: ProgramTerm = {
     ...current.term,
     packagePrice: input.packagePrice ?? current.term.packagePrice,
     status: input.status ?? current.term.status,
+    courseIds: input.courseIds ?? current.term.courseIds,
   };
 
   return {
-    program: current.program,
-    term: next,
-    // Rebuilt from `next` rather than reused: repricing does not move the
-    // curriculum today, but reusing the old array would make that a silent
-    // assumption the moment curriculum editing lands.
-    curriculum: termCurriculum(next),
-    roster: current.roster,
+    ok: true,
+    data: {
+      program: current.program,
+      term: next,
+      // Rebuilt from `next`, which is now load-bearing rather than defensive:
+      // the position and the head count of every row move when the array does.
+      curriculum: termCurriculum(next),
+      roster: current.roster,
+    },
   };
 }
 
@@ -480,4 +554,268 @@ export function deleteProgramTerm(programTermId: string): RemovalResult | undefi
   }
 
   return { ok: true };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Programs, and creating them (direction.md 4a, added 2026-09-21)            */
+/* -------------------------------------------------------------------------- */
+
+const PROGRAM_SORTABLE: Record<string, (row: ProgramSummary) => string | number> = {
+  code: (p) => p.code,
+  name: (p) => p.name,
+  credential: (p) => p.credential,
+  status: (p) => p.status,
+  termCount: (p) => p.termCount,
+  studentCount: (p) => p.studentCount,
+};
+
+/**
+ * Distinct students across every term of a program.
+ *
+ * Distinct, because a student holds one program and one term per semester
+ * (§7a), so somebody enrolled for four semesters is four memberships and one
+ * person. Measured: BSC-IT's four terms hold 31 + 22 + 34 + 34 = 121
+ * memberships and **57** distinct people. Summing them would overstate the
+ * program by more than double.
+ */
+function programStudentCount(programId: string): number {
+  return new Set(
+    programEnrollmentTable
+      .filter((row) => row.programId === programId && row.status !== "withdrawn")
+      .map((row) => row.studentId),
+  ).size;
+}
+
+function programSummary(program: Program): ProgramSummary {
+  const terms = programTermTable.filter((term) => term.programId === program.id);
+  const semesters = terms
+    .map((term) => term.semesterCode)
+    .sort((a, b) => a.localeCompare(b));
+
+  return {
+    id: program.id,
+    code: program.code,
+    name: program.name,
+    credential: program.credential,
+    status: program.status,
+    termCount: terms.length,
+    studentCount: programStudentCount(program.id),
+    latestSemesterCode: semesters.at(-1) ?? null,
+  };
+}
+
+export interface ProgramListQuery extends ListQueryInput {
+  status?: string;
+}
+
+/**
+ * The Curriculum list (revised 2026-09-21).
+ *
+ * It listed 19 program *terms* until this date, which made BSC-IT read as
+ * four unrelated rows rather than one program with a history. The terms moved
+ * one level down, onto the program's own page.
+ */
+export function listPrograms(query: ProgramListQuery): PaginatedResult<ProgramSummary> {
+  const filtered = programTable.map(programSummary).filter((row) => {
+    if (query.status && row.status !== query.status) return false;
+    return matchesSearch(query.search, row.code, row.name, row.credential);
+  });
+
+  const sorted = sortRows(filtered, PROGRAM_SORTABLE, query.sort, query.direction, "code");
+  return paginate(sorted, query.page, query.pageSize);
+}
+
+export function getProgramDetail(programId: string): ProgramDetail | undefined {
+  const program = programTable.find((row) => row.id === programId);
+  if (!program) return undefined;
+
+  const termIds = new Set(
+    programTermTable.filter((term) => term.programId === programId).map((term) => term.id),
+  );
+
+  return {
+    program,
+    // Built through `buildSummaries` rather than mapped here, so a program's
+    // terms and the term list are the same shape computed the same way.
+    terms: buildSummaries()
+      .filter((summary) => termIds.has(summary.id))
+      .sort((a, b) => a.semesterCode.localeCompare(b.semesterCode)),
+    studentCount: programStudentCount(programId),
+  };
+}
+
+/**
+ * The currency the dataset is denominated in.
+ *
+ * Read from the seed rather than written as a literal, so a new term cannot
+ * be created in a currency no other term uses. There is one currency in this
+ * demo and this is the single place that assumes so.
+ */
+function seedCurrency(): string {
+  return programTermTable[0]?.currency ?? "THB";
+}
+
+/** The most recent timestamp in the dataset, used as "now" - see `seedNow`. */
+function programSeedNow(): string {
+  return programTable.reduce(
+    (latest, program) => (program.updatedAt > latest ? program.updatedAt : latest),
+    programTable[0]?.updatedAt ?? "2026-01-05T00:00:00.000Z",
+  );
+}
+
+export interface ProgramFirstTermInput {
+  semesterCode: string;
+  courseIds: string[];
+  packagePrice: number;
+}
+
+/**
+ * Validate a proposed term against everything its own fields cannot judge.
+ *
+ * Three checks, and the middle one is load-bearing: a student holds one
+ * program term per semester (§7a), so two terms of one program in the same
+ * semester would make that rule unrepresentable the moment anybody enrolled.
+ */
+function termProblem(
+  input: ProgramFirstTermInput,
+  /** Semesters this program already has a term in. */
+  takenSemesters: readonly string[],
+): Record<string, string> | undefined {
+  if (!semesterTable.some((semester) => semester.code === input.semesterCode)) {
+    return { semesterCode: `No semester has the code ${input.semesterCode}` };
+  }
+
+  if (takenSemesters.includes(input.semesterCode)) {
+    return { semesterCode: `This program already has a term in ${input.semesterCode}` };
+  }
+
+  const coursesById = new Map(courseTable.map((course) => [course.id, course]));
+  for (const courseId of input.courseIds) {
+    const course = coursesById.get(courseId);
+    if (!course) return { courseIds: `No course has the id ${courseId}` };
+    if (course.status !== "active") {
+      return {
+        courseIds: `${course.code} is ${course.status}, so it cannot be added to a curriculum`,
+      };
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * What a create returns.
+ *
+ * Everything at once, because none of it can be fetched afterwards
+ * (`AUD-036`): the store never receives a write, so the client caches what
+ * comes back or the work is lost. The cost sheet is part of the response for
+ * the same reason — a term whose sheet needed a second request would have no
+ * cost side at all until somebody made one.
+ */
+export interface ProgramTermCreated {
+  term: ProgramTerm;
+  curriculum: ProgramCurriculumEntry[];
+  costSheet: ProgramCostSheet;
+  /** Course codes this write schedules into the semester for the first time. */
+  scheduled: string[];
+}
+
+export interface ProgramCreated extends ProgramTermCreated {
+  program: Program;
+}
+
+/**
+ * Courses this curriculum puts into a semester that did not previously run
+ * them (`AUD-035`, decided 2026-09-21).
+ *
+ * **Reported rather than applied**, and the distinction is the honest one.
+ * Putting a course in a curriculum *is* scheduling it, which is why the
+ * refusal was dropped — but the store takes no writes, so `offeredIn` cannot
+ * actually change. The response names the courses a real implementation would
+ * have scheduled and the screen shows them, rather than the reader being told
+ * a course was scheduled when the next request will disagree.
+ */
+function newlyScheduled(courseIds: readonly string[], semesterCode: string): string[] {
+  const coursesById = new Map(courseTable.map((course) => [course.id, course]));
+  return courseIds
+    .filter((id) => !coursesById.get(id)?.offeredIn.includes(semesterCode))
+    .map((id) => coursesById.get(id)?.code ?? id);
+}
+
+function buildTerm(
+  programId: string,
+  programCode: string,
+  input: ProgramFirstTermInput,
+): ProgramTermCreated {
+  const term: ProgramTerm = {
+    id: `pgt-${programCode.toLowerCase()}-${input.semesterCode}`,
+    programId,
+    semesterCode: input.semesterCode as ProgramTerm["semesterCode"],
+    courseIds: [...input.courseIds],
+    packagePrice: input.packagePrice,
+    currency: seedCurrency(),
+    // A term is born in `planning`. It has no roster, and until its cost
+    // sheets are filled it has no cost either — `open` would be an invitation
+    // to enroll into something nobody has costed.
+    status: "planning",
+  };
+
+  return {
+    term,
+    curriculum: termCurriculum(term),
+    costSheet: emptyProgramCostSheet(term),
+    scheduled: newlyScheduled(input.courseIds, input.semesterCode),
+  };
+}
+
+/**
+ * Create a program and its first term in one write.
+ *
+ * **The first term is required**, and that is `AUD-036` showing through the
+ * design rather than a convenience. A program created alone could be listed
+ * from the client cache and never opened, because every detail page is a
+ * server component reading a store that took no write — so "create the
+ * program, then add a term inside it" is a flow whose second step 404s.
+ */
+export function createProgram(input: ProgramCreateInput): WriteResult<ProgramCreated> {
+  if (programTable.some((program) => program.code === input.code)) {
+    return { ok: false, fieldErrors: { code: `${input.code} already exists` } };
+  }
+
+  const problem = termProblem(input.firstTerm, []);
+  if (problem) return { ok: false, fieldErrors: problem };
+
+  const stamp = programSeedNow();
+  const program: Program = {
+    id: `prg-${input.code.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+    code: input.code,
+    name: input.name,
+    description: input.description,
+    credential: input.credential,
+    status: input.status,
+    createdAt: stamp,
+    updatedAt: stamp,
+  };
+
+  return {
+    ok: true,
+    data: { program, ...buildTerm(program.id, program.code, input.firstTerm) },
+  };
+}
+
+/** Add a later term to a program that already exists. */
+export function createProgramTerm(
+  input: ProgramTermCreateInput,
+): WriteResult<ProgramTermCreated> | undefined {
+  const program = programTable.find((row) => row.id === input.programId);
+  if (!program) return undefined;
+
+  const taken = programTermTable
+    .filter((term) => term.programId === program.id)
+    .map((term) => term.semesterCode);
+
+  const problem = termProblem(input, taken);
+  if (problem) return { ok: false, fieldErrors: problem };
+
+  return { ok: true, data: buildTerm(program.id, program.code, input) };
 }

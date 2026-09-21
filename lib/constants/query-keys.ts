@@ -11,6 +11,18 @@ export const queryKeys = {
     list: (filters?: unknown) => ["programs", "list", filters ?? null] as const,
     detail: (id: string) => ["programs", "detail", id] as const,
   },
+  /**
+   * Program terms, separate from programs since 2026-09-21.
+   *
+   * They shared a key while `/api/programs` returned terms. Two resources on
+   * one cache key means a program create patching the list would also have to
+   * know the term list's shape.
+   */
+  programTerms: {
+    all: ["program-terms"] as const,
+    list: (filters?: unknown) => ["program-terms", "list", filters ?? null] as const,
+    detail: (id: string) => ["program-terms", "detail", id] as const,
+  },
   courses: {
     all: ["courses"] as const,
     list: (filters?: unknown) => ["courses", "list", filters ?? null] as const,

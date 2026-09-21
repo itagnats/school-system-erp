@@ -7,7 +7,19 @@ const enc = encodeURIComponent;
 export const routes = {
   dashboard: () => "/dashboard",
   programs: () => "/programs",
-  programTerm: (programTermId: string) => `/programs/${enc(programTermId)}`,
+  /** One program and its terms (added 2026-09-21). */
+  program: (programId: string) => `/programs/${enc(programId)}`,
+  /**
+   * One term, nested under its program.
+   *
+   * Nested rather than `/programs/<termId>`, which is what it was until
+   * 2026-09-21: Next.js cannot hold two dynamic segments at one level, so a
+   * program page at `/programs/<programId>` and a term page at
+   * `/programs/<termId>` would be the same route. The hierarchy is real, so
+   * the URL says so.
+   */
+  programTerm: (programId: string, programTermId: string) =>
+    `/programs/${enc(programId)}/${enc(programTermId)}`,
   courses: () => "/courses",
   course: (courseId: string) => `/courses/${enc(courseId)}`,
   semesters: () => "/semesters",

@@ -67,7 +67,8 @@ export async function enrolStudent(input: EnrolRequestInput): Promise<Enrollment
 export async function fetchEnrollmentTerms(
   params: EnrollmentTermQueryParams,
 ): Promise<PaginatedResult<ProgramTermSummary>> {
-  const raw = await api.get<unknown>("programs", { query: { ...params } });
+  // `/api/program-terms` since 2026-09-21; `/api/programs` is the programs.
+  const raw = await api.get<unknown>("program-terms", { query: { ...params } });
   return programTermListSchema.parse(raw);
 }
 

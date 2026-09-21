@@ -14,7 +14,7 @@ import type { EnrollmentTermQueryParams } from "../types";
  */
 export function useEnrollmentTerms(params: EnrollmentTermQueryParams) {
   return useQuery({
-    queryKey: queryKeys.programs.list(params),
+    queryKey: queryKeys.programTerms.list(params),
     queryFn: () => fetchEnrollmentTerms(params),
     placeholderData: keepPreviousData,
   });

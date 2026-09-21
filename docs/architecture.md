@@ -165,7 +165,8 @@ group layout.
 /no-access                           where a refused navigation lands
 /dashboard                           branches on role: the school, or one student's own
 
-/programs                            /programs/[programTermId]
+/programs                            /programs/[programId]
+                                     /programs/[programId]/[programTermId]
 /courses                             /courses/[courseId]
 /semesters                           /semesters/[semesterId]
 /enrollment                          /enrollment/[programTermId]
@@ -420,7 +421,7 @@ exists is worse than no document.
 | `types/`, `lib/api/`, `lib/constants/`, `hooks/` | **built** |
 | `lib/calculations/` | **built** — eleven <!-- count:calculations --> modules, each with a test file |
 | `data/mock/`, `data/seed/` | **built** — deterministic generator |
-| `server/`, `app/api/` | **built** — the BFF, 33 <!-- count:routeHandlers --> route handlers over 13 <!-- count:apiDomains --> domains |
+| `server/`, `app/api/` | **built** — the BFF, 35 <!-- count:routeHandlers --> route handlers over 14 <!-- count:apiDomains --> domains |
 | `lib/access/`, `proxy.ts`, `server/principal.ts`, `/login` | **built** — the demo sign-in and four app roles (2026-09-16) |
 | All twelve `features/*` | **built** — `reports` is the thinnest, and its screens live under Manage Evaluation |
 

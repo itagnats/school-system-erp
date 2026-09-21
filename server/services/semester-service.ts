@@ -66,6 +66,20 @@ export function getSemester(code: string): SemesterListItem | undefined {
   );
 }
 
+/**
+ * Every semester code, newest first (added 2026-09-21).
+ *
+ * Deliberately not `courseSemesterOptions`, which derives its list from what
+ * courses are already offered in. A term-create picker fed from that could
+ * never name a semester created today, because nothing is offered in it yet -
+ * which is the dead end `AUD-035` describes, reintroduced one dropdown later.
+ * A semester exists because somebody made it, not because a course points
+ * at it.
+ */
+export function semesterCodeOptions(): string[] {
+  return semesterTable.map((semester) => semester.code).sort((a, b) => b.localeCompare(a));
+}
+
 export function academicYearOptions(): number[] {
   return [...new Set(semesterTable.map((s) => s.academicYear))].sort((a, b) => b - a);
 }

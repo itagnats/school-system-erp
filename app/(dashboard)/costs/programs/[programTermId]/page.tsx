@@ -47,7 +47,7 @@ export default async function Page({ params }: Readonly<PageParams>) {
         description="What this term earned against what it cost, and how the indirect pool reaches each course."
         meta={
           <Link
-            href={routes.programTerm(programTermId)}
+            href={routes.programTerm(detail.programId, programTermId)}
             className="rounded-sm text-xs text-muted-foreground underline-offset-4 hover:underline"
           >
             {detail.programName}

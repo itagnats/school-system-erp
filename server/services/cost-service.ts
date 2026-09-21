@@ -4,6 +4,7 @@ import {
   calculateCourseDirect,
   calculateProgramCostBreakdown,
   calculateStandaloneCourseCost,
+  DEFAULT_PRICE_ROUNDING_STEP,
 } from "@/lib/calculations";
 import {
   courseCostSheetTable,
@@ -326,6 +327,8 @@ function courseDetailFrom(sheet: CourseCostSheet): CourseCostSheetDetail | undef
 export interface ProgramCostSheetDetail {
   sheet: ProgramCostSheet;
   programTermId: string;
+  /** Needed to link back to the term, which now lives under its program. */
+  programId: string;
   programCode: string;
   programName: string;
   semesterCode: string;
@@ -366,6 +369,7 @@ function programDetailFrom(
   return {
     sheet,
     programTermId: term.id,
+    programId: term.programId,
     programCode: program?.code ?? term.programId,
     programName: program?.name ?? "Unknown program",
     semesterCode: term.semesterCode,
@@ -867,3 +871,49 @@ export function realignSheetItem(
 }
 
 export { calculateCourseDirect };
+
+/**
+ * The indirect sheet a newly created program term is born with
+ * (added 2026-09-21).
+ *
+ * **Created with the term, not after it.** `programCostBreakdownFor` returns
+ * `undefined` when no sheet names the term, so a term without one has no cost
+ * page, no preferred price and no profit row — it would be born with its cost
+ * side missing. All 19 seeded terms have a sheet; a created one would not.
+ *
+ * It is empty, and empty is the honest starting state: the classroom and the
+ * utilities of a term nobody has planned yet are not zero, they are unknown,
+ * and the cost screen already distinguishes those by flagging uncosted
+ * courses rather than showing a confident total.
+ *
+ * `markupPercent` starts at **0** rather than the 5% the seed uses. A markup
+ * is a pricing decision and inheriting one from another program term would be
+ * a number nobody chose. The rounding step is the shared default, because
+ * that one is a convention about how prices look rather than a decision about
+ * this program (§13).
+ */
+export function emptyProgramCostSheet(term: ProgramTerm): ProgramCostSheet {
+  const stamp = costSeedNow();
+
+  return {
+    id: `pcs-${term.id.replace(/^pgt-/, "")}`,
+    programTermId: term.id,
+    semesterCode: term.semesterCode,
+    status: "draft",
+    groups: [],
+    driver: "credits",
+    markupPercent: 0,
+    priceRoundingStep: DEFAULT_PRICE_ROUNDING_STEP,
+    currency: term.currency,
+    createdAt: stamp,
+    updatedAt: stamp,
+  };
+}
+
+/** The most recent timestamp among the cost sheets, used as "now". */
+function costSeedNow(): string {
+  return programCostSheetTable.reduce(
+    (latest, sheet) => (sheet.updatedAt > latest ? sheet.updatedAt : latest),
+    programCostSheetTable[0]?.updatedAt ?? "2026-01-05T00:00:00.000Z",
+  );
+}

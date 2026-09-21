@@ -178,10 +178,10 @@ takes a tone, a label or a render prop, and the feature supplies the meaning.
 `StatusBadge` is the worked example — it knows about six visual tones and
 nothing about enrollment.
 
-There are 33 <!-- count:routeHandlers --> route handlers under `app/api`, and the
+There are 35 <!-- count:routeHandlers --> route handlers under `app/api`, and the
 tests cover the part that can be wrong without looking wrong — the
 11 <!-- count:calculations --> calculation modules under `lib/calculations`,
-checked by 20 <!-- count:testFiles --> test files.
+checked by 22 <!-- count:testFiles --> test files.
 
 **Identity is not a domain.** The role table lives in `lib/access/` and the
 session helpers in `lib/api/session.ts`, below `components/` — because the

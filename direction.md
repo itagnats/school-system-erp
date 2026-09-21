@@ -395,6 +395,92 @@ Support:
 - Term status: planning, open, closed
 - Program roster: who is under this program this term
 
+## Editing a curriculum
+
+*Added 2026-09-21. The line above promised "which courses, in teaching order"
+from the start, and until this date nothing could change either half — no
+route, no contract and no control. The package price was the only editable
+thing about a term.*
+
+**The order is the array.** `courseIds` carries the teaching order, so there is
+no position field and no second place for the order to disagree with itself.
+The whole array is therefore written at once rather than through add, remove
+and move operations: a reorder has no expression as a partial edit, and three
+endpoints rewriting one field are three ways for it to end up wrong.
+
+**Any term may be edited, and the screen states what that does not do.** Two
+stricter rules were considered and both were measured against the seed first:
+
+- *nothing may change once something depends on it* — the rule DELETE already
+  uses. **0 of 19 terms** are free of members and invoices, so the control
+  would be disabled everywhere and the capability would never once be shown;
+- *only while the term is `planning`* — 5 of 19, except that all five planning
+  terms already carry 25-38 members, so the lock would permit exactly the
+  edits it exists to prevent while refusing the four `open` terms where a late
+  timetable change is most plausible. Recorded as `AUD-033`.
+
+So the consequence is stated instead of prevented: changing a curriculum
+**re-bills nobody and re-enrolls nobody.** The invoices naming a term were
+priced from the curriculum as it stood (§13b) and each student's course
+enrollments were expanded when they joined (§7a). Neither is rewritten, and
+the screen says so above the Save button.
+
+**A course already in a curriculum is never re-judged; only additions are.**
+13 curriculum entries across 9 of the 19 terms hold an **archived** course —
+`DE248` sits in all four BFA-DE terms. Policing the whole array would refuse
+the resend that moves an unrelated row, so those nine terms would have been
+un-editable by the feature built to edit them. Archiving a course does not
+retroactively invalidate the terms that already taught it. An **addition** must
+exist, must be offered in that semester, and must still be active.
+
+## Creating a program
+
+*Added 2026-09-21. There was no endpoint for a program at all - only for
+terms - so "create a program" had no parent to hang a term off, and the
+Curriculum list was 19 terms with the five programs nowhere on screen.*
+
+**A program is created together with its first term.** Not a convenience: a
+created record never reaches the store (`docs/decisions/why-bff.md`), so a
+program made on its own could be listed from the client cache and never
+opened, because every detail page is a server component reading that store.
+The natural flow - create the program, open it, add a term - has a second
+step that 404s. One form, one write, one response carrying the program, the
+term, its curriculum and its cost sheet. Recorded as `AUD-036`.
+
+A **later** term is added from the program's own page and behaves normally,
+because by then the program is one of the five the seed holds.
+
+**Three levels, and the URL says so:**
+
+```text
+/programs                              the programs
+/programs/<programId>                  one program and its terms
+/programs/<programId>/<programTermId>  one term: price, curriculum, roster
+```
+
+The term page moved a level deeper the same day. Next.js cannot hold two
+dynamic segments at one level, so `/programs/<programId>` and
+`/programs/<programTermId>` would have been the same route. The term id alone
+still identifies the term, so the page checks that the program segment names
+its actual program - otherwise `/programs/<any-program>/<any-term>` would
+render a term under a program it does not belong to and every breadcrumb on
+the page would lie.
+
+**A new term is born in `planning`, with an empty indirect cost sheet.**
+Without a sheet `programCostBreakdownFor` returns nothing, so the term would
+have no cost page, no preferred price and no profit row - born with its cost
+side missing. The sheet starts empty rather than copied: the utilities of a
+term nobody has planned are unknown, not zero. Its markup starts at **0%**
+rather than the 5% the seed uses, because a markup is a pricing decision and
+inheriting one from another program would be a number nobody chose.
+
+**The package price is typed, never derived.** The computed figure is the
+*preferred price* - cost per student, rounded up (§13) - and it cannot exist
+for a term whose cost sheets are empty, which a term created here always has.
+It appears on the term page later, as a suggestion. Deriving the price from
+the cost would make every program break even by construction and leave the
+profitability screens answering a question whose answer is always zero.
+
 # 5. Semester
 
 ## Purpose

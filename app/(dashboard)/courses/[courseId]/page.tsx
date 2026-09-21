@@ -90,7 +90,7 @@ export default async function Page({ params }: PageParams) {
                 className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-hairline bg-card px-3 py-2"
               >
                 <Link
-                  href={routes.programTerm(term.id)}
+                  href={routes.programTerm(term.programId, term.id)}
                   className="rounded-sm font-medium underline-offset-4 hover:underline"
                 >
                   {term.programCode} <span className="text-muted-foreground">{term.semesterCode}</span>

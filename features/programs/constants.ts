@@ -1,4 +1,4 @@
-import type { Option, ProgramTermStatus, StatusTone } from "@/types";
+import type { Option, ProgramStatus, ProgramTermStatus, StatusTone } from "@/types";
 
 /**
  * Program vocabulary.
@@ -23,6 +23,31 @@ export const TERM_STATUS_LABEL: Record<ProgramTermStatus, string> = {
 export const TERM_STATUS_OPTIONS: Option<ProgramTermStatus>[] = (
   ["planning", "open", "closed"] as const
 ).map((value) => ({ value, label: TERM_STATUS_LABEL[value] }));
+
+/**
+ * A program's own status, which is not a term's (added 2026-09-21).
+ *
+ * `draft | active | archived` is the same union a course carries, and it means
+ * the same thing: whether the school is offering this at all. A term's
+ * `planning | open | closed` is about one semester's enrollment window. They
+ * are separate vocabularies on purpose - an active program can hold a closed
+ * term, and an archived one still has the terms it ran.
+ */
+export const PROGRAM_STATUS_TONE: Record<ProgramStatus, StatusTone> = {
+  draft: "neutral",
+  active: "success",
+  archived: "info",
+};
+
+export const PROGRAM_STATUS_LABEL: Record<ProgramStatus, string> = {
+  draft: "Draft",
+  active: "Active",
+  archived: "Archived",
+};
+
+export const PROGRAM_STATUS_OPTIONS: Option<ProgramStatus>[] = (
+  ["draft", "active", "archived"] as const
+).map((value) => ({ value, label: PROGRAM_STATUS_LABEL[value] }));
 
 // `profitToneClass` lived here until 2026-09-20 and now lives in
 // `features/costs/constants.ts`. Profitability left the Academic menu with

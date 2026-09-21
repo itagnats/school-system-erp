@@ -226,7 +226,7 @@ Ten files. Missing one is how a domain ends up half-wired:
 | `data/mock/*.ts` | **built** — 10 <!-- count:mockFiles --> files of hand-written fixtures |
 | `data/seed/` | **built** — seeded PRNG, deterministic generator |
 | `server/` | **built** — repositories, 14 <!-- count:services --> services, query, simulate, http, validation, principal |
-| `app/api/` | **built** — 33 <!-- count:routeHandlers --> route handlers, reads and writes |
+| `app/api/` | **built** — 35 <!-- count:routeHandlers --> route handlers, reads and writes |
 | `lib/api/contracts/` | **built** — one per domain, plus shared list shapes and the session |
 | `features/*` | **built** — all twelve |
 

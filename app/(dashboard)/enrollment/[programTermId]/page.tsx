@@ -64,7 +64,7 @@ export default async function Page({ params }: Readonly<PageParams>) {
         actions={
           <div className="flex items-center gap-2">
             <Link
-              href={routes.programTerm(programTermId)}
+              href={routes.programTerm(detail.program.id, programTermId)}
               className="text-xs font-medium text-primary hover:underline"
             >
               Curriculum and cost

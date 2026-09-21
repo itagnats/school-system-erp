@@ -10,7 +10,7 @@ import {
 } from "@/server/services";
 
 interface PageParams {
-  params: Promise<{ programTermId: string }>;
+  params: Promise<{ programId: string; programTermId: string }>;
 }
 
 export async function generateMetadata({ params }: Readonly<PageParams>): Promise<Metadata> {
@@ -34,6 +34,9 @@ export async function generateMetadata({ params }: Readonly<PageParams>): Promis
  * then states the term rather than asking for it. The roster below is the list
  * it adds to.
  *
+ * Nested under its program since 2026-09-21: Next.js cannot hold two dynamic
+ * segments at one level, and `/programs/<programId>` needed the other one.
+ *
  * The dialog is composed here rather than inside `ProgramTermPanel` because
  * that panel belongs to `features/programs/` and this dialog to
  * `features/enrollment/`. Joining two features is `app/*`'s job; doing it
@@ -41,9 +44,13 @@ export async function generateMetadata({ params }: Readonly<PageParams>): Promis
  * still open.
  */
 export default async function Page({ params }: Readonly<PageParams>) {
-  const { programTermId } = await params;
+  const { programId, programTermId } = await params;
   const detail = getProgramTerm(programTermId);
-  if (!detail) notFound();
+  // The term id alone identifies the term, so the program segment has to be
+  // checked rather than trusted: without this, /programs/prg-cs/<a-BFA-term>
+  // would render the design program's term under the computer science URL and
+  // every breadcrumb on the page would then lie about where the reader is.
+  if (!detail || detail.program.id !== programId) notFound();
   // Present only while the term is open. A planning or closed term would have
   // the button refused by the server, and an action that cannot succeed is
   // worse than no action.

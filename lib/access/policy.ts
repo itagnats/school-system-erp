@@ -134,6 +134,10 @@ export const API_ACCESS: readonly AccessRule[] = [
   { prefix: "/api/personas", read: EVERYONE },
 
   { prefix: "/api/programs", read: ADMIN },
+  // Its own resource since 2026-09-21, when `/api/programs` became the
+  // programs. The allowlist falls closed, so a new prefix with no rule is
+  // denied to everybody - including the administrator.
+  { prefix: "/api/program-terms", read: ADMIN },
   { prefix: "/api/courses", read: STAFF, write: ADMIN },
   { prefix: "/api/semesters", read: ADMIN },
 

@@ -1,15 +1,35 @@
 import { api, apiPath } from "@/lib/api";
-import { programTermListSchema, type ProgramTermUpdateInput } from "@/lib/api/contracts";
-import type { PaginatedResult, ProgramTermSummary } from "@/types";
+import {
+  programListSchema,
+  programTermListSchema,
+  type ProgramCreateInput,
+  type ProgramTermCreateInput,
+  type ProgramTermUpdateInput,
+} from "@/lib/api/contracts";
+import type {
+  PaginatedResult,
+  Program,
+  ProgramCostSheet,
+  ProgramCurriculumEntry,
+  ProgramRosterEntry,
+  ProgramSummary,
+  ProgramTerm,
+  ProgramTermSummary,
+} from "@/types";
 import type { ProgramQueryParams } from "../types";
 
 /**
- * The detail response is not parsed against a contract: it nests the roster and
- * the curriculum, and writing that schema belongs with the curriculum editor
- * that will need it for validation rather than only for checking the wire.
- *
- * `profit` left this shape on 2026-09-20 (direction.md 13a). The curriculum
- * screen is academic; what a term earned is read under Cost Management.
+ * Two resources since 2026-09-21. `/api/programs` returns programs;
+ * `/api/program-terms` returns terms. They shared a path while the Curriculum
+ * list was a list of terms.
+ */
+const PROGRAMS = "programs";
+const TERMS = "program-terms";
+
+/**
+ * The detail responses are not parsed against a contract: they nest the
+ * roster, the curriculum and a whole cost sheet, and those schemas would be
+ * written for the wire alone rather than for validating anything.
  */
 export interface ProgramTermDetailResponse {
   program: { id: string; code: string; name: string; credential: string; description: string };
@@ -22,24 +42,75 @@ export interface ProgramTermDetailResponse {
     currency: string;
     status: "planning" | "open" | "closed";
   };
-  curriculum: import("@/types").ProgramCurriculumEntry[];
-  roster: import("@/types").ProgramRosterEntry[];
+  curriculum: ProgramCurriculumEntry[];
+  roster: ProgramRosterEntry[];
 }
+
+export interface ProgramDetailResponse {
+  program: Program;
+  terms: ProgramTermSummary[];
+  studentCount: number;
+}
+
+/**
+ * What a create hands back.
+ *
+ * The whole graph, because none of it can be fetched afterwards (`AUD-036`):
+ * the store takes no writes, so the client caches this or the work is lost.
+ */
+export interface ProgramTermCreatedResponse {
+  term: ProgramTerm;
+  curriculum: ProgramCurriculumEntry[];
+  costSheet: ProgramCostSheet;
+  /** Course codes this write schedules into the semester for the first time. */
+  scheduled: string[];
+}
+
+export interface ProgramCreatedResponse extends ProgramTermCreatedResponse {
+  program: Program;
+}
+
+/* Programs --------------------------------------------------------------- */
+
+export async function fetchPrograms(
+  params: ProgramQueryParams,
+): Promise<PaginatedResult<ProgramSummary>> {
+  const raw = await api.get<unknown>(PROGRAMS, { query: { ...params } });
+  return programListSchema.parse(raw) as PaginatedResult<ProgramSummary>;
+}
+
+export async function fetchProgram(programId: string): Promise<ProgramDetailResponse> {
+  return api.get<ProgramDetailResponse>(apiPath(PROGRAMS, programId));
+}
+
+export async function createProgram(
+  input: ProgramCreateInput,
+): Promise<ProgramCreatedResponse> {
+  return api.post<ProgramCreatedResponse>(PROGRAMS, { body: input });
+}
+
+/* Program terms ---------------------------------------------------------- */
 
 export async function fetchProgramTerms(
   params: ProgramQueryParams,
 ): Promise<PaginatedResult<ProgramTermSummary>> {
-  const raw = await api.get<unknown>("programs", { query: { ...params } });
+  const raw = await api.get<unknown>(TERMS, { query: { ...params } });
   return programTermListSchema.parse(raw) as PaginatedResult<ProgramTermSummary>;
 }
 
 export async function fetchProgramTerm(id: string): Promise<ProgramTermDetailResponse> {
-  return api.get<ProgramTermDetailResponse>(apiPath("programs", id));
+  return api.get<ProgramTermDetailResponse>(apiPath(TERMS, id));
+}
+
+export async function createProgramTerm(
+  input: ProgramTermCreateInput,
+): Promise<ProgramTermCreatedResponse> {
+  return api.post<ProgramTermCreatedResponse>(TERMS, { body: input });
 }
 
 export async function updateProgramTerm(
   id: string,
   input: ProgramTermUpdateInput,
 ): Promise<ProgramTermDetailResponse> {
-  return api.patch<ProgramTermDetailResponse>(apiPath("programs", id), { body: input });
+  return api.patch<ProgramTermDetailResponse>(apiPath(TERMS, id), { body: input });
 }
