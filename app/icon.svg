@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- The `seal` variant of components/decor/sakura-mark.tsx, which is drawn to
+       read at 16px. Same five petal paths and the same center disc; the color is
+       inlined because a favicon is its own document and cannot see globals.css.
+       Light is the sakura-600 ramp step (#de2871), dark is the .dark value of
+       the seal token. Written without a double hyphen anywhere: that is illegal
+       inside an XML comment and a strict parser rejects the whole file. -->
+  <style>
+    svg { color: #de2871 }
+    @media (prefers-color-scheme: dark) { svg { color: #f0759f } }
+  </style>
+  <g fill="currentColor">
+    <path d="M24 24C18.4 22.4 14.6 17.6 15.6 12.4 16.5 7.7 20 4.6 24 3.2c-1.1 2.6-1.4 4.6-.9 6.2.4-.9 1-1.6 1.8-2.2-.3 1.6 0 3 .9 4.3 1.6 2.3 2.6 4.6 2.6 6.9 0 2.4-1.6 4.3-4.4 5.6Z"/>
+    <path d="M24 24C18.4 22.4 14.6 17.6 15.6 12.4 16.5 7.7 20 4.6 24 3.2c-1.1 2.6-1.4 4.6-.9 6.2.4-.9 1-1.6 1.8-2.2-.3 1.6 0 3 .9 4.3 1.6 2.3 2.6 4.6 2.6 6.9 0 2.4-1.6 4.3-4.4 5.6Z" transform="rotate(72 24 24)"/>
+    <path d="M24 24C18.4 22.4 14.6 17.6 15.6 12.4 16.5 7.7 20 4.6 24 3.2c-1.1 2.6-1.4 4.6-.9 6.2.4-.9 1-1.6 1.8-2.2-.3 1.6 0 3 .9 4.3 1.6 2.3 2.6 4.6 2.6 6.9 0 2.4-1.6 4.3-4.4 5.6Z" transform="rotate(144 24 24)"/>
+    <path d="M24 24C18.4 22.4 14.6 17.6 15.6 12.4 16.5 7.7 20 4.6 24 3.2c-1.1 2.6-1.4 4.6-.9 6.2.4-.9 1-1.6 1.8-2.2-.3 1.6 0 3 .9 4.3 1.6 2.3 2.6 4.6 2.6 6.9 0 2.4-1.6 4.3-4.4 5.6Z" transform="rotate(216 24 24)"/>
+    <path d="M24 24C18.4 22.4 14.6 17.6 15.6 12.4 16.5 7.7 20 4.6 24 3.2c-1.1 2.6-1.4 4.6-.9 6.2.4-.9 1-1.6 1.8-2.2-.3 1.6 0 3 .9 4.3 1.6 2.3 2.6 4.6 2.6 6.9 0 2.4-1.6 4.3-4.4 5.6Z" transform="rotate(288 24 24)"/>
+  </g>
+  <circle cx="24" cy="24" r="3.1" fill="currentColor" opacity="0.55"/>
+</svg>
