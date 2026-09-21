@@ -13,6 +13,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  ENROLLMENT_STATUS_LABEL,
+  ENROLLMENT_STATUS_TONE,
+} from "@/features/enrollment/constants";
 import { Demo } from "../_components/demo";
 
 /**
@@ -119,7 +123,7 @@ export function AccessibilitySection() {
               {
                 rule: "Reduced motion is honored globally",
                 detail:
-                  "One rule in globals.css, with a single carve-out for spinners. A component writing its own media query is how one surface honors the preference and eleven quietly ignore it.",
+                  "One rule in globals.css, with a single carve-out for the spinner inside a pending button. Foundations → Reduced motion states the rule and reads your own setting back to you.",
               },
             ].map((item) => (
               <div
@@ -361,10 +365,15 @@ export function AccessibilitySection() {
             note="Tone and dot are redundant. Remove the color entirely and the meaning survives."
           >
             <div className="flex flex-wrap gap-1.5">
-              <StatusBadge tone="success" label="Enrolled" />
-              <StatusBadge tone="warning" label="Pending" />
-              <StatusBadge tone="error" label="Dropped" />
-              <StatusBadge tone="neutral" label="Draft" />
+              {(["enrolled", "pending", "dropped", "completed"] as const).map(
+                (status) => (
+                  <StatusBadge
+                    key={status}
+                    tone={ENROLLMENT_STATUS_TONE[status]}
+                    label={ENROLLMENT_STATUS_LABEL[status]}
+                  />
+                ),
+              )}
             </div>
           </Demo>
 

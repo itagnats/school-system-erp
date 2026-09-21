@@ -1,6 +1,5 @@
-import { Flower2 } from "lucide-react";
 import { PetalCorner, SakuraMark } from "@/components/decor";
-import { Section, StatCard, type StatTone } from "@/components/shared";
+import { Section } from "@/components/shared";
 import { Demo, SpecRow } from "../_components/demo";
 import { Swatch } from "../_components/swatch";
 
@@ -22,36 +21,17 @@ const SEMANTIC_TOKENS = [
 ];
 
 const STATUS_TOKENS = [
-  { token: "success", label: "Enrolled, approved" },
+  { token: "success", label: "Active, approved" },
   { token: "success-soft", label: "Badge ground" },
   { token: "warning", label: "Pending, review" },
   { token: "warning-soft", label: "Badge ground" },
   { token: "error", label: "Dropped, failed" },
   { token: "error-soft", label: "Badge ground" },
-  { token: "info", label: "Informational" },
+  { token: "info", label: "Enrolled" },
   { token: "info-soft", label: "Badge ground" },
 ];
 
 const RAMP_STEPS = ["50", "100", "200", "300", "400", "500", "600", "700", "800", "900"];
-
-/**
- * The four tones, shown on the component that takes them.
- *
- * This grid used to hand-build a card out of the tone utilities. That copy had
- * drifted: it chipped the icon with `bg-white/70`, which `StatCard` had already
- * moved off because white has no dark value and composited to a near-white pill
- * at about 1.5:1 on the dusk grounds. Documenting a token on a replica of the
- * component means the documentation can be wrong about the component.
- */
-const CARD_TONES: StatTone[] = ["pink", "lavender", "blue", "green"];
-
-const TONE_LABEL: Record<StatTone, string> = {
-  plain: "Plain",
-  pink: "Pink",
-  lavender: "Lavender",
-  blue: "Blue",
-  green: "Green",
-};
 
 export function FoundationsSection() {
   return (
@@ -122,7 +102,7 @@ export function FoundationsSection() {
 
       <Section id="status-tokens"
         title="Status tokens"
-        description="Pastel soft pairs, each deepened until its text clears 4.5:1 — including against the tinted card grounds, which cost about 0.8 of a ratio point compared with white. Warning is the one status with a near-black foreground, because white on amber cannot reach 4.5:1 without turning the amber brown. Status is never communicated by color alone: the label always states it in words."
+        description="Pastel soft pairs, each deepened until its text clears 4.5:1 — including against the tinted card grounds, which are a measurably harder ground than white. Warning is the one status with a near-black foreground, because white on amber cannot reach 4.5:1 without turning the amber brown. Status is never communicated by color alone: the label always states it in words. Foundations → Accessibility carries what a tint actually costs, and the table computed from the shipped stylesheet."
       >
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {STATUS_TOKENS.map((t) => (
@@ -275,32 +255,6 @@ export function FoundationsSection() {
               <div className="px-2 py-1.5 text-xs">Laboratory</div>
             </div>
           </Demo>
-        </div>
-      </Section>
-
-      <Section
-        id="card-tones"
-        title="Card tones"
-        description="Four pastel grounds a stat card can take, each with an accent for its icon chip. Rendered by StatCard itself rather than by a copy of it, so a tone cannot be documented as something the component does not do. A tone is grouping, not meaning: it makes a row of metrics read as a set, and anything that has to communicate a state uses a status badge instead."
-      >
-        <div className="flex flex-col gap-3">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {CARD_TONES.map((tone) => (
-              <StatCard
-                key={tone}
-                tone={tone}
-                label={TONE_LABEL[tone]}
-                value="128"
-                icon={Flower2}
-              />
-            ))}
-          </div>
-          <p className="max-w-prose text-xs text-muted-foreground">
-            The muted label is checked against every tone, not only against white: the
-            tinted grounds cost about 0.8 of a contrast ratio point, which is why
-            <code className="mx-1">--muted-foreground</code>
-            is a step deeper than it looks like it needs to be.
-          </p>
         </div>
       </Section>
 

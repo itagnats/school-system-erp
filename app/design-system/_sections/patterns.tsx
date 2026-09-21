@@ -1,6 +1,7 @@
 "use client";
 
 import type { PrimeColumnDef } from "@/components/data-table";
+import type { LucideIcon } from "lucide-react";
 import { BookOpen, Eye, Pencil, Plus, Trash2, TrendingUp, UserPlus, Users, UsersRound } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -35,10 +36,16 @@ import {
   Section,
   StatCard,
   StatusBadge,
+  type StatTone,
 } from "@/components/shared";
+import {
+  ENROLLMENT_STATUS_LABEL,
+  ENROLLMENT_STATUS_TONE,
+} from "@/features/enrollment/constants";
 import { Button } from "@/components/ui/button";
 import { HttpError } from "@/lib/api";
 import { formatScore } from "@/lib/utils";
+import { ENROLLMENT_STATUSES, type EnrollmentStatus } from "@/types";
 import { Demo } from "../_components/demo";
 
 /** Fictional documentation rows. Never real student data (scaffold.md §12). */
@@ -48,7 +55,7 @@ interface DemoRow {
   name: string;
   group: string;
   score: number;
-  status: "enrolled" | "active" | "pending" | "completed" | "dropped";
+  status: EnrollmentStatus;
 }
 
 type BoundaryState = "loading" | "success" | "empty" | "error";
@@ -73,20 +80,62 @@ const BOUNDARY_DATA: Record<BoundaryState, DemoRow[] | undefined> = {
   success: DEMO_ROWS,
 };
 
-/**
- * Status to tone mapping.
+/*
+ * The status vocabulary is read from features/enrollment/constants.ts rather
+ * than restated here. That is the contract this section documents: StatusBadge
+ * takes a tone and a label and knows no domain words, and the mapping from one
+ * to the other belongs to the feature that owns the status.
  *
- * In a real module this lives in features/<name>/constants.ts. It is inlined
- * here only to document the contract: StatusBadge takes a tone and a label, and
- * the domain vocabulary stays outside the shared component.
+ * It used to be an inlined copy, with a comment explaining that the copy was
+ * deliberate. The copy was right and four badges elsewhere on this page were
+ * not — Enrolled rendered as success in three places against the info the
+ * application actually uses, because the Foundations swatch for --success was
+ * labeled "Enrolled". A documentation page that hand-picks a tone is a second
+ * opinion about a domain it does not own.
  */
-const STATUS_TONE = {
-  enrolled: { tone: "info", label: "Enrolled" },
-  active: { tone: "success", label: "Active" },
-  pending: { tone: "warning", label: "Pending" },
-  completed: { tone: "neutral", label: "Completed" },
-  dropped: { tone: "error", label: "Dropped" },
-} as const;
+
+/**
+ * The dashboard set, one card per tone.
+ *
+ * Keyed as a Record over StatTone so a fifth tone added to the component fails
+ * to compile here rather than quietly going undocumented. That guard used to
+ * live on the Foundations card-tone grid, which was deleted on 2026-09-21 for
+ * rendering the same four cards this demo already renders; it moved here so
+ * the check survived the section that carried it.
+ *
+ * `plain` is excluded because it is the absence of a tone, and the demo below
+ * is where it belongs.
+ */
+const TONE_CARDS: Record<
+  Exclude<StatTone, "plain">,
+  {
+    label: string;
+    value: string;
+    icon: LucideIcon;
+    trend?: "up";
+    trendValue?: string;
+    hint: string;
+  }
+> = {
+  pink: {
+    label: "Total students", value: "128", icon: Users,
+    trend: "up", trendValue: "12%", hint: "from last semester",
+  },
+  lavender: {
+    label: "Courses", value: "12", icon: BookOpen,
+    trend: "up", trendValue: "2 new", hint: "courses",
+  },
+  blue: {
+    label: "Evaluation groups", value: "8", icon: UsersRound,
+    hint: "all groups active",
+  },
+  green: {
+    label: "Average score", value: "88.4", icon: TrendingUp,
+    trend: "up", trendValue: "4.3", hint: "from last semester",
+  },
+};
+
+const TONE_KEYS = Object.keys(TONE_CARDS) as Exclude<StatTone, "plain">[];
 
 /** The demo table's optional columns. Identity and status stay put. */
 const DEMO_OPTIONAL_COLUMNS: HideableColumn[] = [
@@ -141,10 +190,12 @@ const columns: PrimeColumnDef<DemoRow>[] = [
       accessorKey: "status",
       enableSorting: false,
       header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
-      cell: ({ row }) => {
-        const mapped = STATUS_TONE[row.original.status];
-        return <StatusBadge tone={mapped.tone} label={mapped.label} />;
-      },
+      cell: ({ row }) => (
+        <StatusBadge
+          tone={ENROLLMENT_STATUS_TONE[row.original.status]}
+          label={ENROLLMENT_STATUS_LABEL[row.original.status]}
+        />
+      ),
     },
     {
       id: "actions",
@@ -197,7 +248,7 @@ const columns: PrimeColumnDef<DemoRow>[] = [
               <>
                 <StatusBadge tone="accent" label="IT101" showDot={false} />
                 <StatusBadge tone="neutral" label="202602" showDot={false} />
-                <StatusBadge tone="success" label="Active" />
+                <StatusBadge tone={ENROLLMENT_STATUS_TONE.active} label={ENROLLMENT_STATUS_LABEL.active} />
               </>
             }
             actions={
@@ -215,47 +266,16 @@ const columns: PrimeColumnDef<DemoRow>[] = [
         </div>
       </Section>
 
-      <Section id="stat-cards" title="Stat cards" description="Dashboard and detail metrics. Trend direction and whether it is good news are separate inputs, and the pastel tone is grouping rather than meaning.">
+      <Section id="stat-cards" title="Stat cards" description="Dashboard and detail metrics. Trend direction and whether it is good news are separate inputs.">
         <div className="flex flex-col gap-4">
           <Demo
             title="Tones"
-            note="The dashboard set. A tone groups the row visually and carries no meaning of its own, so the same four are safe to reuse on any screen."
+            note="The four pastel grounds, --tone-pink through --tone-green, each with its own accent for the icon chip. A tone is grouping, not meaning: it makes a row of metrics read as a set, and anything that has to communicate a state uses a status badge instead. This is the only place the tones are shown."
           >
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard
-                tone="pink"
-                label="Total students"
-                value="128"
-                icon={Users}
-                trend="up"
-                trendValue="12%"
-                hint="from last semester"
-              />
-              <StatCard
-                tone="lavender"
-                label="Courses"
-                value="12"
-                icon={BookOpen}
-                trend="up"
-                trendValue="2 new"
-                hint="courses"
-              />
-              <StatCard
-                tone="blue"
-                label="Evaluation groups"
-                value="8"
-                icon={UsersRound}
-                hint="all groups active"
-              />
-              <StatCard
-                tone="green"
-                label="Average score"
-                value="88.4"
-                icon={TrendingUp}
-                trend="up"
-                trendValue="4.3"
-                hint="from last semester"
-              />
+              {TONE_KEYS.map((tone) => (
+                <StatCard key={tone} tone={tone} {...TONE_CARDS[tone]} />
+              ))}
             </div>
           </Demo>
 
@@ -273,21 +293,37 @@ const columns: PrimeColumnDef<DemoRow>[] = [
         </div>
       </Section>
 
-      <Section id="status-badges" title="Status badges" description="Tone plus a written label. Color never carries the meaning on its own.">
+      <Section
+        id="status-badges"
+        title="Status badges"
+        description="Tone plus a written label. Color never carries the meaning on its own — Dropped and Cancelled share the error tone and never the word, because the difference matters to a registrar and a color cannot carry it."
+      >
         <div className="flex flex-col gap-3">
+          {/* The whole enrollment lifecycle, read from the feature that owns it.
+              Six statuses over five tones, so the shared-tone pair the
+              description argues about is visible rather than asserted. */}
           <div className="flex flex-wrap items-center gap-1.5">
-            <StatusBadge tone="warning" label="Pending" />
-            <StatusBadge tone="info" label="Enrolled" />
-            <StatusBadge tone="success" label="Active" />
-            <StatusBadge tone="neutral" label="Completed" />
-            <StatusBadge tone="error" label="Dropped" />
-            <StatusBadge tone="error" label="Cancelled" />
+            {ENROLLMENT_STATUSES.map((status) => (
+              <StatusBadge
+                key={status}
+                tone={ENROLLMENT_STATUS_TONE[status]}
+                label={ENROLLMENT_STATUS_LABEL[status]}
+              />
+            ))}
           </div>
+          {/* The two variants, on statuses the map already placed, so this row
+              documents the component rather than inventing more vocabulary. */}
           <div className="flex flex-wrap items-center gap-1.5">
-            <StatusBadge variant="outline" tone="accent" label="Draft" />
-            <StatusBadge variant="outline" tone="warning" label="In review" />
-            <StatusBadge variant="outline" tone="success" label="Approved" />
-            <StatusBadge tone="accent" label="Grade A" showDot={false} />
+            <StatusBadge
+              variant="outline"
+              tone={ENROLLMENT_STATUS_TONE.enrolled}
+              label={ENROLLMENT_STATUS_LABEL.enrolled}
+            />
+            <StatusBadge
+              tone={ENROLLMENT_STATUS_TONE.active}
+              label={ENROLLMENT_STATUS_LABEL.active}
+              showDot={false}
+            />
           </div>
         </div>
       </Section>
@@ -374,7 +410,7 @@ const columns: PrimeColumnDef<DemoRow>[] = [
             { label: "Credits", value: <span data-numeric>3</span> },
             { label: "Evaluation group", value: "Group A" },
             { label: "Instructor", value: "—" },
-            { label: "Status", value: <StatusBadge tone="success" label="Active" /> },
+            { label: "Status", value: <StatusBadge tone={ENROLLMENT_STATUS_TONE.active} label={ENROLLMENT_STATUS_LABEL.active} /> },
             {
               label: "Description",
               wide: true,

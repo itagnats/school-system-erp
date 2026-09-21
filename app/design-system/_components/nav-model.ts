@@ -34,7 +34,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "radius", label: "Radius" },
       { id: "elevation", label: "Elevation" },
       { id: "structure", label: "Structure" },
-      { id: "card-tones", label: "Card tones" },
       { id: "decoration", label: "Decoration" },
       { id: "motion", label: "Motion" },
       { id: "motion-usage", label: "Motion usage" },

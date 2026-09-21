@@ -23,6 +23,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  ENROLLMENT_STATUS_LABEL,
+  ENROLLMENT_STATUS_TONE,
+} from "@/features/enrollment/constants";
 import { cn } from "@/lib/utils";
 import { Demo } from "../_components/demo";
 import { PendingButtonDemo } from "../_components/state-lab";
@@ -94,7 +98,7 @@ export function StatesSection() {
             },
             {
               q: "Is something wrong?",
-              a: "aria-invalid drives the treatment. The red border is a consequence of the attribute rather than a class someone remembered to add, so the error is always announced as well as shown.",
+              a: "aria-invalid drives the treatment, so the red border cannot be drawn without the error also being announced. Foundations → Accessibility has the wiring, beside the placeholder-as-label version that gets it wrong.",
             },
             {
               q: "Is something happening?",
@@ -354,7 +358,10 @@ export function StatesSection() {
                 <TableCell>Student 001</TableCell>
                 <TableCell>Group A</TableCell>
                 <TableCell>
-                  <StatusBadge tone="success" label="Enrolled" />
+                  <StatusBadge
+                    tone={ENROLLMENT_STATUS_TONE.enrolled}
+                    label={ENROLLMENT_STATUS_LABEL.enrolled}
+                  />
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
                   Default — hover it
@@ -364,7 +371,10 @@ export function StatesSection() {
                 <TableCell>Student 002</TableCell>
                 <TableCell>Group A</TableCell>
                 <TableCell>
-                  <StatusBadge tone="warning" label="Pending" />
+                  <StatusBadge
+                    tone={ENROLLMENT_STATUS_TONE.pending}
+                    label={ENROLLMENT_STATUS_LABEL.pending}
+                  />
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
                   Hover (replica)
@@ -374,7 +384,10 @@ export function StatesSection() {
                 <TableCell>Student 003</TableCell>
                 <TableCell>Group B</TableCell>
                 <TableCell>
-                  <StatusBadge tone="success" label="Enrolled" />
+                  <StatusBadge
+                    tone={ENROLLMENT_STATUS_TONE.enrolled}
+                    label={ENROLLMENT_STATUS_LABEL.enrolled}
+                  />
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
                   Selected
@@ -384,7 +397,10 @@ export function StatesSection() {
                 <TableCell>Student 004</TableCell>
                 <TableCell>Group B</TableCell>
                 <TableCell>
-                  <StatusBadge tone="error" label="Dropped" />
+                  <StatusBadge
+                    tone={ENROLLMENT_STATUS_TONE.dropped}
+                    label={ENROLLMENT_STATUS_LABEL.dropped}
+                  />
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
                   Inactive record
