@@ -174,13 +174,18 @@ export function StatesSection() {
             <State label="Focus" hint="Click into it.">
               <Input defaultValue="IT101" style={{ height: "var(--field-h)" }} />
             </State>
-            <State label="Invalid" hint="aria-invalid, plus a message below">
-              <Input
-                defaultValue="IT-1"
-                aria-invalid
-                aria-describedby="ds-state-error"
-                style={{ height: "var(--field-h)" }}
-              />
+            <State label="Invalid" hint="aria-invalid, plus the message it points at">
+              <div className="flex flex-col gap-1.5">
+                <Input
+                  defaultValue="IT-1"
+                  aria-invalid
+                  aria-describedby="ds-state-field-error"
+                  style={{ height: "var(--field-h)" }}
+                />
+                <span id="ds-state-field-error" className="text-xs text-error">
+                  Three letters and three digits.
+                </span>
+              </div>
             </State>
             <State label="Read-only" hint="Shows a value that is not editable here">
               <Input
@@ -224,7 +229,7 @@ export function StatesSection() {
             </State>
           </Matrix>
 
-          <p id="ds-state-error" className="max-w-prose text-xs text-error">
+          <p className="max-w-prose text-xs text-muted-foreground">
             Read-only and disabled are not interchangeable. Read-only says
             &ldquo;this value is real but is not edited here&rdquo; and stays in the tab
             order and in the submitted payload; disabled says &ldquo;this does not
@@ -409,28 +414,6 @@ export function StatesSection() {
             </TableBody>
           </Table>
         </div>
-      </Section>
-
-      <Section
-        id="state-screen"
-        title="Screen states"
-        description="Loading, empty and error belong to the screen rather than to a control, and they already have components. This section is only about the controls."
-      >
-        <p className="max-w-prose text-xs text-muted-foreground">
-          Every data-driven screen in PRIME implements all four of loading, success,
-          empty and error — no blank screens. Those are
-          <code className="mx-1">LoadingState</code>,
-          <code className="mx-1">EmptyState</code> and
-          <code className="mx-1">ErrorState</code>, wired together by
-          <code className="mx-1">QueryBoundary</code>, and they are documented under
-          <a
-            className="mx-1 text-primary-strong underline-offset-4 hover:underline"
-            href="#data-states"
-          >
-            Patterns → Data states
-          </a>
-          rather than repeated here.
-        </p>
       </Section>
     </div>
   );

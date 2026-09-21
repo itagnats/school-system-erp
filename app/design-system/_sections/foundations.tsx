@@ -102,7 +102,7 @@ export function FoundationsSection() {
 
       <Section id="status-tokens"
         title="Status tokens"
-        description="Pastel soft pairs, each deepened until its text clears 4.5:1 — including against the tinted card grounds, which are a measurably harder ground than white. Warning is the one status with a near-black foreground, because white on amber cannot reach 4.5:1 without turning the amber brown. Status is never communicated by color alone: the label always states it in words. Foundations → Accessibility carries what a tint actually costs, and the table computed from the shipped stylesheet."
+        description="Pastel soft pairs, each deepened until its text clears 4.5:1 — including against the tinted card grounds, which are a measurably harder ground than white. Warning is the one status with a near-black foreground, because white on amber cannot reach 4.5:1 without turning the amber brown. Foundations → Accessibility carries what a tint actually costs, the table computed from the shipped stylesheet, and why a status is never color alone."
       >
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {STATUS_TOKENS.map((t) => (

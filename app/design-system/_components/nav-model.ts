@@ -102,7 +102,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "filter-data-table", label: "Filter bar & data table" },
       { id: "detail-list", label: "Detail list" },
       { id: "data-states", label: "Data states" },
-      { id: "query-boundary", label: "Query boundary" },
       { id: "pagination", label: "Pagination" },
       { id: "form-layout", label: "Form layout" },
       { id: "panel", label: "Panel" },
@@ -114,14 +113,13 @@ export const NAV_GROUPS: NavGroup[] = [
     id: "group-states",
     label: "States",
     blurb:
-      "What a control looks like in every condition it can be in. Hover and press cannot be shown in a static cell, so those are marked as replicas rather than passed off as live.",
+      "What a control looks like in every condition it can be in. Hover and press cannot be shown in a static cell, so those are marked as replicas rather than passed off as live. Screen states — loading, empty and error — belong to the screen rather than to a control, and live under Patterns → Data states.",
     items: [
       { id: "state-principles", label: "How a state reads" },
       { id: "state-button", label: "Button" },
       { id: "state-field", label: "Text fields" },
       { id: "state-choice", label: "Choice controls" },
       { id: "state-row", label: "Table rows" },
-      { id: "state-screen", label: "Screen states" },
     ],
   },
   {

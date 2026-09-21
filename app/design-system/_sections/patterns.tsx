@@ -17,7 +17,6 @@ import {
 import {
   DetailSkeleton,
   EmptyState,
-  ErrorState,
   FormSkeleton,
   LoadingState,
   QueryBoundary,
@@ -423,128 +422,115 @@ const columns: PrimeColumnDef<DemoRow>[] = [
 
       <Section id="data-states"
         title="Data states"
-        description="Every data-driven surface implements all four. QueryBoundary resolves them in one place so none is quietly missing."
+        description="Every data-driven surface implements all four — loading, success, empty and error. QueryBoundary resolves them in one place, which is how none of the four quietly goes missing: a feature page wraps its data region in it instead of writing the same branches again, differently, each time."
       >
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Demo title="Loading" note="Prefer a shape-matched skeleton over a spinner where the result shape is known.">
-            <LoadingState compact />
-          </Demo>
-
-          <Demo title="Skeleton" note="Matches row height and cell padding, so nothing jumps when data lands.">
-            <TableSkeleton rows={3} columns={4} />
-          </Demo>
-
-          <Demo title="Empty" note="Collection has no records. Offer the create action.">
-            <EmptyState
-              title="No cost sheets yet"
-              description="Create a cost sheet for this course and semester."
-              action={
-                <Button size="sm" className="gap-1.5">
-                  <Plus className="size-3.5" aria-hidden />
-                  New cost sheet
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {(["loading", "success", "empty", "error"] as const).map((state) => (
+                <Button
+                  key={state}
+                  size="xs"
+                  variant={boundaryState === state ? "default" : "outline"}
+                  onClick={() => setBoundaryState(state)}
+                  className="capitalize"
+                >
+                  {state}
                 </Button>
-              }
-            />
-          </Demo>
-
-          <Demo title="No results" note="Filters excluded everything. Offer to clear them, never to create.">
-            <EmptyState
-              variant="no-results"
-              title="No matching records"
-              description="Try adjusting the search or filters."
-              action={
-                <Button size="sm" variant="outline">
-                  Clear filters
-                </Button>
-              }
-            />
-          </Demo>
-
-          <Demo title="Error" note="The message comes from the error mapper. A raw server body is never rendered.">
-            <ErrorState
-              error={new HttpError("", 500)}
-              onRetry={() => toast("Retrying")}
-              compact
-            />
-          </Demo>
-
-          <Demo title="Stat skeleton">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <StatCardSkeleton />
-              <StatCardSkeleton />
+              ))}
             </div>
-          </Demo>
 
-          <Demo title="Form skeleton" note="Field placeholders at --field-h, so the form does not resize on load.">
-            <FormSkeleton fields={3} />
-          </Demo>
-
-          <Demo
-            title="Detail skeleton"
-            note="A whole detail page: title, stat row and table. Use it as the loading view for a record screen."
-            className="lg:col-span-2"
-          >
-            <DetailSkeleton />
-          </Demo>
-        </div>
-      </Section>
-
-      <Section id="query-boundary"
-        title="Query boundary"
-        description="Resolves loading, success, empty and error in one place. Feature pages wrap a data region in this instead of writing the same four branches over and over, which is how one of the four quietly goes missing."
-      >
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-1.5">
-            {(["loading", "success", "empty", "error"] as const).map((state) => (
-              <Button
-                key={state}
-                size="xs"
-                variant={boundaryState === state ? "default" : "outline"}
-                onClick={() => setBoundaryState(state)}
-                className="capitalize"
+            <div className="rounded-md border border-hairline bg-card">
+              <QueryBoundary
+                data={BOUNDARY_DATA[boundaryState]}
+                isLoading={boundaryState === "loading"}
+                error={boundaryState === "error" ? new HttpError("", 503) : undefined}
+                onRetry={() => setBoundaryState("success")}
+                loading={<TableSkeleton rows={3} columns={3} />}
+                empty={
+                  <EmptyState
+                    title="No students enrolled"
+                    description="Add a student to this course and semester to get started."
+                    action={
+                      <Button size="sm" className="gap-1.5">
+                        <UserPlus className="size-3.5" aria-hidden />
+                        Add student
+                      </Button>
+                    }
+                  />
+                }
               >
-                {state}
-              </Button>
-            ))}
+                {(rows) => (
+                  <div className="divide-y divide-hairline">
+                    {rows.map((row) => (
+                      <div
+                        key={row.id}
+                        className="flex items-center justify-between px-3.5 text-sm"
+                        style={{ height: "var(--row-h)" }}
+                      >
+                        <span>{row.name}</span>
+                        <span className="text-muted-foreground" data-numeric>
+                          {formatScore(row.score)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </QueryBoundary>
+            </div>
+
+            <p className="max-w-prose text-xs text-muted-foreground">
+              Those four buttons drive the real component, so loading, empty and
+              error are the live branches rather than pictures of them. What
+              follows is what the loading branch is handed, and the one state
+              QueryBoundary cannot reach on its own.
+            </p>
           </div>
 
-          <div className="rounded-md border border-hairline bg-card">
-            <QueryBoundary
-              data={BOUNDARY_DATA[boundaryState]}
-              isLoading={boundaryState === "loading"}
-              error={boundaryState === "error" ? new HttpError("", 503) : undefined}
-              onRetry={() => setBoundaryState("success")}
-              loading={<TableSkeleton rows={3} columns={3} />}
-              empty={
-                <EmptyState
-                  title="No students enrolled"
-                  description="Add a student to this course and semester to get started."
-                  action={
-                    <Button size="sm" className="gap-1.5">
-                      <UserPlus className="size-3.5" aria-hidden />
-                      Add student
-                    </Button>
-                  }
-                />
-              }
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Demo title="Table skeleton" note="Matches row height and cell padding, so nothing jumps when data lands.">
+              <TableSkeleton rows={3} columns={4} />
+            </Demo>
+
+            <Demo title="Stat skeleton" note="One block per card, at the card's own height.">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <StatCardSkeleton />
+                <StatCardSkeleton />
+              </div>
+            </Demo>
+
+            <Demo title="Form skeleton" note="Field placeholders at --field-h, so the form does not resize on load.">
+              <FormSkeleton fields={3} />
+            </Demo>
+
+            <Demo title="Spinner" note="LoadingState is for the case the skeletons cannot serve: a result whose shape is not known until it arrives. Where the shape is known, a shape-matched skeleton is the better wait.">
+              <LoadingState compact />
+            </Demo>
+
+            <Demo
+              title="Detail skeleton"
+              note="A whole detail page: title, stat row and table. Use it as the loading view for a record screen."
+              className="lg:col-span-2"
             >
-              {(rows) => (
-                <div className="divide-y divide-hairline">
-                  {rows.map((row) => (
-                    <div
-                      key={row.id}
-                      className="flex items-center justify-between px-3.5 text-sm"
-                      style={{ height: "var(--row-h)" }}
-                    >
-                      <span>{row.name}</span>
-                      <span className="text-muted-foreground" data-numeric>
-                        {formatScore(row.score)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </QueryBoundary>
+              <DetailSkeleton />
+            </Demo>
+
+            <Demo
+              title="No results"
+              note="The empty branch above is a collection with no records, and it offers the create action. This is the other empty: filters excluded everything, so the offer is to clear them. Offering to create here would answer a question the user did not ask."
+              className="lg:col-span-2"
+            >
+              <EmptyState
+                variant="no-results"
+                title="No matching records"
+                description="Try adjusting the search or filters."
+                action={
+                  <Button size="sm" variant="outline">
+                    Clear filters
+                  </Button>
+                }
+              />
+            </Demo>
           </div>
         </div>
       </Section>

@@ -248,7 +248,7 @@ export function PrimitivesSection() {
         description="Surfaces and inline markers. Card is the generic primitive; Section is the application panel built on the same idea and is documented under Patterns."
       >
         <div className="grid gap-4 lg:grid-cols-2">
-          <Demo id="card" title="Card" note="Use Section for an application panel. Card is for standalone content.">
+          <Demo id="card" title="Card" note="CardAction sits in the header rather than the footer, so a card whose only control is one button needs no footer at all.">
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">IT101</CardTitle>

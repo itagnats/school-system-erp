@@ -113,7 +113,7 @@ const ANATOMIES: Anatomy[] = [
       { part: "PageHeader", note: "Actions marked data-print=\"hide\"." },
       { part: "Score arithmetic", note: "The weighted blend shown as arithmetic rather than as a single number. Showing the working is a product requirement, not a debugging aid." },
       { part: "Ranking with its scope", note: "Always stated: within the group, or within the course and semester." },
-      { part: "Print rule", note: "data-print=\"hide\" and data-decor both stripped. Petals do not belong on paper." },
+      { part: "Print rule", note: "One rule in globals.css does the stripping, so the marked chrome and the petal layer go together. A report is a record, not a brochure." },
     ],
   },
 ];
@@ -189,7 +189,7 @@ function LayerDiagram() {
   const layers: { name: string; detail: string; badge?: ReactNode }[] = [
     { name: "Design tokens", detail: "app/globals.css — color, type, spacing, radius, elevation, motion" },
     { name: "components/ui", detail: "Generic primitives on the Radix base. No domain vocabulary." },
-    { name: "components/decor", detail: "The petal layer. Inert: aria-hidden, pointer-events-none, stripped in print." },
+    { name: "components/decor", detail: "The petal layer. Inert, and stripped in print." },
     { name: "components/data-viz", detail: "The only place recharts is imported. Takes { label, value }." },
     { name: "components/shared", detail: "Application patterns: page header, filter bar, data table, status badge, states." },
     { name: "features/*", detail: "Self-contained domains. Business rules live here and nowhere above." },

@@ -103,7 +103,7 @@ export function AccessibilitySection() {
               {
                 rule: "Status is never color alone",
                 detail:
-                  "StatusBadge always renders the word. The dot and the tint are redundant encodings of something the label already says, so a color-blind reader loses nothing.",
+                  "StatusBadge always renders the word. Beyond color, below, shows what is left when the color is taken away.",
               },
               {
                 rule: "Errors are announced, not just drawn",
@@ -118,7 +118,7 @@ export function AccessibilitySection() {
               {
                 rule: "Decoration is inert",
                 detail:
-                  "Everything in components/decor is aria-hidden and pointer-events-none, and tagged data-decor so the print rule strips it. The petal layer is invisible to assistive technology and to paper.",
+                  "The petal layer is invisible to assistive technology and to paper, and unreachable by a pointer. Foundations → Decoration renders it and carries the three attributes that make it so.",
               },
               {
                 rule: "Reduced motion is honored globally",
